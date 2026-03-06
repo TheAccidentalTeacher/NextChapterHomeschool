@@ -45,6 +45,12 @@ export default async function DmLayout({
             >
               Names
             </Link>
+            <Link
+              href="/dm"
+              className="text-stone-400 transition hover:text-stone-200"
+            >
+              Games
+            </Link>
           </div>
           <div className="ml-auto text-xs text-stone-600">
             Teacher View

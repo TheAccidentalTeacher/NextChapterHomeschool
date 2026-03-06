@@ -1,0 +1,227 @@
+[
+  {
+    "id": "b-arch-1",
+    "round": "BUILD",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 1,
+    "epochMax": 5,
+    "promptText": "Your people have settled new land, but shelter is scarce. Where will you focus your first construction efforts?",
+    "options": [
+      { "id": "a", "label": "Build a Farm", "description": "Secure food production for your growing population" },
+      { "id": "b", "label": "Build a Granary", "description": "Protect existing food stores from spoilage" },
+      { "id": "c", "label": "Build Walls", "description": "Defense first — protect what you have" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Early civilizations in Mesopotamia and the Indus Valley faced the same choice: invest in agriculture to feed more people, or fortify against raiders. The Sumerians chose irrigation canals first, which led to food surpluses that funded everything else.",
+    "scaffolding6th": "As the Architect, I propose building [choice] because in early civilizations like [place], we learned that [fact]. This will help our civilization by [outcome].",
+    "scaffolding78": "What infrastructure does your civilization need most urgently? What historical example supports prioritizing this type of building? What are the risks of delaying other construction?"
+  },
+  {
+    "id": "b-arch-2",
+    "round": "BUILD",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 4,
+    "epochMax": 10,
+    "terrainConditions": ["river_valley", "coastal"],
+    "promptText": "Your river-fed lands are productive but vulnerable to drought. An ambitious water project has been proposed.",
+    "options": [
+      { "id": "a", "label": "Build an Aqueduct", "description": "Permanent drought immunity for this sub-zone" },
+      { "id": "b", "label": "Expand Farms instead", "description": "More food now, deal with drought later" },
+      { "id": "c", "label": "Build a Market", "description": "Trade for water resources rather than build" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Roman aqueducts like the Pont du Gard carried water over 50 kilometers. The investment was enormous, but cities that had them thrived while others withered during dry seasons.",
+    "scaffolding6th": "As the Architect, I want to [choice] because the Romans showed us that [fact]. Our civilization will benefit because [outcome].",
+    "scaffolding78": "What is the long-term vs. short-term trade-off here? How did historical civilizations handle water infrastructure? What happens to your population if drought hits without preparation?"
+  },
+  {
+    "id": "b-arch-3",
+    "round": "BUILD",
+    "leadRole": "architect",
+    "domain": "military_infrastructure",
+    "epochMin": 6,
+    "epochMax": 15,
+    "civStateTags": ["war_tension", "vulnerable"],
+    "promptText": "Reports of hostile armies have reached your council. Your borders are exposed.",
+    "options": [
+      { "id": "a", "label": "Build Barracks", "description": "Reduce soldier costs and train troops faster" },
+      { "id": "b", "label": "Reinforce Walls", "description": "First attack each epoch absorbed at zero loss" },
+      { "id": "c", "label": "Build a Library", "description": "Invest in knowledge — tech advantage over brute force" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Great Wall of China and Hadrian's Wall in Britain were massive defensive investments. But the Mongols proved that no wall can stop a determined, innovative enemy. Some civilizations chose technological superiority instead.",
+    "scaffolding6th": "As the Architect, I choose to [choice] because history shows that [fact]. This protects our civilization by [outcome].",
+    "scaffolding78": "Is defense through walls or through military strength more effective historically? What examples support your reasoning? What happens if your enemy has technology you don't?"
+  },
+  {
+    "id": "e-merch-1",
+    "round": "EXPAND",
+    "leadRole": "merchant",
+    "domain": "trade",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Scouts report rich lands beyond your borders. But expanding costs resources. How will you grow?",
+    "options": [
+      { "id": "a", "label": "Send Scouts to explore", "description": "Reveal 3 hidden sub-zones through fog of war" },
+      { "id": "b", "label": "Claim adjacent territory", "description": "Expand your borders to resource-rich land" },
+      { "id": "c", "label": "Establish a trade route", "description": "Let merchants bring wealth without territorial risk" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Phoenicians expanded through trade networks spanning the Mediterranean, while Rome expanded through military conquest. Both became powerful, but through very different paths with different costs.",
+    "scaffolding6th": "As the Merchant, I propose [choice] because civilizations like [name] showed that [fact]. This will grow our reach by [outcome].",
+    "scaffolding78": "What is the risk-reward calculus of exploration vs. trade vs. territorial expansion? Which historical civilizations grew most successfully through each method?"
+  },
+  {
+    "id": "e-merch-2",
+    "round": "EXPAND",
+    "leadRole": "merchant",
+    "domain": "trade",
+    "epochMin": 5,
+    "epochMax": 15,
+    "civStateTags": ["contact_open"],
+    "promptText": "A neighboring civilization has resources you need. They've signaled willingness to negotiate.",
+    "options": [
+      { "id": "a", "label": "Propose a Trade Agreement", "description": "Steady resource exchange over multiple epochs" },
+      { "id": "b", "label": "Offer a Spot Trade", "description": "One-time exchange of surplus for what you need" },
+      { "id": "c", "label": "Impose an Embargo", "description": "Cut them off from your markets as leverage" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Silk Road created centuries of prosperity through sustained trade agreements. But Venice's trade embargoes against rivals showed that economic warfare could be as devastating as military conflict.",
+    "scaffolding6th": "As the Merchant, I want to [choice] because the [Silk Road/Venice example] teaches us that [fact]. Our economy will [outcome].",
+    "scaffolding78": "What are the diplomatic implications of each trade approach? How did historical trade networks like the Silk Road affect civilizations that participated vs. those excluded?"
+  },
+  {
+    "id": "d-dipl-1",
+    "round": "DEFINE",
+    "leadRole": "diplomat",
+    "domain": "governance",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "Your civilization needs its first law. What principle will define your people?",
+    "options": [
+      { "id": "a", "label": "Law of Hospitality", "description": "+Reach bonus, foreigners welcomed" },
+      { "id": "b", "label": "Law of the Land", "description": "+Food bonus, agricultural rights established" },
+      { "id": "c", "label": "Law of Arms", "description": "+Resilience bonus, militia required" },
+      { "id": "d", "label": "Law of Knowledge", "description": "+Legacy bonus, education mandated" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Hammurabi's Code in Babylon was one of the first written law systems. The choice of laws shaped civilizations for millennia — Athens chose democratic laws that prioritized individual rights, while Sparta chose military laws that prioritized collective defense.",
+    "scaffolding6th": "As the Diplomat, I propose the [law name] because in [historical civilization], their laws about [topic] led to [outcome]. This will define our people as [identity].",
+    "scaffolding78": "How do founding laws shape a civilization's identity and trajectory? What historical examples show the long-term consequences of different legal priorities?"
+  },
+  {
+    "id": "d-dipl-2",
+    "round": "DEFINE",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 5,
+    "epochMax": 15,
+    "civStateTags": ["war_tension"],
+    "promptText": "Tensions are rising with a neighboring civilization. War seemed inevitable — until their diplomat sent a message requesting talks.",
+    "options": [
+      { "id": "a", "label": "Accept peace talks", "description": "Negotiate terms to avoid war" },
+      { "id": "b", "label": "Demand tribute first", "description": "Show strength before negotiating" },
+      { "id": "c", "label": "Reject and prepare for war", "description": "Some conflicts can only be settled by force" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Peace of Westphalia (1648) ended decades of European war through diplomacy. But the Munich Agreement (1938) showed that appeasement can also fail catastrophically. Knowing when to fight and when to talk is one of history's hardest lessons.",
+    "scaffolding6th": "As the Diplomat, I believe we should [choice] because in history, [example] showed that [fact]. This decision will affect our civilization by [outcome].",
+    "scaffolding78": "When is diplomacy more effective than military action, and vice versa? What historical examples support your position? What are the risks of each path?"
+  },
+  {
+    "id": "def-war-1",
+    "round": "DEFEND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 1,
+    "epochMax": 15,
+    "promptText": "Raiders have been spotted near your borders. Your military advisor awaits your orders.",
+    "options": [
+      { "id": "a", "label": "Train new soldiers", "description": "Strengthen your standing army" },
+      { "id": "b", "label": "Fortify borders", "description": "Build defensive positions in vulnerable sub-zones" },
+      { "id": "c", "label": "Send a diplomatic warning", "description": "Show of force without committing troops" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Roman legions maintained standing armies at enormous cost, but it gave them rapid response capability. The Chinese invested in the Great Wall instead. Both strategies had strengths and vulnerabilities.",
+    "scaffolding6th": "As the Warlord, I order [choice] because [civilization] showed that [fact]. This will protect our people by [outcome].",
+    "scaffolding78": "What is the strategic difference between offensive and defensive military postures? How did different civilizations balance military readiness with economic cost?"
+  },
+  {
+    "id": "def-war-2",
+    "round": "DEFEND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 6,
+    "epochMax": 15,
+    "civStateTags": ["war_exhausted"],
+    "promptText": "Your armies are weary. War exhaustion grips the land. But threats remain at your borders.",
+    "options": [
+      { "id": "a", "label": "Rest and recover", "description": "Pull back troops, reduce exhaustion" },
+      { "id": "b", "label": "Hire mercenaries", "description": "Costly but avoids further exhaustion to your people" },
+      { "id": "c", "label": "Seek alliance", "description": "Share the defense burden with a neighbor" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "After the Peloponnesian War, Athens was so exhausted that it never recovered its former glory. Rome after the Third Century Crisis nearly collapsed from military overextension. Sometimes the bravest decision is knowing when to stop fighting.",
+    "scaffolding6th": "As the Warlord, I recommend [choice] because after wars like [example], civilizations that [action] were able to [outcome].",
+    "scaffolding78": "How does war exhaustion compound over time? What historical examples show civilizations that recovered from military exhaustion vs. those that didn't?"
+  },
+  {
+    "id": "d-lore-1",
+    "round": "DEFINE",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 1,
+    "epochMax": 15,
+    "promptText": "Your people gather around the fire. They ask: What creature guards our civilization?",
+    "options": [
+      { "id": "a", "label": "A great eagle", "description": "Symbol of vision and freedom — +Reach" },
+      { "id": "b", "label": "A mighty bear", "description": "Symbol of strength and protection — +Resilience" },
+      { "id": "c", "label": "A wise serpent", "description": "Symbol of knowledge and cunning — +Legacy" },
+      { "id": "d", "label": "A tireless ox", "description": "Symbol of labor and abundance — +Production" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Every civilization created mythology. The Romans had the she-wolf, Egypt had the sphinx, Aztecs had the feathered serpent Quetzalcoatl. These symbols became the identity of their peoples and influenced their values for centuries.",
+    "scaffolding6th": "As the Lorekeeper, I choose [creature] as our guardian because in [civilization], their symbol [name] represented [value]. Our creature will inspire our people to [outcome].",
+    "scaffolding78": "How do mythological figures reflect a civilization's values? What does your choice say about what your civilization prioritizes? How might this creature appear in future cultural artifacts?"
+  },
+  {
+    "id": "b-arch-4",
+    "round": "BUILD",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 8,
+    "epochMax": 15,
+    "civStateTags": ["wealthy", "high_population"],
+    "promptText": "Your civilization is prosperous. The people demand a monument worthy of their achievements.",
+    "options": [
+      { "id": "a", "label": "Begin a Wonder", "description": "Invest production toward a world marvel" },
+      { "id": "b", "label": "Build a Library", "description": "Permanent +25% Legacy — invest in knowledge" },
+      { "id": "c", "label": "Upgrade infrastructure", "description": "Improve existing buildings for efficiency" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Pyramids of Giza, the Colosseum, the Great Library of Alexandria — Wonders defined civilizations. But they were enormously expensive. Some historians argue the Pyramids' cost weakened Egypt's military, while the Library's knowledge preserved Greek thought for millennia.",
+    "scaffolding6th": "As the Architect, I propose [choice] because wonders like [example] showed that [fact]. This will shape our legacy by [outcome].",
+    "scaffolding78": "Is investing in monuments or practical infrastructure more valuable for a prosperous civilization? What does history tell us about the ROI of Wonders vs. military/economic investment?"
+  },
+  {
+    "id": "e-merch-3",
+    "round": "EXPAND",
+    "leadRole": "merchant",
+    "domain": "exploration",
+    "epochMin": 1,
+    "epochMax": 5,
+    "civStateTags": ["small_territory"],
+    "promptText": "Your civilization controls only its starting territory. The fog of war hides riches — and dangers — beyond.",
+    "options": [
+      { "id": "a", "label": "Deploy scouts aggressively", "description": "Reveal as much territory as possible" },
+      { "id": "b", "label": "Expand cautiously", "description": "Claim one adjacent sub-zone and fortify" },
+      { "id": "c", "label": "Focus inward", "description": "Build up home territory before looking outward" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Portuguese Age of Exploration sent ships into unknown waters, discovering new trade routes but at great risk. Meanwhile, China under the Ming Dynasty chose to focus inward, dismantling their exploration fleet. Both decisions shaped centuries of history.",
+    "scaffolding6th": "As the Merchant, I recommend [choice] because when [civilization] chose to [explore/stay], they [outcome]. Our territory will [benefit/risk].",
+    "scaffolding78": "What factors should determine how aggressively a civilization expands? How did the pace of expansion affect civilizations like Portugal, Spain, or Ming China?"
+  }
+]
