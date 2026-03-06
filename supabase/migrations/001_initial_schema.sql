@@ -65,7 +65,7 @@ create table team_members (
   team_id uuid not null references teams(id) on delete cascade,
   clerk_user_id text not null,
   display_name text not null,
-  current_role role_name not null,
+  assigned_role role_name not null,
   is_absent boolean not null default false,        -- Decision 71
   joined_at timestamptz not null default now(),
   unique(team_id, clerk_user_id)

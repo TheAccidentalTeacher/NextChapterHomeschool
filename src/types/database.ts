@@ -104,7 +104,7 @@ export interface TeamMember {
   team_id: string;
   clerk_user_id: string;
   display_name: string;
-  current_role: RoleName;
+  assigned_role: RoleName;
   is_absent: boolean;
   joined_at: string;
 }
