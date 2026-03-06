@@ -1,3 +1,9 @@
+// ============================================
+// PausedOverlay — Projector pause screen
+// Full-screen dark overlay with a pulsing
+// "⏸ PAUSED" message when the DM pauses.
+// ============================================
+
 "use client";
 
 interface PausedOverlayProps {

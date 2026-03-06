@@ -1,3 +1,10 @@
+// ============================================
+// RoutingPanel — Resource allocation splitter
+// Lets the leading-role student split earned
+// resources into spend / contribute / bank buckets
+// after each round. Decision 37: Resource routing.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

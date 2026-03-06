@@ -1,3 +1,9 @@
+// ============================================
+// SubmissionQueue — DM submission review grid
+// Live view of which roles on each team have
+// submitted vs. pending for the current round.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

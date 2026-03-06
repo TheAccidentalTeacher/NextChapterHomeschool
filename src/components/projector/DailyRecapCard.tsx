@@ -1,3 +1,9 @@
+// ============================================
+// DailyRecapCard — End-of-epoch recap display
+// Static card rendering "📜 Daily Recap" for a
+// given epoch/team on the projector screen.
+// ============================================
+
 "use client";
 
 interface DailyRecapCardProps {

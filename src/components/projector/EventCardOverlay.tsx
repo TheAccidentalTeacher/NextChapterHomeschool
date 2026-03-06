@@ -1,3 +1,10 @@
+// ============================================
+// EventCardOverlay — Global event projector card
+// Displays a global event as a stylized card
+// with emoji icon based on event type, then
+// auto-dismisses after the configured duration.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

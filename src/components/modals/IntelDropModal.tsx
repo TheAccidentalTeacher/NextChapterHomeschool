@@ -1,3 +1,10 @@
+// ============================================
+// IntelDropModal — Student private message viewer
+// Polls for DM "intel drops" and shows unread
+// messages one at a time with dismiss button.
+// Decision 60: DM intel drops for hidden info.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

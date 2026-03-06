@@ -1,3 +1,9 @@
+// ============================================
+// PopulationBar — Visual population progress bar
+// Shows growth/decline indicators with food context.
+// Decision 41/43: Population tied to food supply.
+// ============================================
+
 "use client";
 
 interface PopulationBarProps {

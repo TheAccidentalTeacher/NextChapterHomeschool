@@ -1,3 +1,19 @@
+// ============================================
+// GameMap — Interactive Leaflet map component
+// Decision 82: CartoDB dark tiles, region-based fog-of-war
+// Decision 87: Sub-zone territories with GeoJSON boundaries
+//
+// Renders the world map using react-leaflet with:
+//   - CartoDB Dark Matter tile layer
+//   - SubZoneLayer: GeoJSON polygons colored by team ownership
+//   - MarkerLayer: unit/building icons per sub-zone
+//   - FogState: hidden/revealed per sub-zone
+//   - Click handler for sub-zone selection
+//
+// Uses dynamic import (ssr: false) in all parent components
+// because Leaflet requires browser APIs (window, document).
+// ============================================
+
 "use client";
 
 import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";

@@ -1,3 +1,11 @@
+// ============================================
+// ExitHookCard — End-of-class discussion prompt
+// Reflective prompt card cycling through 8
+// discussion questions (one per epoch) to spark
+// dinner-table conversations at home.
+// Decision 15: Exit hook question rotation.
+// ============================================
+
 "use client";
 
 interface ExitHookCardProps {

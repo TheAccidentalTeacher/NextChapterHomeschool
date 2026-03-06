@@ -1,3 +1,10 @@
+// ============================================
+// IntelDropForm — DM private message to a team
+// Sends a secret "intel drop" to a selected team
+// via /api/games/{gameId}/messages/private.
+// Decision 60: DM intel drops for hidden info.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

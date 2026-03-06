@@ -1,3 +1,9 @@
+// ============================================
+// TopBar — Student team HUD header
+// Displays team/civ name, epoch, timer, pause state,
+// assigned role badge, resources, and population.
+// ============================================
+
 "use client";
 
 import { RESOURCES, ROLES } from "@/lib/constants";

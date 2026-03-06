@@ -1,3 +1,15 @@
+// ============================================
+// DMControlBar — Epoch/Round control toolbar for the DM
+// Decision 79: Step-by-step epoch state machine
+//
+// Provides buttons for the teacher to:
+//   - Pause / Resume the game
+//   - Advance to the next step in the epoch
+//   - Advance to the next epoch (triggers resolution)
+//   - Reset to login step
+// Displays the current epoch number and step label.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

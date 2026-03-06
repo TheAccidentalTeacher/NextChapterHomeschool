@@ -1,3 +1,18 @@
+// ============================================
+// ClassCiv Middleware — Route Protection & Role Redirects
+// Decision 83: Clerk username-only auth
+// Decision 76: Three view roles — student, teacher, projector
+//
+// Flow:
+//   1. Public routes (/, /sign-in) → pass through
+//   2. Projector routes → pass through (no login required)
+//   3. All other routes → require authentication
+//   4. /dashboard → redirect teacher→/dm, projector→/projector
+//
+// Note: publicMetadata must be fetched via clerkClient() because
+// Clerk does not include it in the JWT session claims by default.
+// ============================================
+
 import {
   clerkMiddleware,
   clerkClient,

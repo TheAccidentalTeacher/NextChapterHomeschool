@@ -1,3 +1,10 @@
+// ============================================
+// MarkerLayer — Unit & building map markers
+// Renders emoji-based Leaflet markers for scouts,
+// soldiers, merchants, farms, barracks, etc.
+// Colored per team using DivIcon with emoji text.
+// ============================================
+
 "use client";
 
 import { Marker, Tooltip } from "react-leaflet";

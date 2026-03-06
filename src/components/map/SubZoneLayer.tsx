@@ -1,3 +1,11 @@
+// ============================================
+// SubZoneLayer — GeoJSON territory polygons
+// Renders sub-zone boundaries on the Leaflet map
+// with team-color fills, fog-of-war masking,
+// terrain-based styling, and depletion tier colors.
+// Decision 87: Sub-zone depletion mechanics.
+// ============================================
+
 "use client";
 
 import { GeoJSON, Tooltip } from "react-leaflet";

@@ -1,3 +1,10 @@
+// ============================================
+// GlobalEventForm — DM global event trigger
+// Fires a game-wide event (Flood, Plague, Gold Rush,
+// or custom) that affects all teams simultaneously.
+// Decision 59: Global events for narrative drama.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

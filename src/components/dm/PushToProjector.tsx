@@ -1,3 +1,11 @@
+// ============================================
+// PushToProjector — DM projector control
+// Pushes a view (map, announcement, etc.) and
+// optional message to the projector via Supabase
+// Realtime broadcast.
+// Decision 16: Shared classroom projector view.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

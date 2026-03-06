@@ -1,3 +1,20 @@
+// ============================================
+// DM Game Page — Live game management for the teacher
+// Decision 3: Teacher = Dungeon Master (DM)
+// Decision 79: Epoch state machine w/ step-by-step flow
+//
+// This page is the teacher's control center during a live game.
+// Features:
+//   - DMControlBar: advance/pause/reset epoch steps
+//   - SubmissionQueue: review & approve/reject student answers
+//   - SubmissionOverrideModal: override individual submissions
+//   - IntelDropForm: send secret intel to specific teams
+//   - GlobalEventForm: trigger game-wide events
+//   - ConflictFlagBanner: alert on zone conflicts
+//   - PushToProjector: push state to the classroom projector
+//   - GameMap: view the current map state
+// ============================================
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";

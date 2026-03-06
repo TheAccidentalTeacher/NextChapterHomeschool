@@ -1,3 +1,9 @@
+// ============================================
+// ResourceBar — Horizontal resource display
+// Shows production, reach, legacy, resilience, food
+// amounts plus population count and CI score.
+// ============================================
+
 "use client";
 
 import { RESOURCES } from "@/lib/constants";

@@ -1,3 +1,20 @@
+// ============================================
+// StudentDashboardClient — Main student game view
+// Decision 70: Five specialized roles per team
+// Decision 27: Turn-based round submission flow
+//
+// This is the primary client component for logged-in students.
+// It fetches team info, epoch state, resources, and questions,
+// then renders the appropriate role panel (Architect, Merchant,
+// Diplomat, Lorekeeper, Warlord) based on the student's
+// assigned role. Also handles:
+//   - CivNamePrompt (first-visit naming flow)
+//   - IntelDrop / GlobalEvent modals
+//   - Resource routing panel for the leading role
+//   - Round submission + justification
+//   - Real-time epoch state sync via polling
+// ============================================
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";

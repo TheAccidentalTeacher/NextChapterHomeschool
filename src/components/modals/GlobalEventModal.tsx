@@ -1,3 +1,10 @@
+// ============================================
+// GlobalEventModal — Student global event display
+// Fetches and displays the current epoch's global
+// event as a dismissible overlay card.
+// Decision 59: Global events for narrative drama.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

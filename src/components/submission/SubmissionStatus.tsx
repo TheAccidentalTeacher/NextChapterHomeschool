@@ -1,3 +1,10 @@
+// ============================================
+// SubmissionStatus — Real-time submission tracker
+// Via Supabase Realtime, shows which roles on a
+// team have submitted for the current round with
+// live status updates (pending → submitted).
+// ============================================
+
 "use client";
 
 import { useEffect, useState } from "react";

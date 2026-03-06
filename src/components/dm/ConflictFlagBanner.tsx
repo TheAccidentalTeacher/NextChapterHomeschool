@@ -1,3 +1,10 @@
+// ============================================
+// ConflictFlagBanner — DM conflict resolution UI
+// Displays active conflict flags (aggressor vs.
+// defender) for the DM to review, resolve, or dismiss.
+// Decision 65: War exhaustion + conflict system.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

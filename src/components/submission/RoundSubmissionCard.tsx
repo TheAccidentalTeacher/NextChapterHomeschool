@@ -1,3 +1,19 @@
+// ============================================
+// RoundSubmissionCard — Student round decision UI
+// Decision 27: Multiple-choice + justification per round
+// Decision 28: 2+ sentence justification requirement
+//
+// Renders a submission card for a single round where
+// the student must:
+//   1. Select an option (or free-text if allowed)
+//   2. Write a justification (minimum 2 sentences)
+//   3. Submit to /api/games/[id]/submissions
+//
+// The card displays the historical context, prompt text,
+// and available options. After submission, it shows a
+// confirmation with the selected answer.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

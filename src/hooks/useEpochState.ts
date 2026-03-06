@@ -1,3 +1,19 @@
+// ============================================
+// useEpochState — Real-time epoch state subscription hook
+// Decision 79: Epoch state machine (login→rounds→resolve→exit)
+//
+// Subscribes to game state changes via Supabase Realtime.
+// Returns the current epoch, step, timer remaining, and
+// pause state. Used by both StudentDashboard and Projector
+// to stay in sync with the DM's epoch progression.
+//
+// Features:
+//   - Initial fetch from /api/games/[id]/epoch/state
+//   - Supabase Realtime subscription on games table
+//   - Auto countdown timer based on step duration
+//   - Grade-aware timer presets (6th vs 7/8th)
+// ============================================
+
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";

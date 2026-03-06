@@ -1,3 +1,21 @@
+// ============================================
+// ProjectorClient — Classroom projector display
+// Decision 16: Shared projector view, no student login needed
+// Decision 79: Epoch state machine sync
+//
+// Full-screen display for the classroom projector/TV.
+// Auto-discovers the active game and polls for state.
+// Renders:
+//   - GameMap with all team territories
+//   - PausedOverlay when DM pauses the game
+//   - ResolveSequence during epoch resolution
+//   - AnnouncementOverlay for DM announcements
+//   - EventCardOverlay for global events
+//   - DailyRecapCard at end of class
+//   - ExitHookCard with dinner questions
+//   - Resource leaderboard per team
+// ============================================
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";

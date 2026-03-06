@@ -1,3 +1,9 @@
+// ============================================
+// AnnouncementOverlay — Timed projector message
+// Full-screen announcement overlay that auto-
+// dismisses after configurable duration (8s default).
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

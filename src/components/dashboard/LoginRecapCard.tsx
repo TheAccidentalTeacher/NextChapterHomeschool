@@ -1,3 +1,9 @@
+// ============================================
+// LoginRecapCard — Per-team recap on student login
+// Fetches previous epoch summary from the API and
+// displays what happened while the student was away.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

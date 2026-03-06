@@ -1,3 +1,11 @@
+// ============================================
+// JustificationField — Scaffolded writing area
+// Textarea with role-specific sentence starters
+// differentiated by grade (6th vs 7/8th) to help
+// students write historical justifications.
+// Decision 28: 2+ sentence justification required.
+// ============================================
+
 "use client";
 
 import { useState } from "react";

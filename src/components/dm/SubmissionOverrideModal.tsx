@@ -1,3 +1,9 @@
+// ============================================
+// SubmissionOverrideModal — DM submission review/override
+// Modal for viewing, scoring, giving feedback, or
+// manually overriding a team's submission content.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";

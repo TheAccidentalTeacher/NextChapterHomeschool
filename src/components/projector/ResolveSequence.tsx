@@ -1,3 +1,10 @@
+// ============================================
+// ResolveSequence — Epoch resolution animation
+// Animated projector sequence that reveals each
+// team's end-of-epoch results (resources gained,
+// population changes, events) with dramatic timing.
+// ============================================
+
 "use client";
 
 import { useState, useEffect } from "react";
