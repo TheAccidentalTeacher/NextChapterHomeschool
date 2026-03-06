@@ -1,5 +1,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import CivNamePrompt from "@/components/student/CivNamePrompt";
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -19,6 +20,9 @@ export default async function DashboardPage() {
           Epoch 1 &middot; Round: EXPAND &middot; Your Role: —
         </p>
       </div>
+
+      {/* Civ Name Prompt — shows only if team exists and no approved name */}
+      <CivNamePrompt />
 
       {/* Resource Bar (placeholder) */}
       <div className="flex gap-4 rounded-lg border border-stone-800 bg-stone-900 p-4">

@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
 // Public routes — no auth required
 const isPublicRoute = createRouteMatcher([
@@ -17,7 +18,20 @@ export default clerkMiddleware(async (auth, request) => {
   }
 
   // Everything else requires authentication
-  await auth.protect();
+  const session = await auth.protect();
+
+  // Role-based redirect after sign-in (only on /dashboard root)
+  const url = request.nextUrl;
+  if (url.pathname === "/dashboard") {
+    const role = (session.sessionClaims?.metadata as { role?: string })?.role;
+    if (role === "teacher") {
+      return NextResponse.redirect(new URL("/dm", request.url));
+    }
+    if (role === "projector") {
+      return NextResponse.redirect(new URL("/projector", request.url));
+    }
+    // students stay on /dashboard
+  }
 });
 
 export const config = {

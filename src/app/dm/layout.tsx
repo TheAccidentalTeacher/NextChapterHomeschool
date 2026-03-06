@@ -1,56 +1,59 @@
-import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { getUserRole } from "@/lib/auth/roles";
+import Link from "next/link";
 
 export default async function DmLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const user = await currentUser();
-
-  // Only teacher role can access /dm
-  // In production, check Clerk publicMetadata.role === "teacher"
-  if (!user) {
-    redirect("/sign-in");
+  const role = await getUserRole();
+  if (role !== "teacher") {
+    redirect("/dashboard");
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* DM Sidebar */}
-      <aside className="hidden w-64 flex-shrink-0 border-r border-stone-800 bg-stone-900 p-4 lg:block">
-        <div className="mb-6">
-          <h2 className="text-lg font-bold text-red-400">DM Panel</h2>
-          <p className="text-xs text-stone-500">Dungeon Master Controls</p>
+    <div className="min-h-screen bg-stone-950">
+      {/* DM Navigation Bar */}
+      <nav className="border-b border-stone-800 bg-stone-900/50 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3">
+          <Link href="/dm" className="text-lg font-bold text-red-400">
+            🎮 DM Panel
+          </Link>
+          <div className="flex gap-4 text-sm">
+            <Link
+              href="/dm"
+              className="text-stone-400 transition hover:text-stone-200"
+            >
+              Overview
+            </Link>
+            <Link
+              href="/dm/setup"
+              className="text-stone-400 transition hover:text-stone-200"
+            >
+              New Game
+            </Link>
+            <Link
+              href="/dm/roster"
+              className="text-stone-400 transition hover:text-stone-200"
+            >
+              Roster
+            </Link>
+            <Link
+              href="/dm/names"
+              className="text-stone-400 transition hover:text-stone-200"
+            >
+              Names
+            </Link>
+          </div>
+          <div className="ml-auto text-xs text-stone-600">
+            Teacher View
+          </div>
         </div>
-        <nav className="flex flex-col gap-2 text-sm text-stone-400">
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            🎮 Game Control
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            📋 Submissions
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            🎲 d20 Events
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            👥 Teams & Roster
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            💰 Economy Override
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            🗺️ Map Editor
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            📊 Analytics
-          </span>
-          <span className="rounded px-3 py-2 hover:bg-stone-800 hover:text-stone-200">
-            🧮 Math Gate Toggle
-          </span>
-        </nav>
-      </aside>
+      </nav>
 
-      <main className="flex-1 overflow-y-auto p-6">{children}</main>
+      {/* DM Content */}
+      <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
     </div>
   );
 }
