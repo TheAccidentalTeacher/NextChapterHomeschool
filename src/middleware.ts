@@ -1,4 +1,8 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import {
+  clerkMiddleware,
+  clerkClient,
+  createRouteMatcher,
+} from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 // Public routes — no auth required
@@ -23,7 +27,11 @@ export default clerkMiddleware(async (auth, request) => {
   // Role-based redirect after sign-in (only on /dashboard root)
   const url = request.nextUrl;
   if (url.pathname === "/dashboard") {
-    const role = (session.sessionClaims?.metadata as { role?: string })?.role;
+    // Fetch the full user to read publicMetadata (not in JWT by default)
+    const client = await clerkClient();
+    const user = await client.users.getUser(session.userId);
+    const role = (user.publicMetadata as { role?: string })?.role;
+
     if (role === "teacher") {
       return NextResponse.redirect(new URL("/dm", request.url));
     }
