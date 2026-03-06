@@ -1,13 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ClassCiv — Classroom Civilization Simulation
+
+A 6-week classroom civilization simulation teaching the 5 themes of geography. Built for Mr. Somers' middle school classes at Next Chapter Homeschool.
+
+## Stack
+
+- **Framework:** Next.js 16 (App Router) + TypeScript + Tailwind CSS
+- **Database:** Supabase (PostgreSQL + Realtime + RLS)
+- **Auth:** Clerk (student / teacher / projector roles)
+- **Map:** Leaflet + React-Leaflet
+- **AI:** Claude (narration) + HeyGen (NPC video)
+- **Hosting:** Vercel
+- **State:** Zustand
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+# Install dependencies
+npm install
+
+# Copy env template and fill in your keys
+cp .env.local.example .env.local
+
+# Run dev server
 npm run dev
-# or
-yarn dev
+```
 # or
 pnpm dev
 # or
