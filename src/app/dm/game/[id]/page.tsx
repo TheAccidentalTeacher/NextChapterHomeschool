@@ -28,6 +28,7 @@ import ConflictFlagBanner from "@/components/dm/ConflictFlagBanner";
 import PushToProjector from "@/components/dm/PushToProjector";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
+import { debug } from "@/lib/debug";
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -64,11 +65,15 @@ export default function DMGamePage({
 
   // Resolve params
   useEffect(() => {
-    params.then((p) => setGameId(p.id));
+    params.then((p) => {
+      debug.nav("DM Game page params resolved", { id: p.id });
+      setGameId(p.id);
+    });
   }, [params]);
 
   const fetchState = useCallback(async () => {
     if (!gameId) return;
+    debug.render("DM fetchState called", { gameId });
     try {
       const [gameRes, teamsRes, epochRes] = await Promise.all([
         fetch(`/api/games/${gameId}`),

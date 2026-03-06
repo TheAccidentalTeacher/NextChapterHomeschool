@@ -29,6 +29,7 @@ import ExitHookCard, { getExitPrompt } from "@/components/projector/ExitHookCard
 import { STEP_LABELS, type EpochStep } from "@/lib/game/epoch-machine";
 import { RESOURCES } from "@/lib/constants";
 import type { ResourceType } from "@/types/database";
+import { debug } from "@/lib/debug";
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -52,6 +53,7 @@ interface GlobalEvent {
 }
 
 export default function ProjectorClient() {
+  debug.render("ProjectorClient mounted");
   const [gameId, setGameId] = useState<string | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [epoch, setEpoch] = useState(1);

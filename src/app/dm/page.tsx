@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { debug } from "@/lib/debug";
 
 interface GameSummary {
   id: string;
@@ -17,10 +18,17 @@ export default function DmPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    debug.render("DM Overview page mounted");
     fetch("/api/games")
       .then((res) => res.json())
-      .then((data) => setGames(data.games ?? []))
-      .catch(() => setGames([]))
+      .then((data) => {
+        debug.auth("DM games loaded", { count: (data.games ?? []).length });
+        setGames(data.games ?? []);
+      })
+      .catch((err) => {
+        debug.error("Failed to load DM games", err);
+        setGames([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 

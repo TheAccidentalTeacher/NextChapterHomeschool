@@ -36,6 +36,7 @@ import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
 import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
+import { debug } from "@/lib/debug";
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -66,6 +67,7 @@ interface Props {
 }
 
 export default function StudentDashboardClient({ userId, displayName }: Props) {
+  debug.render("StudentDashboardClient mounted", { userId, displayName });
   const [team, setTeam] = useState<TeamInfo | null>(null);
   const [role, setRole] = useState<RoleName | null>(null);
   const [epoch, setEpoch] = useState<EpochState | null>(null);
@@ -80,18 +82,25 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [tab, setTab] = useState<"action" | "map" | "role">("action");
 
   const fetchData = useCallback(async () => {
+    debug.auth("Fetching student data...", { userId });
     try {
       // Get team info
       const meRes = await fetch("/api/me/team");
       if (!meRes.ok) {
+        debug.error("Failed to fetch /api/me/team", { status: meRes.status });
         setLoading(false);
         return;
       }
       const meData = await meRes.json();
       const t = meData.team;
       const m: MemberInfo = meData.member;
-      if (!t) { setLoading(false); return; }
+      if (!t) {
+        debug.auth("No team found for student — showing CivNamePrompt or empty state", meData);
+        setLoading(false);
+        return;
+      }
 
+      debug.auth("Student data loaded", { team: t.name, role: m?.assigned_role, gameId: t.game_id });
       setTeam(t);
       setRole(m?.assigned_role ?? null);
 
@@ -99,6 +108,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       const epochRes = await fetch(`/api/games/${t.game_id}/epoch/state`);
       if (epochRes.ok) {
         const ed = await epochRes.json();
+        debug.epoch("Epoch state loaded", ed);
         setEpoch({
           current_epoch: ed.current_epoch ?? 1,
           current_step: ed.current_step ?? "login",
@@ -111,10 +121,13 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       const resRes = await fetch(`/api/games/${t.game_id}/resources?team_id=${t.id}`);
       if (resRes.ok) {
         const rd = await resRes.json();
-        if (rd.resources) setResources(rd.resources);
+        if (rd.resources) {
+          debug.resource("Resources loaded", rd.resources);
+          setResources(rd.resources);
+        }
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      debug.error("StudentDashboard fetchData failed", err);
     } finally {
       setLoading(false);
     }

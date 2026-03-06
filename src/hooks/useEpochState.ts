@@ -20,6 +20,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import type { EpochStep } from "@/lib/game/epoch-machine";
 import { getStepDuration, TIMER_PRESETS, STEP_LABELS } from "@/lib/game/epoch-machine";
+import { debug } from "@/lib/debug";
 
 interface EpochState {
   gameId: string | null;
@@ -61,11 +62,16 @@ export function useEpochState({ gameId, grade = "6th" }: UseEpochStateOptions): 
   // Fetch initial state
   const fetchState = useCallback(async () => {
     if (!gameId) return;
+    debug.epoch("Fetching initial epoch state", { gameId, grade });
 
     try {
       const res = await fetch(`/api/games/${gameId}/epoch/state`);
-      if (!res.ok) return;
+      if (!res.ok) {
+        debug.error("Epoch state fetch failed", { status: res.status });
+        return;
+      }
       const data = await res.json();
+      debug.epoch("Epoch state received", data);
 
       const step = (data.current_round ?? "login") as EpochStep;
       const config = TIMER_PRESETS[grade];
@@ -80,7 +86,8 @@ export function useEpochState({ gameId, grade = "6th" }: UseEpochStateOptions): 
         timerRemaining: duration,
         isLoading: false,
       });
-    } catch {
+    } catch (err) {
+      debug.error("Epoch state fetch error", err);
       setState((prev) => ({ ...prev, isLoading: false }));
     }
   }, [gameId, grade]);
@@ -102,6 +109,7 @@ export function useEpochState({ gameId, grade = "6th" }: UseEpochStateOptions): 
           filter: `id=eq.${gameId}`,
         },
         (payload) => {
+          debug.realtime("Epoch state UPDATE via Supabase Realtime", payload.new);
           const data = payload.new as Record<string, unknown>;
           const step = (data.current_round ?? "login") as EpochStep;
           const config = TIMER_PRESETS[grade];
@@ -118,9 +126,12 @@ export function useEpochState({ gameId, grade = "6th" }: UseEpochStateOptions): 
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        debug.realtime(`Supabase channel game-epoch-${gameId} status: ${status}`);
+      });
 
     return () => {
+      debug.realtime(`Unsubscribing from game-epoch-${gameId}`);
       supabase.removeChannel(channel);
     };
   }, [gameId, grade, fetchState]);
