@@ -511,8 +511,8 @@ async function cleanup(gameId: string) {
     }
   }
 
-  // Delete game-linked data
-  for (const table of ["epoch_submissions", "teams", "games"]) {
+  // Delete game-linked data (order matters for FK constraints)
+  for (const table of ["game_events", "epoch_submissions", "teams", "games"]) {
     const column = table === "games" ? "id" : "game_id";
     const { error } = await supabase.from(table).delete().eq(column, gameId);
     log(error ? "⚠️" : "✅", `  ${table}: ${error?.message ?? "cleaned"}`);
