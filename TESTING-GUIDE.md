@@ -11,7 +11,7 @@
 |-------------|---------|
 | **App Running** | Either `npm run dev` locally OR deployed at [next-chapter-homeschool.vercel.app](https://next-chapter-homeschool.vercel.app) |
 | **Clerk Users** | Pre-created (see below) |
-| **Supabase** | Database with schema deployed (`001_initial_schema.sql`) |
+| **Supabase** | Database with schema deployed (`001_initial_schema.sql` + `002_fix_current_round.sql`) |
 | **Browser** | Chrome/Edge recommended. Use incognito for multi-user testing. |
 
 ---
@@ -314,4 +314,60 @@ curl -X POST https://api.clerk.com/v1/users \
 
 ---
 
-*This guide covers Phases 0-6 of the ClassCiv build. Additional testing for Phases 7+ (purchases, d20 events, tech tree, trade, wonders, NPCs) will be added as those features are built.*
+---
+
+## Simulation Engine — Automated Full-Game Testing
+
+The simulation engine runs 36 simulated students across 6 teams through a complete game — exercising all game mechanics end-to-end against live Supabase.
+
+### Running a Simulation
+
+> **Important:** All commands must be run from the `classroom-civ/` directory.
+
+```bash
+# Quick 3-epoch test
+npx tsx scripts/simulate.ts --fast --epochs 3
+
+# Full 8-epoch simulation (default)
+npx tsx scripts/simulate.ts --fast --epochs 8
+
+# Dry run (simulates everything but writes nothing to DB)
+npx tsx scripts/simulate.ts --dry-run
+```
+
+### What It Tests
+
+- **Epoch State Machine:** All 11 steps per epoch (login → build → build_routing → expand → expand_routing → define → define_routing → defend → defend_routing → resolve → exit)
+- **Question Selector:** Picks contextually appropriate questions based on round type, epoch, and team state
+- **Yield Calculator:** Full yield formula with justification multiplier, d20 roll, terrain bonuses
+- **Resource Routing:** Each team's lead role allocates yields across spend/contribute/bank
+- **Population Engine:** Food-driven growth, famine at food ≤ 0, population loss
+- **Bank Decay:** 10% per epoch on banked resources
+- **Dark Ages:** Trigger check (combined famine + war exhaustion + depletion)
+
+### What to Expect
+
+| Epochs | Students | Submissions | ~Time (fast mode) |
+|--------|----------|-------------|-------------------|
+| 3 | 36 | 432 | ~50 seconds |
+| 8 | 36 | 1,152 | ~2 minutes |
+
+### Cleaning Up Simulation Data
+
+```bash
+# Delete a specific simulation game and all its data
+npx tsx scripts/simulate.ts --cleanup GAME_ID
+```
+
+The game ID is printed at the end of every simulation run. Simulation log files are saved to `simulation-log-{gameId}.txt` and are gitignored.
+
+### Verified Results (March 6, 2026)
+
+- **3-epoch test:** PASSED — 6 teams, 36 students, 432 submissions, 50.6s
+- **8-epoch test:** PASSED — 6 teams, 36 students, 1,152 submissions, 121.1s
+- All game mechanics working: yields, routing, population, famine, bank decay, epoch transitions
+- By epoch 8, all teams hit famine (population → 1) because purchase menu (Phase 7) isn't built yet — no way to buy farms
+
+---
+
+*This guide covers Phases 0-6 + Simulation Engine of the ClassCiv build. Additional testing for Phases 7+ (purchases, d20 events, tech tree, trade, wonders, NPCs) will be added as those features are built.*

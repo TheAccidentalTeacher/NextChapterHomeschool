@@ -147,6 +147,8 @@ Copy `.env.local.example` to `.env.local` and fill in:
 | `ANTHROPIC_API_KEY` | No | Claude API key (for AI narration — future feature) |
 | `HEYGEN_API_KEY` | No | HeyGen API key (for NPC video — future feature) |
 
+> **Note:** `NEXT_PUBLIC_DEBUG=true` enables the F12 console debug toolkit. Type `classciv.debug.help()` in the browser console for available commands.
+
 ---
 
 ## Authentication & Roles
@@ -202,6 +204,9 @@ classroom-civ/
 │       ├── question-bank.json    # 12 starter questions across roles/rounds
 │       ├── regions.json          # 12 macro-regions with GeoJSON boundaries
 │       └── sub-zones.json        # 72 sub-zones (6 per region)
+├── scripts/
+│   ├── simulate.ts               # Game simulation engine (36 students, 6 teams, 8 epochs)
+│   └── run-migration.ts          # Utility to run SQL migrations against Supabase
 ├── src/
 │   ├── app/
 │   │   ├── api/                  # 20 API route files (see API Reference)
@@ -235,7 +240,8 @@ classroom-civ/
 │       └── database.ts           # Full TypeScript types for all 29 DB tables
 ├── supabase/
 │   └── migrations/
-│       └── 001_initial_schema.sql # 29 tables, 13 enums, RLS policies
+│       ├── 001_initial_schema.sql # 29 tables, 13 enums, RLS policies
+│       └── 002_fix_current_round.sql # Add DEFEND enum + change current_round to text
 ├── BRAINSTORM.md                  # 93 locked design decisions (1,518 lines)
 ├── BUILD-PLAN.md                  # 15-phase build plan (1,701 lines)
 ├── AUDIT-REPORT.md                # Decision consistency audit
@@ -380,6 +386,37 @@ The game engine is split into focused modules in `src/lib/game/`:
 | `src/lib/questions/selector.ts` | Scores question bank entries against current team state (resources, epoch, tech level) to pick contextually appropriate questions |
 | `public/data/question-bank.json` | 12 starter questions across all round types and roles |
 
+### Simulation Engine
+
+The simulation engine in `scripts/simulate.ts` runs a complete automated game against live Supabase — bypassing Clerk auth to exercise all game mechanics end-to-end.
+
+| Feature | Detail |
+|---------|--------|
+| **Students** | 36 simulated with 6 personality archetypes (scholar, adventurer, cautious, random, minimalist, warmonger) |
+| **Teams** | 6 teams of 6, each with all 5 roles assigned |
+| **Epochs** | Default 8 (configurable via `--epochs N`) |
+| **Mechanics tested** | Yield calculator, population engine, bank decay, dark age checks, question selection, resource routing, epoch state machine (11 steps per epoch) |
+| **Output** | Full play-by-play log + final standings. Log saved to `simulation-log-{gameId}.txt` |
+
+```bash
+# Full 8-epoch simulation
+npx tsx scripts/simulate.ts
+
+# Quick 3-epoch test
+npx tsx scripts/simulate.ts --fast --epochs 3
+
+# 4 teams instead of 6
+npx tsx scripts/simulate.ts --teams 4
+
+# Dry run (no DB writes)
+npx tsx scripts/simulate.ts --dry-run
+
+# Clean up a simulation game
+npx tsx scripts/simulate.ts --cleanup GAME_ID
+```
+
+> **Important:** Must be run from the `classroom-civ/` directory.
+
 ---
 
 ## Components
@@ -453,7 +490,7 @@ The game engine is split into focused modules in `src/lib/game/`:
 
 ## Database Schema
 
-The full schema is in `supabase/migrations/001_initial_schema.sql` — 29 tables with RLS policies.
+The full schema is in `supabase/migrations/001_initial_schema.sql` (29 tables with RLS policies) + `002_fix_current_round.sql` (DEFEND enum fix + current_round type change).
 
 ### Core Tables
 
@@ -478,7 +515,7 @@ The full schema is in `supabase/migrations/001_initial_schema.sql` — 29 tables
 
 ### Enums
 
-`user_role` · `role_name` · `resource_type` · `terrain_type` · `round_type` · `epoch_phase` · `building_type` · `event_type` · `trade_status` · `war_status` · `victory_type` · `endgame_epoch_type` · `civ_name_status`
+`user_role` · `role_name` · `resource_type` · `terrain_type` · `round_type` (includes DEFEND as of migration 002) · `epoch_phase` · `building_type` · `event_type` · `trade_status` · `war_status` · `victory_type` · `endgame_epoch_type` · `civ_name_status`
 
 ---
 
@@ -495,7 +532,8 @@ The app deploys automatically from the `main` branch via Vercel:
 ### Supabase
 
 - Project: `dyifhrodlkqjdlzbwckg` (us-west-2)
-- Schema deployed via `supabase/migrations/001_initial_schema.sql`
+- Schema deployed via `supabase/migrations/001_initial_schema.sql` + `002_fix_current_round.sql`
+- Migration 002 applied March 6, 2026 (DEFEND enum + current_round→text)
 - Realtime enabled for epoch state + submission channels
 
 ---
@@ -532,6 +570,8 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | Phase 4 | ✅ Complete | DM Panel — controls, queue, scoring, events, intel |
 | Phase 5 | ✅ Complete | Resource Engine — yield calc, decay, population, depletion |
 | Phase 6 | ✅ Complete | Projector Display — overlays, resolve animation, exit hooks |
+| — | ✅ Complete | Simulation Engine — 36 students, 6 teams, 8 epochs, 1,152 submissions |
+| — | ✅ Complete | DB Migration 002 — DEFEND enum + current_round→text |
 | Phase 7 | 🔲 Planned | Purchase Menu + Buildings on Map |
 | Phase 8 | 🔲 Planned | d20 Event System + Math Gate |
 | Phase 9 | 🔲 Planned | Tech Tree UI + Research |
@@ -550,8 +590,12 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | [BRAINSTORM.md](BRAINSTORM.md) | 93 locked design decisions — the full game spec (1,518 lines) |
 | [BUILD-PLAN.md](BUILD-PLAN.md) | 15-phase step-by-step build plan (1,701 lines) |
 | [AUDIT-REPORT.md](AUDIT-REPORT.md) | Consistency audit between BRAINSTORM and BUILD-PLAN |
-| [TESTING-GUIDE.md](TESTING-GUIDE.md) | Walkthrough for testing the full game flow |
+| [TESTING-GUIDE.md](TESTING-GUIDE.md) | Walkthrough for testing the full game flow + simulation engine |
 | [student-ideas-analysis.md](student-ideas-analysis.md) | Analysis of 86 student brainstorm submissions |
+| [../Documents/game-mechanics-research.md](../Documents/game-mechanics-research.md) | Deep-dive on Civ/Oregon Trail/Carmen Sandiego/Catan mechanics |
+| [../Documents/persona.md](../Documents/persona.md) | The Brand Whisperer persona + Scott & Anna profiles |
+| [supabase/migrations/001_initial_schema.sql](supabase/migrations/001_initial_schema.sql) | Initial DB schema (29 tables, 13 enums) |
+| [supabase/migrations/002_fix_current_round.sql](supabase/migrations/002_fix_current_round.sql) | DEFEND enum + current_round→text fix |
 
 ---
 
