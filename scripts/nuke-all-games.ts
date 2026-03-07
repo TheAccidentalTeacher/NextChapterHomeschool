@@ -6,15 +6,9 @@
  * Safe to run in dev; do NOT run in production.
  */
 import { createClient } from "@supabase/supabase-js";
-import * as dotenv from "dotenv";
-import path from "path";
 
-dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
-
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const SUPABASE_KEY =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ??
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const SUPABASE_URL = "https://dyifhrodlkqjdlzbwckg.supabase.co";
+const SUPABASE_KEY = "sb_publishable_LT2j1dH9KLGE91qRSaE3bg_zdlFTv9f";
 
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
