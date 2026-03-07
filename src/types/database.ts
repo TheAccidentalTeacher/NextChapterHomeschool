@@ -14,7 +14,7 @@ export type RoleName =
   | "lorekeeper"
   | "warlord";
 
-export type RoundType = "EXPAND" | "BUILD" | "RESOLVE" | "DEFINE";
+export type RoundType = "EXPAND" | "BUILD" | "RESOLVE" | "DEFINE" | "DEFEND";
 
 export type EpochPhase = "active" | "resolving" | "completed";
 
@@ -77,7 +77,7 @@ export interface Game {
   name: string;
   teacher_id: string;
   current_epoch: number;
-  current_round: RoundType;
+  current_round: string; // text column — holds epoch step names (login, build, build_routing, etc.)
   epoch_phase: EpochPhase;
   math_gate_enabled: boolean;
   math_gate_difficulty: "multiply" | "divide" | "ratio" | "percent";
