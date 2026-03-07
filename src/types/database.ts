@@ -205,6 +205,7 @@ export interface TradeEmbargo {
 export interface TeamAsset {
   id: string;
   team_id: string;
+  game_id: string;
   asset_key: string;          // e.g. "farm", "library", "granary", "wall"
   sub_zone_id: string;
   built_epoch: number;

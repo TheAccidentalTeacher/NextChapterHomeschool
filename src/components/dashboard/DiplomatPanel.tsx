@@ -16,6 +16,7 @@ interface DiplomatPanelProps {
   laws: { name: string; effect: string }[];
   pendingProposals: { id: string; from: string; type: string }[];
   warExhaustion: number;
+  unlockedTechs: string[];
   onProposeLaw?: () => void;
   onSendProposal?: () => void;
   onAcceptProposal?: (id: string) => void;
@@ -27,11 +28,16 @@ export default function DiplomatPanel({
   laws,
   pendingProposals,
   warExhaustion,
+  unlockedTechs,
   onProposeLaw,
   onSendProposal,
   onAcceptProposal,
   onRejectProposal,
 }: DiplomatPanelProps) {
+  const hasPhilosophy = unlockedTechs.includes("philosophy");
+  const hasFeudalismTech = unlockedTechs.includes("feudalism");
+  const hasDiplomaticCorps = unlockedTechs.includes("diplomatic_corps");
+
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -56,15 +62,23 @@ export default function DiplomatPanel({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-medium text-gray-400">Civilization Laws</h3>
-          <button
-            type="button"
-            onClick={onProposeLaw}
-            className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-500"
-          >
-            + Propose Law
-          </button>
+          {hasPhilosophy ? (
+            <button
+              type="button"
+              onClick={onProposeLaw}
+              className="rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-purple-500"
+            >
+              + Propose Law
+            </button>
+          ) : (
+            <span className="text-[10px] text-gray-600">🔒 Philosophy</span>
+          )}
         </div>
-        {laws.length === 0 ? (
+        {!hasPhilosophy ? (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+            🔒 Government &amp; Law System — requires Philosophy tech (Tier 3)
+          </div>
+        ) : laws.length === 0 ? (
           <p className="text-xs text-gray-500 italic">No laws enacted yet</p>
         ) : (
           <div className="space-y-1.5">
@@ -132,7 +146,11 @@ export default function DiplomatPanel({
       {/* Alliances */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-400">Active Alliances</h3>
-        {alliances.length === 0 ? (
+        {!hasDiplomaticCorps ? (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+            🔒 Advanced Diplomacy — requires Diplomatic Corps tech (Tier 5)
+          </div>
+        ) : alliances.length === 0 ? (
           <p className="text-xs text-gray-500 italic">No alliances</p>
         ) : (
           <div className="space-y-1.5">
@@ -150,6 +168,17 @@ export default function DiplomatPanel({
           </div>
         )}
       </div>
+
+      {/* Feudalism / Vassal System */}
+      {!hasFeudalismTech ? (
+        <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+          🔒 Vassal System — requires Feudalism tech (Tier 4)
+        </div>
+      ) : (
+        <div className="rounded-lg border border-cyan-700/30 bg-cyan-900/10 p-3 text-xs text-cyan-300">
+          👑 Feudalism unlocked — Vassal states available
+        </div>
+      )}
     </div>
   );
 }

@@ -2,41 +2,51 @@
 
 /**
  * Architect Panel — BUILD round leader
- * Shows: available buildings, build queue, building status
+ * Shows: available buildings, build queue, building status, purchase menu trigger
+ * Phase 7: Integrated with purchase catalog and asset system
  */
 
-interface Building {
+import { useState } from "react";
+import PurchaseMenu from "@/components/game/PurchaseMenu";
+import { BUILDINGS, type PurchaseItem } from "@/lib/game/purchase-catalog";
+
+interface OwnedBuilding {
   key: string;
-  name: string;
-  emoji: string;
-  cost: number;
-  costResource: string;
-  benefit: string;
-  techGate?: string;
-  isUnlocked: boolean;
+  subZone: string;
+  subZoneName: string;
+  isActive: boolean;
 }
 
-const BUILDINGS: Building[] = [
-  { key: "farm", name: "Farm", emoji: "🌾", cost: 6, costResource: "production", benefit: "+3 Food/epoch", isUnlocked: true },
-  { key: "granary", name: "Granary", emoji: "🏛️", cost: 8, costResource: "production", benefit: "Food decay halved", isUnlocked: true },
-  { key: "barracks", name: "Barracks", emoji: "⚔️", cost: 10, costResource: "production", benefit: "Soldiers cost 4 instead of 6", isUnlocked: true },
-  { key: "market", name: "Market", emoji: "🏪", cost: 8, costResource: "production", benefit: "Trade routes +50% Reach", isUnlocked: true },
-  { key: "aqueduct", name: "Aqueduct", emoji: "💧", cost: 12, costResource: "production", benefit: "Immune to disease/drought", isUnlocked: true },
-  { key: "library", name: "Library", emoji: "📚", cost: 10, costResource: "production", benefit: "+25% Legacy permanently", isUnlocked: true },
-  { key: "walls", name: "Walls", emoji: "🧱", cost: 14, costResource: "production", benefit: "First attack/epoch absorbed", isUnlocked: true },
-];
+interface OwnedSubZone {
+  id: string;
+  name: string;
+  settlementName: string | null;
+}
 
 interface ArchitectPanelProps {
-  teamBuildings: { key: string; subZone: string; isActive: boolean }[];
-  productionAvailable: number;
+  teamBuildings: OwnedBuilding[];
+  resources: Record<string, number>;
+  ownedSubZones: OwnedSubZone[];
+  unlockedTechs: string[];
+  hasBuilder: boolean;
+  ownedAssetKeys: string[];
   onBuild?: (buildingKey: string) => void;
+  onPurchase?: (itemKey: string, subZoneId: string | null) => void;
 }
 
 export default function ArchitectPanel({
   teamBuildings,
-  productionAvailable,
+  resources,
+  ownedSubZones,
+  unlockedTechs,
+  hasBuilder,
+  ownedAssetKeys,
   onBuild,
+  onPurchase,
 }: ArchitectPanelProps) {
+  const [showPurchaseMenu, setShowPurchaseMenu] = useState(false);
+  const productionAvailable = resources.production ?? 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -48,22 +58,32 @@ export default function ArchitectPanel({
         </div>
       </div>
 
-      {/* Available Buildings */}
+      {/* Open Full Purchase Menu */}
+      <button
+        type="button"
+        onClick={() => setShowPurchaseMenu(true)}
+        className="w-full rounded-lg bg-blue-600 px-4 py-3 text-sm font-bold text-white hover:bg-blue-500 active:bg-blue-700 transition-all flex items-center justify-center gap-2"
+      >
+        🛒 Open Purchase Menu
+      </button>
+
+      {/* Quick-Build: Buildings Only */}
       <div className="space-y-2">
-        <h3 className="text-sm font-medium text-gray-400">Available Buildings</h3>
+        <h3 className="text-sm font-medium text-gray-400">Quick Build — Buildings</h3>
         <div className="grid gap-2">
           {BUILDINGS.map((b) => {
             const owned = teamBuildings.filter((tb) => tb.key === b.key);
-            const canAfford = productionAvailable >= b.cost;
+            const canAfford = productionAvailable >= b.costAmount;
+            const alreadyOwned = !b.isStackable && owned.length > 0;
 
             return (
               <div
                 key={b.key}
                 className={`
                   rounded-lg border p-3 flex items-center justify-between
-                  ${b.isUnlocked
-                    ? "border-gray-700 bg-gray-800/50"
-                    : "border-gray-800 bg-gray-900/50 opacity-50"
+                  ${b.techGate && !unlockedTechs.includes(b.techGate)
+                    ? "border-gray-800 bg-gray-900/50 opacity-50"
+                    : "border-gray-700 bg-gray-800/50"
                   }
                 `}
               >
@@ -75,15 +95,23 @@ export default function ArchitectPanel({
                     {owned.length > 0 && (
                       <div className="text-xs text-green-400">
                         Built: {owned.length}
+                        {owned.some((o) => !o.isActive) && (
+                          <span className="text-red-400 ml-1">
+                            ({owned.filter((o) => !o.isActive).length} damaged)
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">
-                    ⚙️ {b.cost}
+                    ⚙️ {b.costAmount}
+                    {hasBuilder && (
+                      <span className="text-green-400 ml-1">(-3)</span>
+                    )}
                   </span>
-                  {b.isUnlocked && (
+                  {!alreadyOwned && (
                     <button
                       type="button"
                       disabled={!canAfford}
@@ -124,11 +152,34 @@ export default function ArchitectPanel({
                     }
                   `}
                 >
-                  {info?.emoji} {info?.name ?? tb.key}
+                  {info?.emoji ?? "🏗️"} {info?.name ?? tb.key}
                   {!tb.isActive && " (damaged)"}
+                  <div className="text-[10px] text-gray-500 mt-0.5">
+                    📍 {tb.subZoneName}
+                  </div>
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Purchase Menu Modal */}
+      {showPurchaseMenu && onPurchase && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-lg">
+            <PurchaseMenu
+              resources={resources}
+              ownedSubZones={ownedSubZones}
+              unlockedTechs={unlockedTechs}
+              hasBuilder={hasBuilder}
+              ownedAssetKeys={ownedAssetKeys}
+              onPurchase={(itemKey, subZoneId) => {
+                onPurchase(itemKey, subZoneId);
+                setShowPurchaseMenu(false);
+              }}
+              onClose={() => setShowPurchaseMenu(false)}
+            />
           </div>
         </div>
       )}

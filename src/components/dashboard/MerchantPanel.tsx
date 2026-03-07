@@ -28,6 +28,7 @@ interface MerchantPanelProps {
   tradeOffers: TradeOffer[];
   activeAgreements: TradeAgreement[];
   isEmbargoActive: boolean;
+  unlockedTechs: string[];
   onPostTrade?: () => void;
   onAcceptTrade?: (offerId: string) => void;
 }
@@ -45,9 +46,14 @@ export default function MerchantPanel({
   tradeOffers,
   activeAgreements,
   isEmbargoActive,
+  unlockedTechs,
   onPostTrade,
   onAcceptTrade,
 }: MerchantPanelProps) {
+  const hasPottery = unlockedTechs.includes("pottery");
+  const hasTradeRoutes = unlockedTechs.includes("trade_routes");
+  const hasSailing = unlockedTechs.includes("sailing");
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -77,6 +83,12 @@ export default function MerchantPanel({
             + Post Offer
           </button>
         </div>
+
+        {!hasPottery && (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+            🔒 Food trading — requires Pottery tech (Tier 1)
+          </div>
+        )}
 
         {tradeOffers.length === 0 ? (
           <p className="text-xs text-gray-500 italic">No open trade offers</p>
@@ -116,7 +128,11 @@ export default function MerchantPanel({
       {/* Active Trade Agreements */}
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-400">Active Agreements</h3>
-        {activeAgreements.length === 0 ? (
+        {!hasTradeRoutes ? (
+          <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+            🔒 Formal Trade Agreements — requires Trade Routes tech (Tier 3)
+          </div>
+        ) : activeAgreements.length === 0 ? (
           <p className="text-xs text-gray-500 italic">No active agreements</p>
         ) : (
           <div className="space-y-1.5">
@@ -142,6 +158,18 @@ export default function MerchantPanel({
           </div>
         )}
       </div>
+
+      {/* Sea Routes */}
+      {!hasSailing && (
+        <div className="rounded-lg border border-gray-700 bg-gray-800/30 p-3 text-xs text-gray-500">
+          🔒 Sea Trade Routes — requires Sailing tech (Tier 1)
+        </div>
+      )}
+      {hasSailing && (
+        <div className="rounded-lg border border-blue-700/30 bg-blue-900/10 p-3 text-xs text-blue-300">
+          ⛵ Sea routes are open — coastal trade enabled
+        </div>
+      )}
     </div>
   );
 }

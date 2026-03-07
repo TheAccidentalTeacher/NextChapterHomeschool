@@ -31,6 +31,7 @@ import WarlordPanel from "@/components/dashboard/WarlordPanel";
 import RoundSubmissionCard from "@/components/submission/RoundSubmissionCard";
 import SubmissionStatus from "@/components/submission/SubmissionStatus";
 import RoutingPanel from "@/components/game/RoutingPanel";
+import TechTree from "@/components/game/TechTree";
 import IntelDropModal from "@/components/modals/IntelDropModal";
 import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
@@ -79,7 +80,10 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     food: 0,
   });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"action" | "map" | "role">("action");
+  const [tab, setTab] = useState<"action" | "map" | "role" | "tech">("action");
+  const [unlockedTechs, setUnlockedTechs] = useState<string[]>([]);
+  const [activeResearchId, setActiveResearchId] = useState<string | null>(null);
+  const [legacyInvested, setLegacyInvested] = useState<Record<string, number>>({});
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -125,6 +129,15 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           debug.resource("Resources loaded", rd.resources);
           setResources(rd.resources);
         }
+      }
+
+      // Get tech research state
+      const techRes = await fetch(`/api/games/${t.game_id}/research?team_id=${t.id}`);
+      if (techRes.ok) {
+        const td = await techRes.json();
+        setUnlockedTechs(td.completedTechIds ?? []);
+        setActiveResearchId(td.activeResearchId ?? null);
+        setLegacyInvested(td.legacyInvested ?? {});
       }
     } catch (err) {
       debug.error("StudentDashboard fetchData failed", err);
@@ -172,7 +185,11 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     architect: (
       <ArchitectPanel
         teamBuildings={[]}
-        productionAvailable={resources.production}
+        resources={resources}
+        ownedSubZones={[]}
+        unlockedTechs={unlockedTechs}
+        hasBuilder={false}
+        ownedAssetKeys={[]}
       />
     ),
     merchant: (
@@ -181,6 +198,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         tradeOffers={[]}
         activeAgreements={[]}
         isEmbargoActive={false}
+        unlockedTechs={unlockedTechs}
       />
     ),
     diplomat: (
@@ -189,13 +207,14 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         laws={[]}
         pendingProposals={[]}
         warExhaustion={team.war_exhaustion_level}
+        unlockedTechs={unlockedTechs}
       />
     ),
     lorekeeper: (
       <LorekeeperPanel
         creatures={[]}
         codex={null}
-        hasWritingTech={false}
+        hasWritingTech={unlockedTechs.includes("writing")}
         ciScore={0}
         ciSpread={0}
         flagUrl={null}
@@ -208,6 +227,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         resilienceAvailable={resources.resilience}
         warExhaustion={team.war_exhaustion_level}
         defenseStatus={[]}
+        unlockedTechs={unlockedTechs}
       />
     ),
   };
@@ -236,7 +256,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
 
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg bg-stone-900/50 p-1">
-        {(["action", "map", "role"] as const).map((t) => (
+        {(["action", "map", "role", "tech"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -246,7 +266,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                 : "text-stone-400 hover:text-stone-200"
             }`}
           >
-            {t === "action" ? "📝 Action" : t === "map" ? "🗺️ Map" : `${role ? "🎭 " + role : "🎭 Role"}`}
+            {t === "action" ? "📝 Action" : t === "map" ? "🗺️ Map" : t === "tech" ? "🔬 Tech" : `${role ? "🎭 " + role : "🎭 Role"}`}
           </button>
         ))}
       </div>
@@ -343,6 +363,33 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       )}
 
       {tab === "role" && role && rolePanelMap[role]}
+
+      {tab === "tech" && team && (
+        <TechTree
+          completedTechIds={unlockedTechs}
+          activeResearchId={activeResearchId}
+          legacyInvested={legacyInvested}
+          onSelectResearch={async (techId) => {
+            try {
+              const res = await fetch(`/api/games/${team.game_id}/research`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "select",
+                  team_id: team.id,
+                  tech_id: techId,
+                }),
+              });
+              if (res.ok) {
+                setActiveResearchId(techId);
+                fetchData();
+              }
+            } catch (err) {
+              debug.error("Failed to select research", err);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

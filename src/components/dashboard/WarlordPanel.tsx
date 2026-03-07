@@ -18,15 +18,22 @@ interface WarlordPanelProps {
   resilienceAvailable: number;
   warExhaustion: number;
   defenseStatus: { subZone: string; hasWalls: boolean; soldiers: number }[];
+  unlockedTechs: string[];
   onRecruitUnit?: (type: string) => void;
   onMoveUnit?: (unitType: string, toSubZone: string) => void;
 }
 
-const UNIT_INFO: Record<string, { emoji: string; name: string; cost: number; costResource: string }> = {
+const UNIT_INFO: Record<string, { emoji: string; name: string; cost: number; costResource: string; techGate?: string; techName?: string }> = {
   scout:    { emoji: "🧭", name: "Scout",    cost: 5, costResource: "reach" },
   soldier:  { emoji: "🛡️", name: "Soldier",  cost: 6, costResource: "resilience" },
   merchant: { emoji: "💰", name: "Merchant", cost: 7, costResource: "reach" },
   builder:  { emoji: "🔨", name: "Builder",  cost: 8, costResource: "production" },
+  swordsman: { emoji: "⚔️", name: "Swordsman", cost: 10, costResource: "resilience", techGate: "bronze_working", techName: "Bronze Working" },
+  archer:   { emoji: "🏹", name: "Archer",   cost: 8, costResource: "resilience", techGate: "archery", techName: "Archery" },
+  cavalry:  { emoji: "🐎", name: "Cavalry",  cost: 14, costResource: "resilience", techGate: "horseback_riding", techName: "Horseback Riding" },
+  catapult: { emoji: "💥", name: "Catapult",  cost: 16, costResource: "production", techGate: "mathematics", techName: "Mathematics" },
+  knight:   { emoji: "🗡️", name: "Knight",   cost: 18, costResource: "resilience", techGate: "chivalry", techName: "Chivalry" },
+  musketeer: { emoji: "🔫", name: "Musketeer", cost: 20, costResource: "resilience", techGate: "gunpowder", techName: "Gunpowder" },
 };
 
 export default function WarlordPanel({
@@ -35,6 +42,7 @@ export default function WarlordPanel({
   resilienceAvailable,
   warExhaustion,
   defenseStatus,
+  unlockedTechs,
   onRecruitUnit,
   onMoveUnit,
 }: WarlordPanelProps) {
@@ -91,24 +99,39 @@ export default function WarlordPanel({
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-gray-400">Recruit Units</h3>
         <div className="grid grid-cols-2 gap-2">
-          {Object.entries(UNIT_INFO).map(([key, info]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onRecruitUnit?.(key)}
-              className="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-left hover:border-gray-500 transition-all"
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{info.emoji}</span>
-                <span className="text-sm font-medium text-white">
-                  {info.name}
-                </span>
-              </div>
-              <div className="text-xs text-gray-500">
-                Cost: {info.cost} {info.costResource === "reach" ? "🧭" : info.costResource === "resilience" ? "🛡️" : "⚙️"}
-              </div>
-            </button>
-          ))}
+          {Object.entries(UNIT_INFO).map(([key, info]) => {
+            const isLocked = info.techGate ? !unlockedTechs.includes(info.techGate) : false;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => !isLocked && onRecruitUnit?.(key)}
+                disabled={isLocked}
+                className={`rounded-lg border p-3 text-left transition-all ${
+                  isLocked
+                    ? "border-gray-800 bg-gray-900/50 opacity-50 cursor-not-allowed"
+                    : "border-gray-700 bg-gray-800/50 hover:border-gray-500"
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">{info.emoji}</span>
+                  <span className="text-sm font-medium text-white">
+                    {info.name}
+                  </span>
+                  {isLocked && <span className="text-[10px] text-gray-500">🔒</span>}
+                </div>
+                {isLocked ? (
+                  <div className="text-[10px] text-gray-600">
+                    Requires {info.techName} tech
+                  </div>
+                ) : (
+                  <div className="text-xs text-gray-500">
+                    Cost: {info.cost} {info.costResource === "reach" ? "🧭" : info.costResource === "resilience" ? "🛡️" : "⚙️"}
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
