@@ -38,7 +38,7 @@ export async function GET(
   // Fetch all epoch resolve snapshots ordered by epoch
   const { data: events, error: eventsErr } = await supabase
     .from("game_events")
-    .select("epoch, narrative_text, created_at")
+    .select("epoch, metadata, created_at")
     .eq("game_id", gameId)
     .eq("event_type", "epoch_resolve_snapshot")
     .order("epoch", { ascending: true });
@@ -48,12 +48,8 @@ export async function GET(
   }
 
   const snapshots = (events ?? []).flatMap((row) => {
-    try {
-      const payload = JSON.parse(row.narrative_text ?? "{}");
-      return [payload];
-    } catch {
-      return [];
-    }
+    if (!row.metadata || typeof row.metadata !== "object") return [];
+    return [row.metadata as Record<string, unknown>];
   });
 
   return NextResponse.json({

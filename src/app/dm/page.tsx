@@ -73,25 +73,48 @@ export default function DmPage() {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {games.map((game) => (
-            <Link
+            <div
               key={game.id}
-              href={`/dm/game/${game.id}`}
-              className="group rounded-xl border border-stone-800 bg-stone-900/50 p-5 transition hover:border-stone-600 hover:bg-stone-900"
+              className="rounded-xl border border-stone-800 bg-stone-900/50 p-5 transition hover:border-stone-600 hover:bg-stone-900"
             >
-              <h2 className="text-lg font-semibold text-stone-200 group-hover:text-red-400">
-                {game.name}
-              </h2>
-              <div className="mt-2 flex items-center gap-3 text-xs text-stone-500">
-                <span>Epoch {game.current_epoch}</span>
-                <span>·</span>
-                <span>{game.current_round}</span>
-                <span>·</span>
-                <span className="capitalize">{game.epoch_phase}</span>
+              <Link href={`/dm/game/${game.id}`} className="group block">
+                <h2 className="text-lg font-semibold text-stone-200 group-hover:text-red-400">
+                  {game.name}
+                </h2>
+                <div className="mt-2 flex items-center gap-3 text-xs text-stone-500">
+                  <span>Epoch {game.current_epoch}</span>
+                  <span>·</span>
+                  <span>{game.current_round}</span>
+                  <span>·</span>
+                  <span className="capitalize">{game.epoch_phase}</span>
+                </div>
+                <p className="mt-3 text-xs text-stone-600">
+                  Created {new Date(game.created_at).toLocaleDateString()}
+                </p>
+              </Link>
+              <div className="mt-3 flex gap-2">
+                <Link
+                  href={`/dm/game/${game.id}`}
+                  className="rounded-md bg-stone-800 px-3 py-1 text-xs font-medium text-stone-300 transition hover:bg-stone-700"
+                >
+                  Manage
+                </Link>
+                <Link
+                  href={`/replay?game_id=${game.id}`}
+                  className="rounded-md bg-amber-900/50 px-3 py-1 text-xs font-medium text-amber-400 transition hover:bg-amber-900"
+                  target="_blank"
+                >
+                  🎬 Replay
+                </Link>
+                <Link
+                  href={`/projector?game_id=${game.id}`}
+                  className="rounded-md bg-blue-900/50 px-3 py-1 text-xs font-medium text-blue-400 transition hover:bg-blue-900"
+                  target="_blank"
+                >
+                  📺 Projector
+                </Link>
               </div>
-              <p className="mt-3 text-xs text-stone-600">
-                Created {new Date(game.created_at).toLocaleDateString()}
-              </p>
-            </Link>
+            </div>
           ))}
         </div>
       )}

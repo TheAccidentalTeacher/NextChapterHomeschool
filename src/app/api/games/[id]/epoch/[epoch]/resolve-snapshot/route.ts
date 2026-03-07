@@ -22,7 +22,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("game_events")
-    .select("narrative_text, created_at")
+    .select("metadata, created_at")
     .eq("game_id", gameId)
     .eq("epoch", epoch)
     .eq("event_type", "epoch_resolve_snapshot")
@@ -35,10 +35,9 @@ export async function GET(
     return NextResponse.json({ error: "Snapshot not yet available" }, { status: 404 });
   }
 
-  try {
-    const payload = JSON.parse(data.narrative_text ?? "{}");
-    return NextResponse.json(payload);
-  } catch {
+  if (!data.metadata || typeof data.metadata !== "object") {
     return NextResponse.json({ error: "Malformed snapshot data" }, { status: 500 });
   }
+
+  return NextResponse.json(data.metadata);
 }

@@ -51,6 +51,12 @@ export default async function DmLayout({
             >
               Games
             </Link>
+            <Link
+              href="/replay"
+              className="text-amber-500 transition hover:text-amber-400"
+            >
+              🎬 Replay
+            </Link>
           </div>
           <div className="ml-auto text-xs text-stone-600">
             Teacher View

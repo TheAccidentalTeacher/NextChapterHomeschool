@@ -920,9 +920,9 @@ async function main() {
           await supabase.from("game_events").insert({
             game_id: gameId,
             epoch,
-            round: "resolve",
             event_type: "epoch_resolve_snapshot",
-            narrative_text: JSON.stringify({ epoch, teams: resolveResults }),
+            description: `Epoch ${epoch} resolve snapshot`,
+            metadata: { epoch, teams: resolveResults },
           });
         }
 
