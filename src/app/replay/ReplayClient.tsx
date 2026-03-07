@@ -22,9 +22,23 @@ interface SnapshotTeam {
   events: string[];
 }
 
+interface StudentSubmission {
+  studentName: string;
+  role: string;
+  roundType: string;
+  optionSelected: string;
+  justification: string;
+}
+
+interface TeamSubmissions {
+  teamId: string;
+  submissions: StudentSubmission[];
+}
+
 interface EpochSnapshot {
   epoch: number;
   teams: SnapshotTeam[];
+  teamSubmissions?: TeamSubmissions[];
 }
 
 interface ReplayData {
@@ -212,9 +226,16 @@ export default function ReplayClient({ gameId }: Props) {
 
   const handleScrub = useCallback((idx: number) => {
     clearAllTimers();
-    setPlaying(false);
     setEpochIndex(idx);
-    setPhase("resolve_results"); // jump straight to results view for that epoch
+    if (playingRef.current) {
+      // Was playing — keep playing forward from this epoch's intro
+      setPhase("epoch_intro");
+      // playing stays true — the useEffect will pick up and drive phase transitions
+    } else {
+      // Paused / manual browse — jump straight to results for that epoch
+      setPlaying(false);
+      setPhase("resolve_results");
+    }
   }, [clearAllTimers]);
 
   const handleSpeedChange = useCallback((s: SpeedValue) => {
@@ -364,6 +385,7 @@ export default function ReplayClient({ gameId }: Props) {
               <TeamResultCard key={idx} team={t} />
             ))}
           </div>
+          <StudentDecisionsPanel snapshot={snapshot} />
         </div>
       )}
 
@@ -495,6 +517,109 @@ function ResourceCell({ icon, label, value, color }: { icon: string; label: stri
       <p className="text-stone-500">{icon}</p>
       <p className={`text-base font-bold ${color}`}>{value}</p>
       <p className="text-xs text-stone-600">{label}</p>
+    </div>
+  );
+}
+
+// ---- Student Decisions Panel ----
+
+const ROUND_LEAD: Record<string, string> = { build: "architect", expand: "merchant", define: "diplomat" };
+const ROUND_LABEL: Record<string, string> = { build: "🏗️ Build", expand: "🧭 Expand", define: "📜 Define" };
+const OPTION_LABEL: Record<string, string> = { a: "Option A", b: "Option B", c: "Option C" };
+
+function StudentDecisionsPanel({ snapshot }: { snapshot: EpochSnapshot }) {
+  const [activeRound, setActiveRound] = useState<"build" | "expand" | "define">("build");
+  const [collapsed, setCollapsed] = useState(false);
+
+  const subs = snapshot.teamSubmissions;
+  if (!subs || subs.length === 0) return null;
+
+  const leadRole = ROUND_LEAD[activeRound];
+
+  return (
+    <div className="mx-auto mt-8 max-w-6xl border-t border-stone-800 pt-6">
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-bold text-stone-300">📋 Student Decisions</h3>
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="text-sm text-stone-500 hover:text-stone-300 transition"
+        >
+          {collapsed ? "▼ Show" : "▲ Hide"}
+        </button>
+      </div>
+
+      {!collapsed && (
+        <>
+          {/* Round Tabs */}
+          <div className="mb-5 flex gap-2">
+            {(["build", "expand", "define"] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setActiveRound(r)}
+                className={`rounded-lg px-4 py-2 text-sm font-bold transition ${
+                  activeRound === r
+                    ? "bg-amber-500 text-stone-950"
+                    : "border border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200"
+                }`}
+              >
+                {ROUND_LABEL[r]}
+              </button>
+            ))}
+          </div>
+
+          {/* Team Decision Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {snapshot.teams.map((team) => {
+              const teamSubs = subs.find((ts) => ts.teamId === team.teamId);
+              const allForRound = teamSubs?.submissions.filter((s) => s.roundType === activeRound) ?? [];
+              const leadSub = allForRound.find((s) => s.role === leadRole);
+              const otherSubs = allForRound.filter((s) => s.role !== leadRole);
+              // Tally other students' choices
+              const tally: Record<string, number> = {};
+              otherSubs.forEach((s) => { tally[s.optionSelected] = (tally[s.optionSelected] ?? 0) + 1; });
+
+              return (
+                <div
+                  key={team.teamId}
+                  className="rounded-xl border border-stone-800 bg-stone-900/60 p-4"
+                >
+                  <div className="mb-3 font-bold text-stone-200">{team.teamName}</div>
+
+                  {leadSub ? (
+                    <>
+                      {/* Lead decision */}
+                      <div className="mb-2 flex items-center gap-2">
+                        <span className="rounded bg-amber-500/20 px-2 py-0.5 text-xs font-bold text-amber-400">
+                          {OPTION_LABEL[leadSub.optionSelected] ?? leadSub.optionSelected.toUpperCase()}
+                        </span>
+                        <span className="text-sm text-stone-300">{leadSub.studentName}</span>
+                        <span className="text-xs text-stone-600">({leadSub.role})</span>
+                      </div>
+                      <p className="mb-3 line-clamp-3 text-xs italic text-stone-500">
+                        &ldquo;{leadSub.justification}&rdquo;
+                      </p>
+                      {/* Other students' votes */}
+                      {Object.keys(tally).length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-xs text-stone-600">Class votes:</span>
+                          {Object.entries(tally).map(([opt, count]) => (
+                            <span key={opt} className="rounded bg-stone-800 px-1.5 py-0.5 text-xs text-stone-400">
+                              {OPTION_LABEL[opt] ?? opt.toUpperCase()} ×{count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-xs text-stone-600">No submission recorded</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }
