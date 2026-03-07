@@ -216,6 +216,7 @@ export default function ProjectorClient() {
       {isResolving && (
         <ResolveSequence
           gameId={gameId}
+          epoch={epoch}
           teams={teams}
           onComplete={() => setIsResolving(false)}
         />

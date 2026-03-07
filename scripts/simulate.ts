@@ -11,6 +11,7 @@
 //   npx tsx scripts/simulate.ts --epochs 3         # just 3 epochs
 //   npx tsx scripts/simulate.ts --teams 4          # 4 teams instead of 6
 //   npx tsx scripts/simulate.ts --fast             # skip delays
+//   npx tsx scripts/simulate.ts --cinematic        # slow cinematic mode (watch on /projector)
 //   npx tsx scripts/simulate.ts --dry-run          # don't write to DB
 //   npx tsx scripts/simulate.ts --cleanup GAME_ID  # delete a sim game
 // ============================================================
@@ -60,6 +61,7 @@ const TOTAL_EPOCHS = parseInt(getArg("--epochs", "30"));
 const TEAM_COUNT = parseInt(getArg("--teams", "6"));
 const STUDENTS_PER_TEAM = parseInt(getArg("--students-per-team", "6"));
 const FAST_MODE = args.includes("--fast");
+const CINEMATIC_MODE = args.includes("--cinematic"); // Slow watchable mode for /projector view
 const DRY_RUN = args.includes("--dry-run");
 const CLEANUP_ID = args.includes("--cleanup") ? getArg("--cleanup", "") : null;
 
@@ -531,9 +533,22 @@ async function main() {
   banner("ClassCiv Simulation Engine");
   log("⚙️", `Epochs: ${TOTAL_EPOCHS} | Teams: ${TEAM_COUNT} | Students/team: ${STUDENTS_PER_TEAM}`);
   log("⚙️", `Total students: ${TEAM_COUNT * STUDENTS_PER_TEAM}`);
-  log("⚙️", `Dry run: ${DRY_RUN} | Fast mode: ${FAST_MODE}`);
+  log("⚙️", `Dry run: ${DRY_RUN} | Fast mode: ${FAST_MODE} | Cinematic: ${CINEMATIC_MODE}`);
   log("⚙️", `Supabase: ${SUPABASE_URL.substring(0, 40)}...`);
   console.log();
+
+  if (CINEMATIC_MODE) {
+    console.log(`${COLORS.bright}╔══════════════════════════════════════════════════════════╗${COLORS.reset}`);
+    console.log(`${COLORS.bright}║  🎬  CINEMATIC MODE — Open the projector NOW:            ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}║                                                          ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}║  http://localhost:3000/projector                         ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}║  https://YOUR-VERCEL-URL.vercel.app/projector            ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}║                                                          ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}║  Game starts in 15 seconds...                            ║${COLORS.reset}`);
+    console.log(`${COLORS.bright}╚══════════════════════════════════════════════════════════╝${COLORS.reset}`);
+    console.log();
+    await sleep(15000); // 15 second head start to open the browser
+  }
 
   // ── Step 1: Generate students ──────────────────────────────
   subBanner("Step 1: Generating Students");
@@ -588,6 +603,10 @@ async function main() {
     }
     gameId = game.id;
     log("🎮", `Created game: ${game.name} (${gameId})`);
+    if (CINEMATIC_MODE) {
+      log("🎬", `PROJECTOR URL: http://localhost:3000/projector`);
+      log("📺", `REPLAY URL:    http://localhost:3000/replay?game_id=${gameId}`);
+    }
   }
 
   // ── Step 3: Create teams and assign students ───────────────
@@ -784,7 +803,8 @@ async function main() {
       if (step === "login") {
         log("🔑", `Step: LOGIN — Students check in`);
         gameLog.push(`  [login] All ${TEAM_COUNT * STUDENTS_PER_TEAM} students logged in`);
-        if (!FAST_MODE) await sleep(200);
+        if (CINEMATIC_MODE) await sleep(6000);
+        else if (!FAST_MODE) await sleep(200);
         continue;
       }
 
@@ -799,8 +819,22 @@ async function main() {
         subBanner(`RESOLVE — End of Epoch ${epoch}`);
         gameLog.push(`  [resolve] Processing end-of-epoch effects`);
 
+        // Collect per-team resolve results (for snapshot + replay)
+        const resolveResults: Array<{
+          teamId: string;
+          teamName: string;
+          resources: Record<string, number>;
+          resourcesBefore: Record<string, number>;
+          population: number;
+          populationChange: number;
+          isDarkAge: boolean;
+          events: string[];
+        }> = [];
+
         for (const team of simTeams) {
           const events: string[] = [];
+          const resourcesBefore = { ...team.resources };
+          const popBefore = team.population;
 
           // 1) Bank decay
           const { decayed, events: decayEvents } = applyBankDecay(team.resources);
@@ -833,6 +867,17 @@ async function main() {
           );
           team.isInDarkAge = darkResult.isInDarkAge;
           if (darkResult.event) events.push(darkResult.event);
+
+          resolveResults.push({
+            teamId: team.id,
+            teamName: team.civName,
+            resources: { ...team.resources },
+            resourcesBefore,
+            population: team.population,
+            populationChange: team.population - popBefore,
+            isDarkAge: team.isInDarkAge,
+            events,
+          });
 
           // 5) Update DB
           if (!DRY_RUN) {
@@ -870,7 +915,28 @@ async function main() {
           logTeamState(team);
         }
 
-        if (!FAST_MODE) await sleep(300);
+        // ── Write epoch snapshot to game_events (powers /replay page) ──
+        if (!DRY_RUN) {
+          await supabase.from("game_events").insert({
+            game_id: gameId,
+            epoch,
+            round: "resolve",
+            event_type: "epoch_resolve_snapshot",
+            narrative_text: JSON.stringify({ epoch, teams: resolveResults }),
+          });
+        }
+
+        // ── Cinematic mode: set DB to "resolve" step so live projector fires animation ──
+        if (CINEMATIC_MODE && !DRY_RUN) {
+          await supabase
+            .from("games")
+            .update({ current_round: "resolve" })
+            .eq("id", gameId);
+          log("🎬", `[CINEMATIC] Projector resolve animation running — waiting 22s...`);
+          await sleep(22000); // Time for full ResolveSequence animation
+        } else if (!FAST_MODE) {
+          await sleep(300);
+        }
         continue;
       }
 
@@ -985,7 +1051,8 @@ async function main() {
           (team as { lastYield?: number }).lastYield = yieldAmount;
         }
 
-        if (!FAST_MODE) await sleep(500);
+        if (CINEMATIC_MODE) await sleep(8000); // Students see round active on their devices
+        else if (!FAST_MODE) await sleep(500);
         continue;
       }
 
@@ -1031,7 +1098,8 @@ async function main() {
           }
         }
 
-        if (!FAST_MODE) await sleep(300);
+        if (CINEMATIC_MODE) await sleep(4000); // Brief pause to show routing results
+        else if (!FAST_MODE) await sleep(300);
         continue;
       }
     }
@@ -1092,6 +1160,9 @@ async function main() {
 
   console.log();
   log("💡", `To clean up this simulation: npx tsx scripts/simulate.ts --cleanup ${gameId}`);
+  if (!DRY_RUN) {
+    log("📺", `To replay this simulation: http://localhost:3000/replay?game_id=${gameId}`);
+  }
   console.log();
 }
 
