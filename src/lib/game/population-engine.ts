@@ -21,8 +21,8 @@ export interface PopulationTickResult {
   events: string[];
 }
 
-/** Food generated per Farm per epoch */
-const FOOD_PER_FARM = 3;
+/** Food generated per Farm per epoch (calibrated for 30-epoch arc: 1 farm = breakeven at pop 5) */
+const FOOD_PER_FARM = 5;
 
 /** Food consumption per population unit per epoch */
 const FOOD_PER_POP = 1;

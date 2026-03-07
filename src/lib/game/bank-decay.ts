@@ -1,6 +1,6 @@
 // ============================================
 // Bank Decay Engine (Decision 38)
-// 10% decay per epoch, Banking tech = 5% interest
+// 5% decay per epoch (calibrated for 30-epoch arc), Banking tech = 5% interest
 // ============================================
 
 export interface BankDecayInput {
@@ -19,7 +19,7 @@ export interface BankDecayResult {
 
 /**
  * Apply bank decay (or interest) to a resource bank total.
- * Standard: floor(bank * 0.9) → 10% decay
+ * Standard: floor(bank * 0.95) → 5% decay (calibrated for 30-epoch arc)
  * Banking tech: floor(bank * 1.05) → 5% interest
  */
 export function applyBankDecay(input: BankDecayInput): BankDecayResult {
@@ -36,13 +36,13 @@ export function applyBankDecay(input: BankDecayInput): BankDecayResult {
     };
   }
 
-  const newAmount = Math.floor(bankAmount * 0.9);
+  const newAmount = Math.floor(bankAmount * 0.95);
   return {
     resourceType,
     previousAmount: bankAmount,
     newAmount,
     changeAmount: newAmount - bankAmount,
-    reason: "Bank decay: -10% per epoch",
+    reason: "Bank decay: -5% per epoch (calibrated for 30-epoch arc)",
   };
 }
 

@@ -3,11 +3,11 @@
 // ClassCiv Game Simulation Engine
 // ============================================================
 // Runs a complete game with 36 simulated students across 6 teams
-// through 8 epochs (88 state transitions). Talks directly to
+// through 30 epochs (330 state transitions). Talks directly to
 // Supabase, bypassing Clerk auth.
 //
 // Usage:
-//   npx tsx scripts/simulate.ts                    # full 8-epoch game
+//   npx tsx scripts/simulate.ts                    # full 30-epoch game (6-week arc)
 //   npx tsx scripts/simulate.ts --epochs 3         # just 3 epochs
 //   npx tsx scripts/simulate.ts --teams 4          # 4 teams instead of 6
 //   npx tsx scripts/simulate.ts --fast             # skip delays
@@ -56,7 +56,7 @@ function getArg(flag: string, defaultVal: string): string {
   const idx = args.indexOf(flag);
   return idx !== -1 && args[idx + 1] ? args[idx + 1] : defaultVal;
 }
-const TOTAL_EPOCHS = parseInt(getArg("--epochs", "8"));
+const TOTAL_EPOCHS = parseInt(getArg("--epochs", "30"));
 const TEAM_COUNT = parseInt(getArg("--teams", "6"));
 const STUDENTS_PER_TEAM = parseInt(getArg("--students-per-team", "6"));
 const FAST_MODE = args.includes("--fast");
@@ -179,6 +179,7 @@ interface SimTeam {
   region: string;
   students: SimStudent[];
   resources: Record<string, number>;
+  farmCount: number;     // tracked buildings of type farm
   population: number;
   warExhaustion: number;
   isInDarkAge: boolean;
@@ -321,9 +322,15 @@ function calculateYield(opts: {
 
 // ── Population Engine (mirrors src/lib/game/population-engine.ts) ─
 
-function tickPopulation(pop: number, food: number): { newPop: number; newFood: number; event: string } {
+const FOOD_PER_FARM_SIM = 5; // Must match population-engine.ts FOOD_PER_FARM (30-epoch calibration)
+
+function tickPopulation(pop: number, food: number, farmCount: number = 0): { newPop: number; newFood: number; event: string } {
+  // Farm food generation (passive each epoch if farm exists)
+  const farmYield = farmCount * FOOD_PER_FARM_SIM;
+  const foodAfterFarms = food + farmYield;
+
   const consumption = pop; // 1 food per person
-  let remainingFood = food - consumption;
+  let remainingFood = foodAfterFarms - consumption;
   let newPop = pop;
   let event = "";
 
@@ -357,7 +364,7 @@ function applyBankDecay(resources: Record<string, number>): { decayed: Record<st
   for (const key of ["production", "reach", "legacy", "resilience"]) {
     const before = decayed[key] ?? 0;
     if (before > 0) {
-      decayed[key] = Math.floor(before * 0.9); // 10% decay
+      decayed[key] = Math.floor(before * 0.95); // 5% decay (calibrated for 30-epoch arc)
       const lost = before - decayed[key];
       if (lost > 0) events.push(`💸 Bank decay: ${key} lost ${lost} (${before} → ${decayed[key]})`);
     }
@@ -602,6 +609,7 @@ async function main() {
         region: regionName,
         students: teamStudents,
         resources: { production: 0, reach: 0, legacy: 0, resilience: 0, food: 10 },
+        farmCount: 1,
         population: 5,
         warExhaustion: 0,
         isInDarkAge: false,
@@ -667,6 +675,7 @@ async function main() {
       region: regionName,
       students: teamStudents,
       resources: { production: 0, reach: 0, legacy: 0, resilience: 0, food: 10 },
+      farmCount: 1,
       population: 5,
       warExhaustion: 0,
       isInDarkAge: false,
@@ -801,7 +810,8 @@ async function main() {
           // 2) Population tick
           const { newPop, newFood, event: popEvent } = tickPopulation(
             team.population,
-            team.resources.food
+            team.resources.food,
+            team.farmCount
           );
           team.population = newPop;
           team.resources.food = newFood;

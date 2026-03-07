@@ -1,0 +1,80 @@
+﻿      ≡ƒÆ╕ Bank decay: production lost 4 (31 ΓåÆ 27)
+      ≡ƒÆ╕ Bank decay: reach lost 4 (33 ΓåÆ 29)
+      ≡ƒÆ╕ Bank decay: legacy lost 2 (13 ΓåÆ 11)
+      ≡ƒÆ╕ Bank decay: resilience lost 2 (13 ΓåÆ 11)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    The Ember Dominion: pop=1 war=0 darkAge=false | production=27, reach=29, legacy=11, resilience=11, food=0[0m
+  ≡ƒÅ¢∩╕Å  [1mStormhold Republic[0m:
+      ≡ƒÆ╕ Bank decay: production lost 4 (35 ΓåÆ 31)
+      ≡ƒÆ╕ Bank decay: reach lost 2 (12 ΓåÆ 10)
+      ≡ƒÆ╕ Bank decay: legacy lost 2 (12 ΓåÆ 10)
+      ≡ƒÆ╕ Bank decay: resilience lost 3 (30 ΓåÆ 27)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    Stormhold Republic: pop=1 war=0 darkAge=false | production=31, reach=10, legacy=10, resilience=27, food=0[0m
+  ≡ƒÅ¢∩╕Å  [1mIronveil Confederacy[0m:
+      ≡ƒÆ╕ Bank decay: production lost 1 (10 ΓåÆ 9)
+      ≡ƒÆ╕ Bank decay: reach lost 4 (35 ΓåÆ 31)
+      ≡ƒÆ╕ Bank decay: legacy lost 4 (37 ΓåÆ 33)
+      ≡ƒÆ╕ Bank decay: resilience lost 2 (15 ΓåÆ 13)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    Ironveil Confederacy: pop=1 war=0 darkAge=false | production=9, reach=31, legacy=33, resilience=13, food=0[0m
+  ≡ƒÅ¢∩╕Å  [1mTidecrest Alliance[0m:
+      ≡ƒÆ╕ Bank decay: production lost 5 (43 ΓåÆ 38)
+      ≡ƒÆ╕ Bank decay: reach lost 4 (38 ΓåÆ 34)
+      ≡ƒÆ╕ Bank decay: legacy lost 1 (5 ΓåÆ 4)
+      ≡ƒÆ╕ Bank decay: resilience lost 1 (8 ΓåÆ 7)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    Tidecrest Alliance: pop=1 war=0 darkAge=false | production=38, reach=34, legacy=4, resilience=7, food=0[0m
+  ≡ƒÅ¢∩╕Å  [1mShadowpeak Kingdom[0m:
+      ≡ƒÆ╕ Bank decay: production lost 3 (23 ΓåÆ 20)
+      ≡ƒÆ╕ Bank decay: reach lost 1 (8 ΓåÆ 7)
+      ≡ƒÆ╕ Bank decay: legacy lost 4 (31 ΓåÆ 27)
+      ≡ƒÆ╕ Bank decay: resilience lost 2 (14 ΓåÆ 12)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    Shadowpeak Kingdom: pop=1 war=0 darkAge=false | production=20, reach=7, legacy=27, resilience=12, food=0[0m
+  ≡ƒÅ¢∩╕Å  [1mSunforge Empire[0m:
+      ≡ƒÆ╕ Bank decay: production lost 2 (16 ΓåÆ 14)
+      ≡ƒÆ╕ Bank decay: reach lost 5 (43 ΓåÆ 38)
+      ≡ƒÆ╕ Bank decay: legacy lost 4 (37 ΓåÆ 33)
+      ≡ƒÆ╕ Bank decay: resilience lost 2 (12 ΓåÆ 10)
+      ΓÜá∩╕Å FAMINE ΓÇö population lost 1 (food ran out)
+  [2m    Sunforge Empire: pop=1 war=0 darkAge=false | production=14, reach=38, legacy=33, resilience=10, food=0[0m
+  ≡ƒÜ¬  Step: EXIT ΓÇö Epoch 8 complete
+
+
+[36m[1m  ΓöîΓöÇ Epoch 8 Summary ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ[0m
+  [2m    The Ember Dominion: pop=1 war=0 darkAge=false | production=27, reach=29, legacy=11, resilience=11, food=0[0m
+  [2m    Stormhold Republic: pop=1 war=0 darkAge=false | production=31, reach=10, legacy=10, resilience=27, food=0[0m
+  [2m    Ironveil Confederacy: pop=1 war=0 darkAge=false | production=9, reach=31, legacy=33, resilience=13, food=0[0m
+  [2m    Tidecrest Alliance: pop=1 war=0 darkAge=false | production=38, reach=34, legacy=4, resilience=7, food=0[0m
+  [2m    Shadowpeak Kingdom: pop=1 war=0 darkAge=false | production=20, reach=7, legacy=27, resilience=12, food=0[0m
+  [2m    Sunforge Empire: pop=1 war=0 darkAge=false | production=14, reach=38, legacy=33, resilience=10, food=0[0m
+
+[44m[37m[1m ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ [0m
+[44m[37m[1m  SIMULATION COMPLETE                                        [0m
+[44m[37m[1m ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ [0m
+
+  ΓÅ▒∩╕Å  Elapsed: 134.3s
+  ≡ƒÄ«  Game ID: 6b978e8d-f3f7-4898-aa11-1140ad297cc2
+  ≡ƒôè  Epochs played: 8
+  ≡ƒô¥  Total submissions: 1152 (estimated)
+
+
+[36m[1m  ΓöîΓöÇ Final Standings ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ[0m
+  ≡ƒÑç #1 [1mSunforge Empire[0m ΓÇö Score: [1m100[0m (resources=95, pop=1, darkAge=false)
+       [2mproduction=14, reach=38, legacy=33, resilience=10, food=0[0m
+  ≡ƒÑê #2 [1mIronveil Confederacy[0m ΓÇö Score: [1m91[0m (resources=86, pop=1, darkAge=false)
+       [2mproduction=9, reach=31, legacy=33, resilience=13, food=0[0m
+  ≡ƒÑë #3 [1mTidecrest Alliance[0m ΓÇö Score: [1m88[0m (resources=83, pop=1, darkAge=false)
+       [2mproduction=38, reach=34, legacy=4, resilience=7, food=0[0m
+     #4 [1mThe Ember Dominion[0m ΓÇö Score: [1m83[0m (resources=78, pop=1, darkAge=false)
+       [2mproduction=27, reach=29, legacy=11, resilience=11, food=0[0m
+     #5 [1mStormhold Republic[0m ΓÇö Score: [1m83[0m (resources=78, pop=1, darkAge=false)
+       [2mproduction=31, reach=10, legacy=10, resilience=27, food=0[0m
+     #6 [1mShadowpeak Kingdom[0m ΓÇö Score: [1m71[0m (resources=66, pop=1, darkAge=false)
+       [2mproduction=20, reach=7, legacy=27, resilience=12, food=0[0m
+
+  ≡ƒôä  Full log written to: C:\Users\Valued Customer\OneDrive\Desktop\WEBSITES\homeschool\classroom-civ\simulation-log-6b978e8d.txt
+
+  ≡ƒÆí  To clean up this simulation: npx tsx scripts/simulate.ts --cleanup 6b978e8d-f3f7-4898-aa11-1140ad297cc2
+
