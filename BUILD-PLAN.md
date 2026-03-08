@@ -44,12 +44,12 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 | Phase | Name | Priority | Decisions Covered |
 |-------|------|----------|-------------------|
 | 0 | Foundation (DONE) | ✅ Complete | 84 |
-| 1 | Auth + Game/Team Setup | 🔴 MVP | 83, 76, 13, 4-6, 8, 29 |
-| 2 | Map Layer (Leaflet + GeoJSON) | 🔴 MVP | 1, 60, 61, 81 |
-| 3 | Submission System | 🔴 MVP | 19-25, 27, 32, 78, 80 |
-| 4 | DM Panel | 🔴 MVP | 47-52, 66, 71-72 |
-| 5 | Resource Engine | 🔴 MVP | 37-39, 41, 43, 45, 87 |
-| 6 | Projector Display | 🔴 MVP | 76, 79, 4 (P1-P4) |
+| 1 | Auth + Game/Team Setup | ✅ Complete | 83, 76, 13, 4-6, 8, 29 |
+| 2 | Map Layer (Leaflet + GeoJSON) | ✅ Complete | 1, 60, 61, 81 |
+| 3 | Submission System | ✅ Complete | 19-25, 27, 32, 78, 80 |
+| 4 | DM Panel | ✅ Complete | 47-52, 66, 71-72 |
+| 5 | Resource Engine | ✅ Complete | 37-39, 41, 43, 45, 87 |
+| 6 | Projector Display | ✅ Complete | 76, 79, 4 (P1-P4) |
 | 7 | Purchase Menu + Buildings on Map | 🟡 Day 2+ | 39, 90, 91 |
 | 8 | d20 Event System + Math Gate | 🟡 Day 2+ | 33, 88, 92 |
 | 9 | Tech Tree UI + Research | 🟡 Day 2+ | 62 |
@@ -58,6 +58,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 | 12 | HeyGen Clips + Kaiju Animations | 🟠 Week 2-3 | 34, 55 |
 | 13 | NPC System | 🟠 Week 3 | 64 |
 | 14 | Portfolio Export + Epilogue | 🟠 Week 3 | 68, 74, 82, 89 |
+| 15 | Simulation Engine + Replay Viewer | ✅ Complete | — (out-of-sequence, built for debrief) |
 
 ---
 
@@ -88,7 +89,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 1 — AUTH + GAME/TEAM SETUP
+## PHASE 1 — AUTH + GAME/TEAM SETUP ✅ COMPLETE
 **Decisions:** 83 (Auth/Privacy), 76 (Three Roles), 13 (Team Formation), 4-6 (Player/Team Count), 8 (Persistence), 29 (5 Roles), 14-16 (Draft System), 4 (P4 — Civ Names)
 **Goal:** Scott can create a game, set up teams, assign students to roles, and everyone can log in to the correct view.
 
@@ -174,7 +175,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 2 — MAP LAYER (LEAFLET + GEOJSON)
+## PHASE 2 — MAP LAYER (LEAFLET + GEOJSON) ✅ COMPLETE
 **Decisions:** 1 (Real Earth), 60 (Regional Bonuses), 61 (Sub-Zones), 81 (Fog/Occupation), 53 (Both Classes Global)
 **Goal:** A real-Earth Leaflet map with 12 colored regions, ~60-80 named sub-zones, fog of war per team, and team territory overlays.
 
@@ -273,7 +274,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 3 — SUBMISSION SYSTEM
+## PHASE 3 — SUBMISSION SYSTEM ✅ COMPLETE
 **Decisions:** 19-25 (Decision System), 27 (Question Generation), 32 (Independent Submissions), 78 (Round Outcome), 80 (Written Component), 44 (7/8 Pacing), 79 (Epoch Clock)
 **Goal:** Students can submit role-specific decisions with written justifications each round. Scott sees all submissions before resolving.
 
@@ -422,7 +423,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 4 — DM PANEL (TEACHER GOD VIEW)
+## PHASE 4 — DM PANEL (TEACHER GOD VIEW) ✅ COMPLETE
 **Decisions:** 47-52 (DM Controls), 66 (Cross-Class Timing), 71-72 (Absent Handling + Conflict Flags), 17 (Teacher = DM)
 **Goal:** Scott's full command center — submission queue, map, DM controls bar, pause, override, event fire, RESOLVE.
 
@@ -556,7 +557,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 5 — RESOURCE ENGINE
+## PHASE 5 — RESOURCE ENGINE ✅ COMPLETE
 **Decisions:** 37-39 (4 Resources, Routing, Purchase Menu), 41 (Food + Population), 43 (Food Generation), 45 (Population Mechanics), 87 (Sub-Zone Depletion), 65 (War Exhaustion)
 **Goal:** The full economy — yield formula, routing panel, bank decay, food/population survival layer, sub-zone depletion.
 
@@ -689,7 +690,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 6 — PROJECTOR DISPLAY
+## PHASE 6 — PROJECTOR DISPLAY ✅ COMPLETE
 **Decisions:** 76 (Projector Architecture), 79 (E2-E4 — Resolution Sequence), P1-P4 (Category 9)
 **Goal:** Full-screen server-driven projector display that auto-refreshes via Supabase Realtime. The world map, animated resolution sequences, announcement overlays.
 
@@ -1691,6 +1692,161 @@ Every one of the 93 locked decisions must be accounted for in a build phase. Thi
 - Week 1: Monitor, hotfix, observe student behavior, tune yield/depletion rates
 - Week 2: Layer in any deferred polish (animation timing, Haiku prompt tuning, event deck balance)
 - Week 3: Epilogue prep, portfolio export testing with real data, HeyGen closing clip finalized
+
+---
+
+## PHASE 15 — SIMULATION ENGINE + REPLAY VIEWER ✅ COMPLETE
+**Goal:** Full automated game simulation for testing + a post-game replay viewer that lets Scott debrief students with animated territory maps, team stats, and epoch-by-epoch decisions.
+
+> Built out-of-sequence (between Phase 6 and Phase 7) to provide rich test data for all game mechanics and a cinematic debrief tool for classroom use.
+
+---
+
+### Step 15.1 — Simulation Engine (`scripts/simulate.ts`) ✅
+
+**What was built:**
+- ✅ `SimTeam` interface with `regionId: number` — maps teams 0–5 to region IDs 1–6
+- ✅ 36 simulated students across 6 personality archetypes: `scholar`, `adventurer`, `cautious`, `random`, `minimalist`, `warmonger`
+- ✅ 30-epoch full game simulation (configurable via `--epochs N`)
+- ✅ Three run modes:
+  - `--cinematic` — 1s delay between steps, designed for watching live
+  - `--fast` (default) — no delay, runs to completion
+  - `--dry-run` — full logic, no DB writes
+- ✅ Each epoch runs all 11 state machine phases (login → build → build_routing → expand → expand_routing → define → define_routing → defend → defend_routing → resolve → exit)
+- ✅ `resolveResults` snapshots saved per epoch with `teamSubmissions` array (all 6 roles × 5 rounds = 30 submissions per epoch)
+- ✅ `regionId` included in team creation payload (both real and dry-run paths) and in `resolveResults` metadata
+- ✅ Cleanup utility: `--cleanup GAME_ID` deletes all sim data for a given game
+- ✅ Log output saved to `simulation-log-{gameId}.txt`
+
+**Run commands:**
+```bash
+# 30-epoch simulation with cinematic pacing
+npx tsx scripts/simulate.ts --cinematic --epochs 30
+
+# Fast run for CI / quick testing
+npx tsx scripts/simulate.ts --fast --epochs 3
+
+# No DB writes
+npx tsx scripts/simulate.ts --dry-run
+
+# Clean up sim data
+npx tsx scripts/simulate.ts --cleanup GAME_ID
+```
+
+> **Note:** Must be run from the `classroom-civ/` directory. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+
+---
+
+### Step 15.2 — Replay API (`src/app/api/games/[id]/replay/route.ts`) ✅
+
+**What was built:**
+- ✅ `GET /api/games/[id]/replay` — returns all epoch snapshots for a game
+- ✅ Response shape:
+  ```ts
+  {
+    gameId: string
+    gameName: string
+    totalEpochs: number
+    snapshots: Array<{
+      epoch: number
+      snapshot_type: string
+      metadata: { teamSubmissions: TeamSubmissionRecord[] }
+      teams: TeamSnapshot[]
+    }>
+  }
+  ```
+- ✅ `teamSubmissions` includes per-team, per-role, per-round decision data (question, answer, justification, yield)
+
+---
+
+### Step 15.3 — Replay Page + Client (`src/app/replay/`) ✅
+
+**Files:**
+- `src/app/replay/page.tsx` — Server component, reads `?gameId=` from URL, passes to ReplayClient
+- `src/app/replay/ReplayClient.tsx` — Full replay viewer
+- `src/app/replay/ReplayMapPanel.tsx` — Territory map component
+
+**`ReplayClient` features:**
+- ✅ Transport controls: ▶ Play, ⏸ Pause, ⏮ / ⏭ skip epoch, scrubber slider
+- ✅ Three animated phases per epoch:
+  1. `epoch_intro` — "Epoch N begins" splash (2s)
+  2. `resolve_processing` — processing ticker with counter (3s, dedicated `useEffect` with own cleanup — not killed by `clearAllTimers()`)
+  3. `resolve_results` — team cards + Stats/Map toggle
+- ✅ Team resource cards in `resolve_results` showing Production/Reach/Legacy/Resilience
+- ✅ Student decisions panel — per-team expandable list of role × round submissions
+- ✅ `📊 Stats` / `🗺️ Map` toggle button for switching between data view and territory map
+
+**Key bug fix — phase deadlock:**
+```
+Problem: useEffect cleanup fired during epoch_intro→resolve_processing transition,
+killing the processing interval before it could run.
+
+Fix: resolve_processing gets its own dedicated useEffect with isolated cleanup —
+completely separate from clearAllTimers() used by other phases.
+```
+
+---
+
+### Step 15.4 — Territory Map (`src/app/replay/ReplayMapPanel.tsx`) ✅
+
+**What was built:**
+- ✅ React-Leaflet map with CartoDB dark (no labels) tile layer
+- ✅ World country GeoJSON loaded from `public/data/countries.geojson` (14 MB, ISO 3166-1 property keys)
+- ✅ `COUNTRY_REGION` lookup table: maps ISO 3166-1 Alpha-2 country codes → 12 region IDs
+
+**Property key resolution (important — non-obvious):**
+```
+CDN datasets use `ISO_A2` / `ADMIN`
+Downloaded dataset uses `ISO3166-1-Alpha-2` / `name`
+Fix: getIso() reads props["ISO3166-1-Alpha-2"], getName() reads props.name
+```
+
+- ✅ `computeTerritory()` algorithm:
+  1. Each team claims its `regionId` as home territory
+  2. `Math.floor(reach / 80)` additional regions claimed from unclaimed pool (sorted 7–12)
+  3. Countries in claimed regions colored by team color
+  4. Unclaimed countries rendered semi-transparent gray
+- ✅ 6 team colors: amber `#f59e0b`, blue `#3b82f6`, green `#22c55e`, red `#ef4444`, purple `#a855f7`, cyan `#22d3ee`
+- ✅ Hover tooltips: team name + region name + country name
+- ✅ SSR-safe: loaded via `dynamic(import, { ssr: false })` to prevent Leaflet server-side crashes
+
+**GeoJSON file:**
+- Location: `public/data/countries.geojson` (14 MB — committed to git)
+- Served at: `/data/countries.geojson` (Next.js public dir)
+- Property keys confirmed: `ISO3166-1-Alpha-2`, `ISO3166-1-Alpha-3`, `name`, `sovereignt`
+
+---
+
+### Step 15.5 — Epilogue Foundation (`src/app/epilogue/`) ✅ (Partial)
+
+**What was built (Phase 14 scaffolding, marked ✅ here):**
+- ✅ `src/app/epilogue/page.tsx` — Epilogue sequence viewer (`EpiloguePageInner` wrapped in `Suspense` for `useSearchParams()`)
+- ✅ `src/app/epilogue/vote/page.tsx` — Student superlative voting page
+- ✅ `/api/epilogue/vote/route.ts` — Records votes
+- ✅ `/api/epilogue/results/route.ts` — Tallies results
+- ✅ `/api/epilogue/export/[teamId]/route.ts` — Portfolio export per team
+- ✅ `/api/epilogue/export-all/route.ts` — Batch portfolio export
+- ✅ `/api/games/[id]/epilogue/route.ts` — Triggers epilogue engine
+
+**Production build fix:**
+```
+Error: useSearchParams() should be wrapped in a suspense boundary at page "/epilogue"
+Fix: Renamed to EpiloguePageInner, export default EpiloguePage wraps in <Suspense>
+```
+
+---
+
+### Definition of Done — Phase 15 ✅
+
+- [x] Simulation runs 30 epochs, saves all snapshots with teamSubmissions + regionId
+- [x] `/api/games/[id]/replay` returns complete replay data
+- [x] `/replay?gameId=X` loads and plays back a full game
+- [x] Transport controls work (play/pause/skip/scrub)
+- [x] Territory map renders real country borders colored by team
+- [x] Map toggle (Stats ↔ Map) works in resolve_results phase
+- [x] Epilogue page and API routes scaffolded and production-safe
+- [x] All changes committed and pushed to GitHub
+- [x] Vercel production deploy clean — `next-chapter-homeschool.vercel.app`
 
 ---
 

@@ -203,16 +203,19 @@ classroom-civ/
 │   └── data/
 │       ├── question-bank.json    # 12 starter questions across roles/rounds
 │       ├── regions.json          # 12 macro-regions with GeoJSON boundaries
-│       └── sub-zones.json        # 72 sub-zones (6 per region)
+│       ├── sub-zones.json        # 72 sub-zones (6 per region)
+│       └── countries.geojson     # 14 MB world country borders (ISO 3166-1 Alpha-2 keys)
 ├── scripts/
-│   ├── simulate.ts               # Game simulation engine (36 students, 6 teams, 8 epochs)
+│   ├── simulate.ts               # Game simulation engine (36 students, 6 teams, up to 30 epochs; cinematic/fast/dry-run modes; saves regionId per team)
 │   └── run-migration.ts          # Utility to run SQL migrations against Supabase
 ├── src/
 │   ├── app/
-│   │   ├── api/                  # 20 API route files (see API Reference)
+│   │   ├── api/                  # 30+ API route files (see API Reference)
 │   │   ├── dashboard/            # Student dashboard (page + client component)
 │   │   ├── dm/                   # Teacher DM pages (overview, setup, roster, names, game)
+│   │   ├── epilogue/             # End-game epilogue sequence (histories → victories → superlatives → portfolios)
 │   │   ├── projector/            # Projector display (page + client component)
+│   │   ├── replay/               # Post-game replay viewer with territory map (page + ReplayClient + ReplayMapPanel)
 │   │   ├── sign-in/              # Clerk sign-in page
 │   │   ├── layout.tsx            # Root layout (ClerkProvider, fonts, CSS)
 │   │   ├── page.tsx              # Landing page
@@ -269,6 +272,8 @@ classroom-civ/
 | `/dm/names` | Teacher | Review and approve/reject civilization names |
 | `/dm/game/[id]` | Teacher | Live game management — map, submissions, controls, events |
 | `/projector` | Public | Classroom display — map, overlays, leaderboard, events |
+| `/replay` | Teacher | Post-game replay viewer — transport controls, epoch phases, team cards, student decisions, territory map |
+| `/epilogue` | Teacher/Student | End-game epilogue sequence — civilization histories, victory reveals, superlative vote, portfolio export |
 
 ---
 
@@ -356,6 +361,22 @@ All API routes are under `/api/`. Teacher-only routes enforce role via `requireT
 |--------|----------|------|-------------|
 | GET | `/api/games/[id]/recap/[teamId]` | Auth | Get daily recap for a team |
 
+### Replay
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/games/[id]/replay` | Auth | Returns all epoch snapshots + student submissions for the replay viewer. Response: `{ gameId, gameName, totalEpochs, snapshots[] }` |
+
+### Epilogue
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/games/[id]/epilogue` | Teacher | Trigger epilogue — runs victory engine, generates Haiku histories |
+| POST | `/api/epilogue/vote` | Student | Submit superlative vote (one per student per category) |
+| GET | `/api/epilogue/results` | Teacher | Tally superlative vote results for projector reveal |
+| GET | `/api/epilogue/export/[teamId]` | Auth | Generate portfolio PDF for a specific team |
+| GET | `/api/epilogue/export-all` | Teacher | Batch export all team portfolios |
+
 ### Student Self-Service
 
 | Method | Endpoint | Auth | Description |
@@ -393,14 +414,16 @@ The simulation engine in `scripts/simulate.ts` runs a complete automated game ag
 | Feature | Detail |
 |---------|--------|
 | **Students** | 36 simulated with 6 personality archetypes (scholar, adventurer, cautious, random, minimalist, warmonger) |
-| **Teams** | 6 teams of 6, each with all 5 roles assigned |
-| **Epochs** | Default 8 (configurable via `--epochs N`) |
+| **Teams** | 6 teams of 6, each with all 5 roles assigned. Each team gets a `regionId` (1-6) saved to the DB snapshot |
+| **Epochs** | Default 30 (configurable via `--epochs N`) |
+| **Modes** | `--cinematic` (1s delay between steps), `--fast` (no delay), `--dry-run` (no DB writes) |
 | **Mechanics tested** | Yield calculator, population engine, bank decay, dark age checks, question selection, resource routing, epoch state machine (11 steps per epoch) |
 | **Output** | Full play-by-play log + final standings. Log saved to `simulation-log-{gameId}.txt` |
+| **Replay data** | Saves `resolveResults` snapshots per epoch with `teamSubmissions` — consumed by `/api/games/[id]/replay` |
 
 ```bash
-# Full 8-epoch simulation
-npx tsx scripts/simulate.ts
+# Full 30-epoch simulation (cinematic mode — 1s between steps)
+npx tsx scripts/simulate.ts --cinematic --epochs 30
 
 # Quick 3-epoch test
 npx tsx scripts/simulate.ts --fast --epochs 3
@@ -486,6 +509,13 @@ npx tsx scripts/simulate.ts --cleanup GAME_ID
 | `IntelDropModal` | gameId, teamId | Polls for private DM messages, displays with dismiss |
 | `GlobalEventModal` | gameId | Polls for global events, displays with dismiss |
 
+### Replay — `src/app/replay/`
+
+| Component | Props | Purpose |
+|-----------|-------|---------|
+| `ReplayClient` | gameId | Full replay viewer — transport controls (play/pause/scrub), epoch phases, team resource cards, student decision panels, `📊 Stats` / `🗺️ Map` toggle. Phases: `epoch_intro` → `resolve_processing` → `resolve_results`. |
+| `ReplayMapPanel` | snapshot, teams | Territory map using React-Leaflet + CartoDB dark tiles. Fetches `public/data/countries.geojson` (14 MB). Maps `ISO3166-1-Alpha-2` codes → 12 region IDs. Colors countries by team based on home region + reach-based expansion (`Math.floor(reach / 80)` additional from unclaimed pool). Hover tooltips show team + region + country. |
+
 ---
 
 ## Database Schema
@@ -570,8 +600,12 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | Phase 4 | ✅ Complete | DM Panel — controls, queue, scoring, events, intel |
 | Phase 5 | ✅ Complete | Resource Engine — yield calc, decay, population, depletion |
 | Phase 6 | ✅ Complete | Projector Display — overlays, resolve animation, exit hooks |
-| — | ✅ Complete | Simulation Engine — 36 students, 6 teams, 8 epochs, 1,152 submissions |
+| Phase 14 (partial) | ✅ Complete | Epilogue scaffolded — `/epilogue` page + vote + export API routes |
+| Phase 15 | ✅ Complete | Simulation Engine — 36 students, 6 teams, 30 epochs, cinematic/fast/dry-run modes, regionId per team, 3,240+ submissions |
+| Phase 15 | ✅ Complete | Replay Viewer — `/replay` page, ReplayClient (transport + epoch phases), ReplayMapPanel (world territory map with real country borders) |
 | — | ✅ Complete | DB Migration 002 — DEFEND enum + current_round→text |
+| — | ✅ Complete | Production fix — epilogue Suspense boundary for `useSearchParams()` |
+| — | ✅ Complete | Vercel deploy — all routes clean at `next-chapter-homeschool.vercel.app` |
 | Phase 7 | 🔲 Planned | Purchase Menu + Buildings on Map |
 | Phase 8 | 🔲 Planned | d20 Event System + Math Gate |
 | Phase 9 | 🔲 Planned | Tech Tree UI + Research |
@@ -579,7 +613,7 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | Phase 11 | 🔲 Planned | Trade System |
 | Phase 12 | 🔲 Planned | HeyGen Clips + Kaiju Animations |
 | Phase 13 | 🔲 Planned | NPC System |
-| Phase 14 | 🔲 Planned | Portfolio Export + Epilogue |
+| Phase 14 | 🔲 Planned | Portfolio Export + Full Epilogue |
 
 ---
 
