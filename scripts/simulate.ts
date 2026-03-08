@@ -179,6 +179,7 @@ interface SimTeam {
   name: string;
   civName: string;
   region: string;
+  regionId: number;      // numeric region ID (1-12) for map rendering
   students: SimStudent[];
   resources: Record<string, number>;
   farmCount: number;     // tracked buildings of type farm
@@ -626,6 +627,7 @@ async function main() {
         name: `Team ${t + 1}`,
         civName,
         region: regionName,
+        regionId,
         students: teamStudents,
         resources: { production: 0, reach: 0, legacy: 0, resilience: 0, food: 10 },
         farmCount: 1,
@@ -692,6 +694,7 @@ async function main() {
       name: civName,
       civName,
       region: regionName,
+      regionId,
       students: teamStudents,
       resources: { production: 0, reach: 0, legacy: 0, resilience: 0, food: 10 },
       farmCount: 1,
@@ -823,6 +826,7 @@ async function main() {
         const resolveResults: Array<{
           teamId: string;
           teamName: string;
+          regionId: number;
           resources: Record<string, number>;
           resourcesBefore: Record<string, number>;
           population: number;
@@ -871,6 +875,7 @@ async function main() {
           resolveResults.push({
             teamId: team.id,
             teamName: team.civName,
+            regionId: team.regionId,
             resources: { ...team.resources },
             resourcesBefore,
             population: team.population,

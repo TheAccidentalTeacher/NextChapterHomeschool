@@ -8,12 +8,16 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
+
+const ReplayMapPanel = dynamic(() => import("./ReplayMapPanel"), { ssr: false });
 
 // ---- Types ----
 
 interface SnapshotTeam {
   teamId: string;
   teamName: string;
+  regionId?: number;          // numeric region ID for territory map
   resources: Record<string, number>;
   resourcesBefore: Record<string, number>;
   population: number;
@@ -77,6 +81,9 @@ export default function ReplayClient({ gameId }: Props) {
   const [replayData, setReplayData] = useState<ReplayData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("loading");
+
+  // View toggle for resolve_results phase
+  const [mapView, setMapView] = useState(false);
 
   // Playback state
   const [epochIndex, setEpochIndex] = useState(0); // index into snapshots[]
@@ -379,13 +386,46 @@ export default function ReplayClient({ gameId }: Props) {
           <h2 className="mb-2 text-center text-3xl font-bold text-amber-400">
             ⚡ Epoch {snapshot.epoch} Results
           </h2>
-          <p className="mb-6 text-center text-sm text-stone-600">End-of-epoch resource state</p>
-          <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {snapshot.teams.map((t, idx) => (
-              <TeamResultCard key={idx} team={t} />
-            ))}
+          <p className="mb-4 text-center text-sm text-stone-600">End-of-epoch resource state</p>
+
+          {/* View toggle */}
+          <div className="mx-auto mb-6 flex max-w-xs justify-center gap-2">
+            <button
+              onClick={() => setMapView(false)}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition ${
+                !mapView
+                  ? "bg-amber-500 text-stone-950"
+                  : "border border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              📊 Stats
+            </button>
+            <button
+              onClick={() => setMapView(true)}
+              className={`flex-1 rounded-lg px-4 py-2 text-sm font-bold transition ${
+                mapView
+                  ? "bg-amber-500 text-stone-950"
+                  : "border border-stone-700 bg-stone-900 text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              🗺️ Map
+            </button>
           </div>
-          <StudentDecisionsPanel snapshot={snapshot} />
+
+          {mapView ? (
+            <div className="mx-auto max-w-5xl">
+              <ReplayMapPanel snapshot={snapshot} />
+            </div>
+          ) : (
+            <>
+              <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {snapshot.teams.map((t, idx) => (
+                  <TeamResultCard key={idx} team={t} />
+                ))}
+              </div>
+              <StudentDecisionsPanel snapshot={snapshot} />
+            </>
+          )}
         </div>
       )}
 
