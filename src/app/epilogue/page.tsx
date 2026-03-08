@@ -6,7 +6,7 @@
 // Portfolios → HeyGen closing
 // ============================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 interface TeamHistory {
@@ -53,7 +53,7 @@ const CATEGORY_META: Record<string, { label: string; emoji: string }> = {
   wished_we_were: { label: "Civilization We Wished We Were", emoji: "✨" },
 };
 
-export default function EpiloguePage() {
+function EpiloguePageInner() {
   const searchParams = useSearchParams();
   const gameId = searchParams?.get("gameId");
   const isProjector = searchParams?.get("view") === "projector";
@@ -342,5 +342,13 @@ export default function EpiloguePage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function EpiloguePage() {
+  return (
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-stone-950 text-stone-400">Loading…</div>}>
+      <EpiloguePageInner />
+    </Suspense>
   );
 }
