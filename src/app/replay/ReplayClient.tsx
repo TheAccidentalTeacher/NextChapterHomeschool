@@ -135,7 +135,7 @@ export default function ReplayClient({ gameId }: Props) {
 
   const clearAllTimers = useCallback(() => {
     if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null; }
-    if (processingTimerRef.current) { clearInterval(processingTimerRef.current); processingTimerRef.current = null; }
+    // processingTimerRef is managed by its own dedicated effect — don't clear it here
   }, []);
 
   // ---- Advance phase ----
@@ -144,30 +144,15 @@ export default function ReplayClient({ gameId }: Props) {
     const snapshot = snapshots[idx];
     const teamCount = snapshot?.teams.length ?? 1;
 
-    // epoch_intro → resolve_processing
+    // epoch_intro → resolve_processing (interval is managed by its own effect below)
     if (phaseRef.current === "epoch_intro") {
       timerRef.current = setTimeout(() => {
         setTeamIdx(0);
         setPhase("resolve_processing");
-        // Start cycling through teams
-        let tIdx = 0;
-        processingTimerRef.current = setInterval(() => {
-          tIdx++;
-          if (tIdx >= teamCount) {
-            clearInterval(processingTimerRef.current!);
-            processingTimerRef.current = null;
-            setTimeout(() => {
-              setPhase("resolve_results");
-            }, scaled(800, speedRef.current));
-          } else {
-            setTeamIdx(tIdx);
-          }
-        }, scaled(1800, speedRef.current));
       }, scaled(2000, currentSpeed));
       return;
     }
 
-    // resolve_processing advances itself via interval above
     if (phaseRef.current === "resolve_processing") return;
 
     // resolve_results → epoch_summary
@@ -199,6 +184,7 @@ export default function ReplayClient({ gameId }: Props) {
   useEffect(() => {
     if (!replayData || !playing) return;
     if (phase === "ready" || phase === "idle" || phase === "loading" || phase === "finished") return;
+    if (phase === "resolve_processing") return; // handled by dedicated effect below
 
     clearAllTimers();
     advancePhase(replayData.snapshots, epochIndex, speed);
@@ -206,6 +192,31 @@ export default function ReplayClient({ gameId }: Props) {
     return () => clearAllTimers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, playing, epochIndex, speed, replayData]);
+
+  // ---- Dedicated effect for resolve_processing ----
+  // Lives separately so React's own cleanup lifecycle manages the interval,
+  // preventing clearAllTimers() from killing it mid-run.
+
+  useEffect(() => {
+    if (!replayData || !playing || phase !== "resolve_processing") return;
+
+    const snapshot = replayData.snapshots[epochIndex];
+    const teamCount = snapshot?.teams.length ?? 1;
+    let tIdx = 0;
+
+    const intervalId = setInterval(() => {
+      tIdx++;
+      if (tIdx >= teamCount) {
+        clearInterval(intervalId);
+        setTimeout(() => setPhase("resolve_results"), scaled(800, speedRef.current));
+      } else {
+        setTeamIdx(tIdx);
+      }
+    }, scaled(1800, speedRef.current));
+
+    return () => clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, playing, epochIndex, replayData]);
 
   // ---- Transport controls ----
 
