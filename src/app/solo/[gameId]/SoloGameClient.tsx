@@ -2,18 +2,43 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+import subZonesJson from "@/../public/data/sub-zones.json";
+
+// Dynamic import — Leaflet requires browser APIs (no SSR)
+const MapWrapper = dynamic(() => import("@/components/map/MapWrapper"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-gray-900 rounded-xl min-h-[420px]">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+        <span className="text-sm text-gray-400">Loading world map…</span>
+      </div>
+    </div>
+  ),
+});
 
 // ── Types ──────────────────────────────────────────────────────
 type ActionStep = "build" | "expand" | "define" | "defend";
 type UIStep =
   | "loading"
   | "error"
+  | "founding"       // NEW: pre-Epoch-1 settler placement
   | "epoch_start"
   | "question"
   | "question_scored"
   | "routing"
   | "resolving"
   | "epoch_summary";
+
+interface SubZone {
+  id: string;
+  name: string;
+  region_id: number;
+  terrain_type: string;
+  yield_modifier: number;
+  geojson: GeoJSON.Geometry;
+}
 
 interface QuestionOption {
   id: string;
@@ -74,6 +99,25 @@ interface EpochSummary {
     isPlayer: boolean;
   }>;
 }
+
+// ── Sub-zone data ─────────────────────────────────────────────
+const ALL_SUB_ZONES: SubZone[] = subZonesJson as SubZone[];
+
+// Terrain types where founding is ideal (water-adjacent, fertile)
+const GOOD_FOUNDING_TERRAIN = new Set(["river_valley", "coastal", "plains"]);
+const POOR_FOUNDING_TERRAIN = new Set(["desert", "tundra"]);
+
+// Terrain bonus descriptions (mirrors the API)
+const TERRAIN_BONUS: Record<string, { emoji: string; resource: string; amount: string; tip: string; quality: "great" | "good" | "ok" | "poor" }> = {
+  river_valley: { emoji: "🌊", resource: "🌾 Food",       amount: "+15", tip: "Fertile floodplains feed large populations — historically where the first cities rose.",          quality: "great" },
+  coastal:      { emoji: "⛵", resource: "🧭 Reach",      amount: "+10", tip: "Sea access opens trade routes — coastal cities like Carthage and Alexandria grew wealthy.",       quality: "great" },
+  plains:       { emoji: "🌾", resource: "🌾 Food",        amount: "+8",  tip: "Open grasslands support early agriculture — the cradle of many early farming societies.",        quality: "good"  },
+  forest:       { emoji: "🌲", resource: "⚙️ Production", amount: "+10", tip: "Timber for construction and fuel — early civilizations near forests built faster.",              quality: "good"  },
+  mountain:     { emoji: "⛰️", resource: "🛡️ Resilience", amount: "+10", tip: "Natural fortress — mountain cities like Machu Picchu were nearly impregnable.",                 quality: "ok"    },
+  jungle:       { emoji: "🌿", resource: "📜 Legacy",     amount: "+8",  tip: "Rich biodiversity fueled cultural development — the Maya thrived in the jungle.",               quality: "ok"    },
+  desert:       { emoji: "🏜️", resource: "🛡️ Resilience", amount: "+4",  tip: "Harsh land, scarce water. A few cities survived here (like early Egypt near oases) — but it was a struggle.", quality: "poor" },
+  tundra:       { emoji: "❄️", resource: "🛡️ Resilience", amount: "+4",  tip: "Frozen frontier — very few civilizations thrived this far north without technology.",            quality: "poor"  },
+};
 
 // ── Constants ─────────────────────────────────────────────────
 const ACTION_STEPS: ActionStep[] = ["build", "expand", "define", "defend"];
@@ -179,6 +223,16 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   const [playerPopulation, setPlayerPopulation] = useState(10);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Founding state
+  const [hasFoundedCity, setHasFoundedCity] = useState(false);
+  const [selectedSubZone, setSelectedSubZone] = useState<SubZone | null>(null);
+  const [foundingResult, setFoundingResult] = useState<{
+    foundedAt: { name: string; terrain_type: string };
+    bonusApplied: { resource: string; amount: number; description: string };
+    harshTerrain: boolean;
+  } | null>(null);
+  const [foundingSubmitting, setFoundingSubmitting] = useState(false);
+
   // Round state
   const [roundIndex, setRoundIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState("");
@@ -217,13 +271,53 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   }, [gameId]);
 
   useEffect(() => {
-    loadState().then(() => setUiStep("epoch_start"));
+    loadState().then(() => {
+      // On first load (epoch 1, city not yet founded), go to founding step
+      if (!hasFoundedCity) {
+        setUiStep("founding");
+      } else {
+        setUiStep("epoch_start");
+      }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadState]);
 
   // ── Helpers ─────────────────────────────────────────────────
   const currentActionStep = ACTION_STEPS[roundIndex];
   const currentMeta = STEP_META[currentActionStep];
   const currentQuestion = gameData?.questions?.[currentMeta.round] ?? null;
+
+  // ── Handle city founding ─────────────────────────────────────
+  async function handleFoundCity() {
+    if (!gameData || !selectedSubZone) return;
+    setFoundingSubmitting(true);
+    try {
+      const res = await fetch(`/api/solo/${gameId}/found`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          teamId: gameData.playerTeamId,
+          subZoneId: selectedSubZone.id,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Founding failed");
+
+      setFoundingResult(data);
+      // Update local resources to reflect founding bonus
+      if (data.bonusApplied) {
+        setPlayerResources((prev) => ({
+          ...prev,
+          [data.bonusApplied.resource]: (prev[data.bonusApplied.resource] ?? 0) + data.bonusApplied.amount,
+        }));
+      }
+      setHasFoundedCity(true);
+    } catch (e: unknown) {
+      alert(e instanceof Error ? e.message : "Founding failed");
+    } finally {
+      setFoundingSubmitting(false);
+    }
+  }
 
   // ── Handle question submit ───────────────────────────────────
   async function handleSubmit() {
@@ -343,7 +437,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
     setRouting({ store: 60, food: 25, defense: 15 });
     setUiStep("loading");
     await loadState();
-    setUiStep("epoch_start");
+    setUiStep("epoch_start"); // never go back to founding
   }
 
   // ── Render ─────────────────────────────────────────────────
@@ -371,6 +465,36 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   const epoch = gameData?.currentEpoch ?? 1;
   const civName = gameData?.playerCivName ?? "Your Civilization";
 
+  // Pre-compute founding map props
+  const foundingSubZones = ALL_SUB_ZONES.map((sz) => ({
+    id: sz.id,
+    name: sz.name,
+    region_id: sz.region_id,
+    terrain_type: sz.terrain_type,
+    geojson: sz.geojson,
+    yield_modifier: sz.yield_modifier,
+    controlled_by_team_id: null,
+    soil_fertility: 100,
+    wildlife_stock: 100,
+    settlement_name: null,
+    buildings: [],
+  }));
+
+  // Highlight selected sub-zone by treating it as "controlled" by a special color team
+  const foundingTeamColors = selectedSubZone
+    ? [{ teamId: "__selected__", color: "#f59e0b", name: "Your City" }]
+    : [];
+
+  const foundingSubZonesDisplay = foundingSubZones.map((sz) =>
+    sz.id === selectedSubZone?.id
+      ? { ...sz, controlled_by_team_id: "__selected__" }
+      : sz
+  );
+
+  const selectedBonus = selectedSubZone
+    ? TERRAIN_BONUS[selectedSubZone.terrain_type]
+    : null;
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100 flex flex-col">
       {/* Header */}
@@ -384,7 +508,9 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         <div className="flex-1 text-center">
           <span className="text-amber-400 font-bold">{civName}</span>
           <span className="text-gray-500 mx-2">·</span>
-          <span className="text-gray-300">EPOCH {epoch}</span>
+          <span className="text-gray-300">
+            {uiStep === "founding" ? "FOUND YOUR CITY" : `EPOCH ${epoch}`}
+          </span>
         </div>
         <span className="text-gray-600 text-sm font-mono">{gameId.slice(0, 8)}</span>
       </header>
@@ -392,6 +518,156 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
       <div className="flex flex-1 gap-0">
         {/* Main content */}
         <main className="flex-1 p-6 max-w-3xl mx-auto w-full">
+
+          {/* FOUNDING — pre-Epoch 1 settler placement */}
+          {uiStep === "founding" && !foundingResult && (
+            <div className="space-y-4">
+              <div className="text-center space-y-2">
+                <div className="text-4xl">🏕️</div>
+                <h2 className="text-2xl font-bold text-amber-400">Choose Your Founding Location</h2>
+                <p className="text-gray-400 text-sm max-w-lg mx-auto">
+                  Click a territory on the map to place your settler. Great civilizations chose their
+                  location carefully — near rivers, coastlines, and fertile plains. Choose wisely.
+                </p>
+              </div>
+
+              {/* Map */}
+              <div className="rounded-xl overflow-hidden border border-gray-700" style={{ height: "420px" }}>
+                <MapWrapper
+                  subZones={foundingSubZonesDisplay}
+                  teamColors={foundingTeamColors}
+                  fogState={[]}
+                  markers={[]}
+                  showFog={false}
+                  onSubZoneClick={(sz) => {
+                    const full = ALL_SUB_ZONES.find((s) => s.id === sz.id);
+                    if (full) setSelectedSubZone(full);
+                  }}
+                />
+              </div>
+
+              {/* Terrain legend */}
+              <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                {(["river_valley", "coastal", "plains", "forest", "mountain", "jungle", "desert", "tundra"] as const).map((t) => {
+                  const b = TERRAIN_BONUS[t];
+                  const quality = b.quality;
+                  return (
+                    <div
+                      key={t}
+                      className={`rounded-lg px-2 py-2 border ${
+                        quality === "great" ? "border-emerald-500/60 bg-emerald-500/10" :
+                        quality === "good"  ? "border-blue-500/60 bg-blue-500/10" :
+                        quality === "ok"    ? "border-yellow-500/60 bg-yellow-500/10" :
+                                            "border-red-500/40 bg-red-500/10"
+                      }`}
+                    >
+                      <div className="text-lg">{b.emoji}</div>
+                      <div className="font-bold text-gray-200 capitalize">{t.replace("_", " ")}</div>
+                      <div className="text-gray-400">{b.amount} {b.resource}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Selected zone info panel */}
+              {selectedSubZone && selectedBonus ? (
+                <div className={`rounded-xl p-4 border space-y-3 ${
+                  selectedBonus.quality === "great" ? "border-emerald-500 bg-emerald-500/10" :
+                  selectedBonus.quality === "good"  ? "border-blue-500 bg-blue-500/10" :
+                  selectedBonus.quality === "ok"    ? "border-yellow-500 bg-yellow-500/10" :
+                                                    "border-red-500 bg-red-500/10"
+                }`}>
+                  <div className="flex items-start gap-4">
+                    <div className="text-4xl">{selectedBonus.emoji}</div>
+                    <div className="flex-1">
+                      <div className="font-bold text-lg text-white">{selectedSubZone.name}</div>
+                      <div className="text-sm text-gray-400 capitalize">{selectedSubZone.terrain_type.replace("_", " ")} · Region {selectedSubZone.region_id}</div>
+                    </div>
+                    <div className={`text-right font-bold text-lg ${
+                      selectedBonus.quality === "great" ? "text-emerald-400" :
+                      selectedBonus.quality === "good"  ? "text-blue-400" :
+                      selectedBonus.quality === "ok"    ? "text-yellow-400" :
+                                                        "text-red-400"
+                    }`}>
+                      {selectedBonus.amount} {selectedBonus.resource}
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-300 italic">{selectedBonus.tip}</p>
+                  {POOR_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
+                    <p className="text-xs text-red-400 font-semibold">
+                      ⚠️ Historically, very few civilizations succeeded in this terrain without advanced technology.
+                    </p>
+                  )}
+                  {GOOD_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
+                    <p className="text-xs text-emerald-400 font-semibold">
+                      ✅ Excellent founding site — near water and fertile land, just like the great ancient cities.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-gray-700 bg-gray-900 p-4 text-center text-gray-500 text-sm">
+                  Click any territory on the map above to see founding information.
+                </div>
+              )}
+
+              <button
+                onClick={handleFoundCity}
+                disabled={!selectedSubZone || foundingSubmitting}
+                className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold rounded-lg text-base transition-all"
+              >
+                {foundingSubmitting
+                  ? "Founding…"
+                  : selectedSubZone
+                  ? `🏛️ Found City at ${selectedSubZone.name} →`
+                  : "Select a location on the map first"}
+              </button>
+            </div>
+          )}
+
+          {/* FOUNDING CONFIRMED */}
+          {uiStep === "founding" && foundingResult && (
+            <div className="text-center space-y-6 pt-8">
+              <div className="text-6xl">🏛️</div>
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold text-amber-400">City Founded!</h2>
+                <p className="text-xl text-gray-300">
+                  {civName} rises at{" "}
+                  <span className="text-amber-300 font-bold">{foundingResult.foundedAt.name}</span>
+                </p>
+              </div>
+
+              <div className={`inline-block rounded-xl border px-6 py-4 text-left space-y-2 ${
+                foundingResult.harshTerrain ? "border-red-500 bg-red-500/10" : "border-emerald-500 bg-emerald-500/10"
+              }`}>
+                <div className="text-sm text-gray-400 uppercase tracking-widest font-bold">Founding Bonus Applied</div>
+                <div className="text-2xl font-bold text-emerald-400">
+                  {foundingResult.bonusApplied.description}
+                </div>
+                {foundingResult.harshTerrain && (
+                  <div className="text-sm text-red-400">
+                    ⚠️ Your people face hardship. Other civilizations who founded near rivers and coasts will grow
+                    faster — but your resilience may see you through.
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-400 text-left max-w-md mx-auto">
+                <p className="font-semibold text-gray-200 mb-2">Why does founding location matter?</p>
+                <p>
+                  Throughout history, the most powerful civilizations — Mesopotamia, Egypt, the Indus Valley,
+                  ancient China — all began near major rivers or coastlines. Access to fresh water meant farming.
+                  Farming meant surplus food. Surplus food meant cities. Cities meant civilization.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setUiStep("epoch_start")}
+                className="px-10 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-lg"
+              >
+                Begin Epoch 1 →
+              </button>
+            </div>
+          )}
 
           {/* EPOCH START */}
           {uiStep === "epoch_start" && (
@@ -741,7 +1017,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         </main>
 
         {/* Resource Sidebar */}
-        {uiStep !== "epoch_start" && uiStep !== "resolving" && (
+        {uiStep !== "epoch_start" && uiStep !== "resolving" && uiStep !== "founding" && (
           <div className="p-6 border-l border-gray-800">
             <ResourceSidebar resources={playerResources} population={playerPopulation} />
             {/* Mini leaderboard */}
