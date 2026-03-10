@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createDirectClient } from "@/lib/supabase/admin";
-import fs from "fs";
-import path from "path";
+import questionBank from "@/../public/data/question-bank.json";
 
 /**
  * GET /api/solo/[gameId]/state
@@ -20,9 +19,7 @@ const ROUND_LEAD_ROLES: Record<string, string> = {
 };
 
 function loadQuestionBank() {
-  const bankPath = path.join(process.cwd(), "public", "data", "question-bank.json");
-  const raw = fs.readFileSync(bankPath, "utf-8");
-  return JSON.parse(raw) as Array<{
+  return questionBank as Array<{
     id: string;
     round: string;
     leadRole: string;
