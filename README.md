@@ -216,6 +216,7 @@ classroom-civ/
 │   │   ├── epilogue/             # End-game epilogue sequence (histories → victories → superlatives → portfolios)
 │   │   ├── projector/            # Projector display (page + client component)
 │   │   ├── replay/               # Post-game replay viewer with territory map (page + ReplayClient + ReplayMapPanel)
+│   │   ├── solo/                 # Solo Adventure Mode (landing + [gameId] game page + SoloGameClient)
 │   │   ├── sign-in/              # Clerk sign-in page
 │   │   ├── layout.tsx            # Root layout (ClerkProvider, fonts, CSS)
 │   │   ├── page.tsx              # Landing page
@@ -235,7 +236,7 @@ classroom-civ/
 │   │   ├── auth/roles.ts         # Clerk role helpers (getUserRole, requireTeacher)
 │   │   ├── game/                 # Game engine modules (epoch, yield, decay, population, etc.)
 │   │   ├── questions/            # Question selector + types
-│   │   ├── supabase/             # Supabase client config (browser, server, middleware)
+│   │   ├── supabase/             # Supabase client config (browser, server, middleware, admin)
 │   │   └── constants.ts          # Game constants (resources, roles, terrain, regions)
 │   ├── stores/
 │   │   └── game-store.ts         # Zustand client state store
@@ -274,6 +275,8 @@ classroom-civ/
 | `/projector` | Public | Classroom display — map, overlays, leaderboard, events |
 | `/replay` | Teacher | Post-game replay viewer — transport controls, epoch phases, team cards, student decisions, territory map |
 | `/epilogue` | Teacher/Student | End-game epilogue sequence — civilization histories, victory reveals, superlative vote, portfolio export |
+| `/solo` | Public | Solo Adventure Mode landing — start a new solo game (no login required) |
+| `/solo/[gameId]` | Public | Solo game play screen — full epoch loop, AI DM, auto-scoring, resource routing, CPU rivals |
 
 ---
 
@@ -382,6 +385,16 @@ All API routes are under `/api/`. Teacher-only routes enforce role via `requireT
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | GET | `/api/me/team` | Student | Get current student's team + game info |
+
+### Solo Adventure Mode (no auth required)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/solo/create` | None | Create a new solo game — 6 teams (1 player + 5 CPU), 30 resource rows. Returns `gameId`, `playerTeamId` |
+| GET | `/api/solo/[gameId]/state` | None | Full game state for current epoch — teams, resources, standings, 4 questions (one per round type) |
+| POST | `/api/solo/[gameId]/submit` | None | Submit player answer + justification. Auto-scores 1–5 by length/depth. Returns score, feedback, earned resources |
+| POST | `/api/solo/[gameId]/route-resources` | None | Split earned resources across production/food/resilience using player-chosen percentages |
+| POST | `/api/solo/[gameId]/cpu-advance` | None | End-of-epoch: CPU teams resolve, all teams decay, population updates, epoch advances. Returns standings |
 
 ---
 

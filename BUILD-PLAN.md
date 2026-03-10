@@ -59,6 +59,8 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 | 13 | NPC System | 🟠 Week 3 | 64 |
 | 14 | Portfolio Export + Epilogue | 🟠 Week 3 | 68, 74, 82, 89 |
 | 15 | Simulation Engine + Replay Viewer | ✅ Complete | — (out-of-sequence, built for debrief) |
+| 16 | Solo Adventure Mode | ✅ Complete | — (teacher/student practice mode, no auth required) |
+| 17 | City Founding — Settler Map | 🔵 Next | — (map-based founding step before Epoch 1) |
 
 ---
 
@@ -1847,6 +1849,95 @@ Fix: Renamed to EpiloguePageInner, export default EpiloguePage wraps in <Suspens
 - [x] Epilogue page and API routes scaffolded and production-safe
 - [x] All changes committed and pushed to GitHub
 - [x] Vercel production deploy clean — `next-chapter-homeschool.vercel.app`
+
+---
+
+---
+
+## PHASE 16 — SOLO ADVENTURE MODE ✅ COMPLETE
+**Goal:** A no-login single-player mode where Scott (or any student) can play ClassCiv solo — controlling one team while 5 CPU rivals auto-play. Used for teacher practice, student orientation, and testing.
+
+### What Was Built
+- **`src/lib/supabase/admin.ts`** — Direct Supabase client (no cookies, no Clerk session). Uses anon key with open RLS (`with check (true)`). All solo routes use `createDirectClient()`.
+- **`src/app/api/solo/create/route.ts`** — `POST /api/solo/create`. Creates a `games` row (`teacher_id: "solo_mode"`), inserts 6 `teams` rows (team 0 = player "The Ember Dominion" in region 1; teams 1–5 = CPU civs in regions 2–6), inserts 30 `team_resources` rows (5 resource types × 6 teams, starting at Production 10 / Reach 10 / Legacy 5 / Resilience 5 / Food 15). Returns `{ gameId, playerTeamId, playerTeamName, cpuTeamIds[] }`.
+- **`src/app/api/solo/[gameId]/state/route.ts`** — `GET /api/solo/[gameId]/state`. Returns full game state: epoch, round, all team resources + population + total scores, and 4 questions (one per round type) selected from `public/data/question-bank.json` via static JSON import (Vercel-compatible — no `fs.readFileSync`).
+- **`src/app/api/solo/[gameId]/submit/route.ts`** — `POST /api/solo/[gameId]/submit`. Auto-scores player justification 1–5 by character length/depth. Score → multiplier → earned = `Math.max(2, Math.round(score × 5 × mult))`. Saves to `epoch_submissions` with `dm_score`, `dm_feedback`, `scored_at` pre-filled.
+- **`src/app/api/solo/[gameId]/route-resources/route.ts`** — `POST /api/solo/[gameId]/route-resources`. Splits earned resources across primary/food/resilience using player-supplied percentages (normalizes to 100%).
+- **`src/app/api/solo/[gameId]/cpu-advance/route.ts`** — `POST /api/solo/[gameId]/cpu-advance`. End-of-epoch resolution: CPU teams get `cpuScore()` (weighted random 2–5) per round with 60%/20%/20% splits; all teams take 10% bank decay; all teams run food → population logic; epoch advances. Returns standings.
+- **`src/app/solo/page.tsx`** — Landing page at `/solo`. Feature grid, "How Each Epoch Works" table, "Start New Solo Adventure" button. No login required.
+- **`src/app/solo/[gameId]/page.tsx`** — Server component wrapper. Reads `params.gameId`, passes to `SoloGameClient`.
+- **`src/app/solo/[gameId]/SoloGameClient.tsx`** — Full game UI (~400+ lines). `UIStep` state machine: `loading → epoch_start → question → question_scored → routing → resolving → epoch_summary → (loop)`. Includes `PhaseBar` (4-step breadcrumb), `ResourceSidebar` (live resources + mini standings), question card (radio options + historical context collapse + justification textarea with live length feedback), score card (emoji + AI feedback + earned resources), routing view (3-row percentage sliders with − / % / + buttons, total always = 100), epoch summary (per-round score grid + full standings with player row highlighted amber).
+
+### Key Technical Decisions
+- **Vercel compat:** Question bank loaded via `import questionBank from "@/../public/data/question-bank.json"` — bundled at build time rather than read from filesystem at runtime.
+- **No Clerk auth:** `teacher_id = "solo_mode"`, `submitted_by = "solo_player"`. Bypasses all Clerk checks. RLS policies are `with check (true)`.
+- **TS helper typing:** Supabase helpers typed as `any` with `eslint-disable` comments to avoid TS2345 on complex generic signatures.
+
+### Definition of Done — Phase 16 ✅
+- [x] Solo game creates successfully via POST (6 teams, 30 resources)
+- [x] State route returns game state + 4 questions per epoch
+- [x] Submit auto-scores and saves to DB
+- [x] Resource routing updates `team_resources` correctly
+- [x] CPU advance resolves CPU teams, decays bank, advances epoch
+- [x] Full UI playable: question → score card → routing → epoch summary → loop
+- [x] 0 TypeScript errors across solo routes
+- [x] Deployed and playable at `next-chapter-homeschool.vercel.app/solo`
+- [x] Committed `767edcb` (feat) + `b30e378` (Vercel compat fix), pushed to `main`
+
+---
+
+## PHASE 17 — CITY FOUNDING: SETTLER MAP 🔵 PLANNED NEXT
+**Goal:** Before Epoch 1 begins, the player (or student team) must physically move a settler unit on the real-world Leaflet map and choose a founding location. The founding location sets starting resource bonuses that persist through the entire game. Core pedagogical point: students must discover why civilizations founded near major waterways and fertile terrain.
+
+### Educational Objective
+Students engage with **Decision 60 (Regional Bonuses)** and the **5 Themes of Geography** — specifically *Location* and *Place* — by actively choosing where to found their city. Wrong choices (founding in desert, isolated mountains) yield noticeably weaker resources from the first epoch. Right choices (river valley, coastal access) give early-game advantages that compound.
+
+### What Needs to Be Built
+
+#### Step 17.1 — New `UIStep: "founding"` in SoloGameClient
+- Add `"founding"` to the `UIStep` union type
+- On game load (`epoch_start` of Epoch 1 only), redirect to `"founding"` before showing any questions
+- Pass `subZones[]` from the existing `GameMap` data into `SoloGameClient` props
+
+#### Step 17.2 — Founding Mode Map Screen
+- Dynamically import `MapWrapper` (Leaflet, SSR-safe) inside `SoloGameClient`
+- Render `GameMap` in **founding mode**: `showFog={false}`, no team colors, terrain-only display
+- Filter sub-zones to valid founding sites: exclude ocean/ice; highlight river-adjacent, coastal, and river-valley sub-zones with a pulsing glow
+- Display a settler icon (🏕️ or SVG pin) on the last-clicked valid sub-zone
+- Sidebar: explain the terrain bonus each terrain type provides (River Valley → +Food, Coastal → +Reach, Crossroads → +Legacy, Forest → +Production, Mountain → +Resilience)
+
+#### Step 17.3 — Founding Confirmation + Bonus Application
+- "Found City Here" button, disabled until a valid sub-zone is selected
+- On confirm: POST to new `POST /api/solo/[gameId]/found` route
+  - Sets `controlled_by_team_id` on the selected `sub_zones` row to the player's `teamId`
+  - Sets `settlement_name` on the sub-zone to the player's civ name
+  - Updates `team_resources` to apply founding bonus based on `terrain_type` and `yield_modifier`
+  - Persists the founding location for the entire game
+- Show a brief "City Founded!" confirmation card with terrain bonus summary before advancing to Epoch 1
+
+#### Step 17.4 — API Route: `POST /api/solo/[gameId]/found`
+- Body: `{ teamId, subZoneId }`
+- Validates: sub-zone exists, is not ocean/ice, is not already controlled
+- Applies founding bonus to `team_resources` (additive on top of starting values)
+- Updates `sub_zones.controlled_by_team_id` and `sub_zones.settlement_name`
+- Returns: `{ foundedAt: subZone, bonusApplied: { resource, amount } }`
+
+#### Step 17.5 — Sub-Zone Data Dependency
+- The founding map requires sub-zones to be seeded in Supabase (`sub_zones` table)
+- **Option A:** Use existing seeded sub-zone data (if already present from Phase 2)
+- **Option B:** For solo mode only, derive founding locations from `public/data/sub-zones.json` as a static list (no DB dependency), and only write to DB on confirm
+- Recommend **Option B** first — keeps solo mode self-contained
+
+### Definition of Done — Phase 17
+- [ ] Epoch 1 solo game opens on the founding map, not directly on questions
+- [ ] Player can click any non-ocean sub-zone to place their settler
+- [ ] River-adjacent and coastal sub-zones are visually highlighted as good founding sites
+- [ ] Terrain bonus card shows what founding here will yield
+- [ ] On confirm, founding bonus is applied to starting resources
+- [ ] The sub-zone is marked as owned (appears colored on the map)
+- [ ] Game advances to Epoch 1 BUILD round after founding
+- [ ] Works in production on Vercel (no SSR issues with Leaflet)
+- [ ] 0 TypeScript errors
 
 ---
 
