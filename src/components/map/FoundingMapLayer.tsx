@@ -10,8 +10,27 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { GeoJSON } from "react-leaflet";
+import { GeoJSON, Tooltip } from "react-leaflet";
 import type { Layer, LeafletMouseEvent, PathOptions } from "leaflet";
+
+// Terrain tooltip info keyed by terrain_type
+const TERRAIN_INFO: Record<string, { emoji: string; resource: string; amount: string; quality: string; tip: string }> = {
+  river_valley: { emoji: "🌊", resource: "Food",       amount: "+15", quality: "Excellent", tip: "Fertile floodplains feed large populations — the first cities rose here." },
+  coastal:      { emoji: "⛵", resource: "Reach",      amount: "+10", quality: "Excellent", tip: "Sea access opens trade routes — coastal cities grew wealthy." },
+  plains:       { emoji: "🌾", resource: "Food",        amount: "+8",  quality: "Good",      tip: "Open grasslands support early agriculture." },
+  forest:       { emoji: "🌲", resource: "Production", amount: "+10", quality: "Good",      tip: "Timber for construction — early civilizations near forests built faster." },
+  mountain:     { emoji: "⛰️", resource: "Resilience", amount: "+10", quality: "OK",        tip: "Natural fortress — mountain cities were nearly impregnable." },
+  jungle:       { emoji: "🌿", resource: "Legacy",     amount: "+8",  quality: "OK",        tip: "Rich biodiversity fueled cultural development — the Maya thrived here." },
+  desert:       { emoji: "🏜️", resource: "Resilience", amount: "+4",  quality: "Poor",      tip: "Harsh land, scarce water. Survival is possible but difficult." },
+  tundra:       { emoji: "❄️", resource: "Resilience", amount: "+4",  quality: "Poor",      tip: "Frozen frontier — very few civilizations thrived this far north." },
+};
+
+const QUALITY_COLOR: Record<string, string> = {
+  Excellent: "#22c55e",
+  Good:      "#84cc16",
+  OK:        "#eab308",
+  Poor:      "#ef4444",
+};
 
 // Terrain colours — must match TERRAIN constant in lib/constants.ts
 const TERRAIN_COLORS: Record<string, string> = {
@@ -129,6 +148,9 @@ export default function FoundingMapLayer({
         const borderColor = isSelected ? "#f59e0b" : isMapped ? "#ffffff22" : "#ffffff11";
         const borderWeight = isSelected ? 2.5 : 1;
 
+        const info = terrain ? TERRAIN_INFO[terrain] : null;
+        const szName = feature.properties.sub_zone_name ?? feature.properties.name ?? "Unknown territory";
+
         return (
           <GeoJSON
             key={`${feature.id ?? idx}`}
@@ -158,7 +180,37 @@ export default function FoundingMapLayer({
                 layer.setStyle?.({ fillOpacity, weight: borderWeight });
               },
             }}
-          />
+          >
+            {isMapped && info && (
+              <Tooltip sticky className="founding-tooltip">
+                <div style={{ minWidth: 200, maxWidth: 240, fontFamily: "inherit" }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, color: "#f1f5f9" }}>
+                    {szName}
+                  </div>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, textTransform: "capitalize" }}>
+                    {terrain?.replace("_", " ")}
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <span style={{ fontSize: 16 }}>{info.emoji}</span>
+                    <span style={{ fontWeight: 600, color: "#fbbf24", fontSize: 13 }}>
+                      {info.amount} {info.resource}
+                    </span>
+                    <span style={{
+                      marginLeft: "auto",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: QUALITY_COLOR[info.quality] ?? "#94a3b8",
+                    }}>
+                      {info.quality}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: "#cbd5e1", lineHeight: 1.4 }}>
+                    {info.tip}
+                  </div>
+                </div>
+              </Tooltip>
+            )}
+          </GeoJSON>
         );
       })}
     </>
