@@ -30,6 +30,13 @@ import { STEP_LABELS, type EpochStep } from "@/lib/game/epoch-machine";
 import { RESOURCES } from "@/lib/constants";
 import type { ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
+import type { TeamRegion } from "@/components/map/GameMap";
+
+const TEAM_COLOR_PALETTE = [
+  "#e63946", "#2a9d8f", "#e9c46a", "#f4a261",
+  "#457b9d", "#a8dadc", "#6a4c93", "#06d6a0",
+  "#118ab2", "#ffd166", "#ef476f", "#a7c957",
+];
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -37,6 +44,7 @@ interface Team {
   id: string;
   name: string;
   civilization_name: string | null;
+  region_id: number;
   population: number;
 }
 
@@ -87,7 +95,7 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
     try {
       const [epochRes, teamsRes, eventsRes] = await Promise.all([
         fetch(`/api/games/${gameId}/epoch/state`),
-        fetch(`/api/games/${gameId}/teams`),
+        fetch(`/api/games/${gameId}/map-data`),
         fetch(`/api/games/${gameId}/events/global?epoch=${epoch}`),
       ]);
 
@@ -176,6 +184,12 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
           <GameMap
             subZones={[]}
             teamColors={[]}
+            teamRegions={teams.map((t, i) => ({
+              teamId: t.id,
+              regionId: t.region_id,
+              color: TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length],
+              name: t.civilization_name ?? t.name,
+            }))}
             fogState={[]}
             markers={[]}
             showFog={false}

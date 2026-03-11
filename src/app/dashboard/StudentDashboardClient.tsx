@@ -38,6 +38,13 @@ import CivNamePrompt from "@/components/student/CivNamePrompt";
 import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
+import type { TeamRegion } from "@/components/map/GameMap";
+
+const TEAM_COLOR_PALETTE = [
+  "#e63946", "#2a9d8f", "#e9c46a", "#f4a261",
+  "#457b9d", "#a8dadc", "#6a4c93", "#06d6a0",
+  "#118ab2", "#ffd166", "#ef476f", "#a7c957",
+];
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -86,6 +93,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [legacyInvested, setLegacyInvested] = useState<Record<string, number>>({});
   // Role-switcher: lets one student submit for any role during testing
   const [overrideRole, setOverrideRole] = useState<RoleName | null>(null);
+  const [allTeamRegions, setAllTeamRegions] = useState<TeamRegion[]>([]);
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -140,6 +148,22 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         setUnlockedTechs(td.completedTechIds ?? []);
         setActiveResearchId(td.activeResearchId ?? null);
         setLegacyInvested(td.legacyInvested ?? {});
+      }
+
+      // Get all team region assignments for map rendering
+      const mapRes = await fetch(`/api/games/${t.game_id}/map-data`);
+      if (mapRes.ok) {
+        const md = await mapRes.json();
+        const teams: Array<{ id: string; name: string; civilization_name: string | null; region_id: number }> =
+          md.teams ?? [];
+        setAllTeamRegions(
+          teams.map((tm, i) => ({
+            teamId: tm.id,
+            regionId: tm.region_id,
+            color: TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length],
+            name: tm.civilization_name ?? tm.name,
+          }))
+        );
       }
     } catch (err) {
       debug.error("StudentDashboard fetchData failed", err);
@@ -262,22 +286,25 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         ciScore={0}
       />
 
-      {/* Role switcher — allows testing all 5 roles from one browser */}
-      <div className="flex items-center gap-1 rounded-lg bg-stone-900/60 p-1">
-        {ROLES.map((r) => (
-          <button
-            key={r}
-            onClick={() => setOverrideRole(effectiveRole === r && r !== role ? null : r)}
-            className={`flex-1 rounded px-2 py-1 text-xs font-medium capitalize transition ${
-              effectiveRole === r
-                ? "bg-amber-800/50 text-amber-300 ring-1 ring-amber-600/40"
-                : "text-stone-500 hover:text-stone-300"
-            }`}
-          >
-            {ROLE_ICONS[r]} {r}{r === role ? " ·" : ""}
-          </button>
-        ))}
-      </div>
+      {/* Role switcher — dev/testing only, hidden in production */}
+      {process.env.NEXT_PUBLIC_DEBUG === "true" && (
+        <div className="flex items-center gap-1 rounded-lg bg-stone-900/60 p-1">
+          <span className="shrink-0 px-1 text-xs text-violet-500">🧪</span>
+          {ROLES.map((r) => (
+            <button
+              key={r}
+              onClick={() => setOverrideRole(effectiveRole === r && r !== role ? null : r)}
+              className={`flex-1 rounded px-2 py-1 text-xs font-medium capitalize transition ${
+                effectiveRole === r
+                  ? "bg-amber-800/50 text-amber-300 ring-1 ring-amber-600/40"
+                  : "text-stone-500 hover:text-stone-300"
+              }`}
+            >
+              {ROLE_ICONS[r]} {r}{r === role ? " ·" : ""}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg bg-stone-900/50 p-1">
@@ -379,9 +406,10 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
             <GameMap
               subZones={[]}
               teamColors={[]}
+              teamRegions={allTeamRegions}
               fogState={[]}
               markers={[]}
-              showFog={true}
+              showFog={false}
             />
           </div>
         </div>

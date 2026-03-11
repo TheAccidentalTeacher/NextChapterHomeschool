@@ -20,6 +20,7 @@ import { MapContainer, TileLayer, ZoomControl } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import SubZoneLayer from "./SubZoneLayer";
 import MarkerLayer from "./MarkerLayer";
+import RegionLayer, { type TeamRegion } from "./RegionLayer";
 
 export interface SubZoneData {
   id: string;
@@ -54,9 +55,12 @@ export interface MapMarker {
   count: number;
 }
 
+export type { TeamRegion };
+
 export interface GameMapProps {
   subZones: SubZoneData[];
   teamColors: TeamColor[];
+  teamRegions?: TeamRegion[];
   fogState?: FogEntry[];
   markers?: MapMarker[];
   onSubZoneClick?: (subZone: SubZoneData) => void;
@@ -73,6 +77,7 @@ const TILE_ATTR =
 export default function GameMap({
   subZones,
   teamColors,
+  teamRegions,
   fogState,
   markers = [],
   onSubZoneClick,
@@ -96,6 +101,10 @@ export default function GameMap({
     >
       <TileLayer url={TILE_URL} attribution={TILE_ATTR} />
       <ZoomControl position="bottomright" />
+
+      {teamRegions && teamRegions.length > 0 && (
+        <RegionLayer teamRegions={teamRegions} />
+      )}
 
       <SubZoneLayer
         subZones={subZones}

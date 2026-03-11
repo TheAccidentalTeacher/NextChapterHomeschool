@@ -13,7 +13,7 @@
 // changes and show the real game UI updating in real time.
 // ================================================================
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { STEP_LABELS } from "@/lib/game/epoch-machine";
 import type { EpochStep } from "@/lib/game/epoch-machine";
 
@@ -23,7 +23,11 @@ const SPEED_DELAYS: Record<string, number> = {
   "2×":  4000,
   "5×":  1600,
   "10×":  800,
+  "Max": 200,
 };
+
+// Sentinel value meaning "run forever until STOP pressed"
+const EPOCH_INFINITE = 9999;
 
 interface LogEntry {
   step: string;
@@ -49,7 +53,7 @@ export default function AutoplayPanel({
 }: AutoplayPanelProps) {
   const [running, setRunning] = useState(false);
   const [speed, setSpeed] = useState<string>("5×");
-  const [epochTarget, setEpochTarget] = useState<number>(1);
+  const [epochTarget, setEpochTarget] = useState<number>(EPOCH_INFINITE);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [status, setStatus] = useState<string>("Ready");
   const stopRef = useRef(false);
@@ -59,6 +63,10 @@ export default function AutoplayPanel({
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
+
+  // Keep a mutable ref so the loop always reads the latest stopRef
+  const epochTargetRef = useRef(epochTarget);
+  useEffect(() => { epochTargetRef.current = epochTarget; }, [epochTarget]);
 
   async function runStep(): Promise<{ done: boolean; nextEpoch: number; nextStep: string }> {
     const res = await fetch(`/api/dm/${gameId}/simulate/step`, { method: "POST" });
@@ -77,21 +85,25 @@ export default function AutoplayPanel({
         ts: Date.now(),
       },
     ]);
+    // Keep only last 100 entries to avoid memory growth during long runs
+    setLog((prev) => prev.length > 100 ? prev.slice(-100) : prev);
     onStepComplete();
 
-    // Done if we've rolled over to a new epoch beyond our target
-    const done = data.newEpoch > currentEpoch + epochTarget - 1;
+    const target = epochTargetRef.current;
+    const done = target !== EPOCH_INFINITE && data.newEpoch > currentEpoch + target - 1;
     return { done, nextEpoch: data.newEpoch, nextStep: data.nextStep };
   }
 
-  async function handleStart() {
+  const handleStart = useCallback(async () => {
     setRunning(true);
     stopRef.current = false;
     setLog([]);
-    setStatus("Running…");
+    setStatus("Running\u2026");
 
     const delay = SPEED_DELAYS[speed] ?? 1600;
-    const targetEpoch = currentEpoch + epochTarget;
+    const targetEpoch = epochTarget === EPOCH_INFINITE
+      ? Number.MAX_SAFE_INTEGER
+      : currentEpoch + epochTarget;
 
     try {
       let currentE = currentEpoch;
@@ -103,7 +115,6 @@ export default function AutoplayPanel({
 
         if (done || currentE >= targetEpoch) break;
 
-        // Wait before next step
         await new Promise((r) => setTimeout(r, delay));
         if (stopRef.current) break;
       }
@@ -113,7 +124,8 @@ export default function AutoplayPanel({
 
     setRunning(false);
     setStatus(stopRef.current ? "Stopped" : "Complete ✓");
-  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speed, epochTarget, currentEpoch, gameId]);
 
   function handleStop() {
     stopRef.current = true;
@@ -166,7 +178,7 @@ export default function AutoplayPanel({
         <div>
           <label className="mb-1 block text-xs text-stone-400">Run epochs</label>
           <div className="flex gap-1">
-            {[1, 2, 3, 5].map((n) => (
+            {([1, 2, 3, 5, EPOCH_INFINITE] as const).map((n) => (
               <button
                 key={n}
                 onClick={() => setEpochTarget(n)}
@@ -177,7 +189,7 @@ export default function AutoplayPanel({
                     : "bg-stone-800 text-stone-400 hover:bg-stone-700"
                 }`}
               >
-                {n}
+                {n === EPOCH_INFINITE ? "∞" : n}
               </button>
             ))}
           </div>
