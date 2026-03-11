@@ -515,161 +515,171 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         <span className="text-gray-600 text-sm font-mono">{gameId.slice(0, 8)}</span>
       </header>
 
-      <div className="flex flex-1 gap-0">
-        {/* Main content */}
-        <main className="flex-1 p-6 max-w-3xl mx-auto w-full">
+      {/* ── FOUNDING SCREEN — full-width, no sidebar ── */}
+      {uiStep === "founding" && !foundingResult && (
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Title row */}
+          <div className="px-8 pt-5 pb-3 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-2xl font-bold text-amber-400 leading-tight">Choose Your Founding Location</h2>
+              <p className="text-gray-500 text-sm mt-1">
+                Click a territory on the map. Great civilizations rose near rivers and coasts — choose wisely.
+              </p>
+            </div>
+            {/* Terrain legend — horizontal pill strip */}
+            <div className="flex gap-1.5 flex-wrap justify-end">
+              {(["river_valley","coastal","plains","forest","mountain","jungle","desert","tundra"] as const).map((t) => {
+                const b = TERRAIN_BONUS[t];
+                return (
+                  <span
+                    key={t}
+                    className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap ${
+                      b.quality === "great" ? "bg-emerald-900/60 text-emerald-300 border border-emerald-600/50" :
+                      b.quality === "good"  ? "bg-blue-900/60 text-blue-300 border border-blue-600/50" :
+                      b.quality === "ok"    ? "bg-yellow-900/60 text-yellow-300 border border-yellow-600/50" :
+                                             "bg-red-900/40 text-red-400 border border-red-700/50"
+                    }`}
+                  >
+                    {b.emoji} {t.replace("_", " ")} {b.amount}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
 
-          {/* FOUNDING — pre-Epoch 1 settler placement */}
-          {uiStep === "founding" && !foundingResult && (
-            <div className="space-y-4">
-              <div className="text-center space-y-2">
-                <div className="text-4xl">🏕️</div>
-                <h2 className="text-2xl font-bold text-amber-400">Choose Your Founding Location</h2>
-                <p className="text-gray-400 text-sm max-w-lg mx-auto">
-                  Click a territory on the map to place your settler. Great civilizations chose their
-                  location carefully — near rivers, coastlines, and fertile plains. Choose wisely.
-                </p>
-              </div>
+          {/* Map + info panel side by side */}
+          <div className="flex flex-1 gap-4 px-8 pb-8 min-h-0">
+            {/* Map — takes all remaining height */}
+            <div className="flex-1 rounded-xl overflow-hidden border border-gray-700 min-h-0" style={{ minHeight: "520px" }}>
+              <MapWrapper
+                subZones={foundingSubZonesDisplay}
+                teamColors={foundingTeamColors}
+                fogState={[]}
+                markers={[]}
+                showFog={false}
+                onSubZoneClick={(sz) => {
+                  const full = ALL_SUB_ZONES.find((s) => s.id === sz.id);
+                  if (full) setSelectedSubZone(full);
+                }}
+              />
+            </div>
 
-              {/* Map */}
-              <div className="rounded-xl overflow-hidden border border-gray-700" style={{ height: "420px" }}>
-                <MapWrapper
-                  subZones={foundingSubZonesDisplay}
-                  teamColors={foundingTeamColors}
-                  fogState={[]}
-                  markers={[]}
-                  showFog={false}
-                  onSubZoneClick={(sz) => {
-                    const full = ALL_SUB_ZONES.find((s) => s.id === sz.id);
-                    if (full) setSelectedSubZone(full);
-                  }}
-                />
-              </div>
-
-              {/* Terrain legend */}
-              <div className="grid grid-cols-4 gap-2 text-center text-xs">
-                {(["river_valley", "coastal", "plains", "forest", "mountain", "jungle", "desert", "tundra"] as const).map((t) => {
-                  const b = TERRAIN_BONUS[t];
-                  const quality = b.quality;
-                  return (
-                    <div
-                      key={t}
-                      className={`rounded-lg px-2 py-2 border ${
-                        quality === "great" ? "border-emerald-500/60 bg-emerald-500/10" :
-                        quality === "good"  ? "border-blue-500/60 bg-blue-500/10" :
-                        quality === "ok"    ? "border-yellow-500/60 bg-yellow-500/10" :
-                                            "border-red-500/40 bg-red-500/10"
-                      }`}
-                    >
-                      <div className="text-lg">{b.emoji}</div>
-                      <div className="font-bold text-gray-200 capitalize">{t.replace("_", " ")}</div>
-                      <div className="text-gray-400">{b.amount} {b.resource}</div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Selected zone info panel */}
+            {/* Right panel — selection info + button */}
+            <div className="w-72 shrink-0 flex flex-col gap-3">
               {selectedSubZone && selectedBonus ? (
-                <div className={`rounded-xl p-4 border space-y-3 ${
-                  selectedBonus.quality === "great" ? "border-emerald-500 bg-emerald-500/10" :
-                  selectedBonus.quality === "good"  ? "border-blue-500 bg-blue-500/10" :
-                  selectedBonus.quality === "ok"    ? "border-yellow-500 bg-yellow-500/10" :
-                                                    "border-red-500 bg-red-500/10"
-                }`}>
-                  <div className="flex items-start gap-4">
-                    <div className="text-4xl">{selectedBonus.emoji}</div>
-                    <div className="flex-1">
-                      <div className="font-bold text-lg text-white">{selectedSubZone.name}</div>
-                      <div className="text-sm text-gray-400 capitalize">{selectedSubZone.terrain_type.replace("_", " ")} · Region {selectedSubZone.region_id}</div>
+                <>
+                  {/* Terrain card */}
+                  <div className={`rounded-xl p-4 border flex-1 flex flex-col gap-3 ${
+                    selectedBonus.quality === "great" ? "border-emerald-500/70 bg-emerald-950/60" :
+                    selectedBonus.quality === "good"  ? "border-blue-500/70 bg-blue-950/60" :
+                    selectedBonus.quality === "ok"    ? "border-yellow-500/70 bg-yellow-950/60" :
+                                                       "border-red-600/70 bg-red-950/60"
+                  }`}>
+                    <div className="text-5xl text-center">{selectedBonus.emoji}</div>
+                    <div>
+                      <div className="font-bold text-lg text-white leading-tight">{selectedSubZone.name}</div>
+                      <div className="text-xs text-gray-400 capitalize mt-0.5">
+                        {selectedSubZone.terrain_type.replace("_", " ")} · Region {selectedSubZone.region_id}
+                      </div>
                     </div>
-                    <div className={`text-right font-bold text-lg ${
+                    <div className={`text-2xl font-bold ${
                       selectedBonus.quality === "great" ? "text-emerald-400" :
                       selectedBonus.quality === "good"  ? "text-blue-400" :
                       selectedBonus.quality === "ok"    ? "text-yellow-400" :
-                                                        "text-red-400"
+                                                         "text-red-400"
                     }`}>
                       {selectedBonus.amount} {selectedBonus.resource}
                     </div>
+                    <p className="text-sm text-gray-300 leading-relaxed italic flex-1">
+                      {selectedBonus.tip}
+                    </p>
+                    {GOOD_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
+                      <div className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                        ✅ Excellent founding site
+                      </div>
+                    )}
+                    {POOR_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
+                      <div className="text-xs text-red-400 font-semibold flex items-center gap-1">
+                        ⚠️ Historically a poor founding site
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-300 italic">{selectedBonus.tip}</p>
-                  {POOR_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
-                    <p className="text-xs text-red-400 font-semibold">
-                      ⚠️ Historically, very few civilizations succeeded in this terrain without advanced technology.
-                    </p>
-                  )}
-                  {GOOD_FOUNDING_TERRAIN.has(selectedSubZone.terrain_type) && (
-                    <p className="text-xs text-emerald-400 font-semibold">
-                      ✅ Excellent founding site — near water and fertile land, just like the great ancient cities.
-                    </p>
-                  )}
-                </div>
+
+                  {/* Found button */}
+                  <button
+                    onClick={handleFoundCity}
+                    disabled={foundingSubmitting}
+                    className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold rounded-xl text-base transition-all"
+                  >
+                    {foundingSubmitting ? "Founding…" : `🏛️ Found City Here →`}
+                  </button>
+                </>
               ) : (
-                <div className="rounded-xl border border-gray-700 bg-gray-900 p-4 text-center text-gray-500 text-sm">
-                  Click any territory on the map above to see founding information.
+                <div className="flex-1 rounded-xl border border-gray-800 bg-gray-900/50 flex flex-col items-center justify-center gap-3 text-center p-6">
+                  <div className="text-4xl opacity-40">🗺️</div>
+                  <p className="text-gray-500 text-sm">Click any colored territory on the map to see its founding bonus.</p>
+                  <div className="text-xs text-gray-600 mt-2 space-y-1">
+                    <div className="text-emerald-500/70">🌊 River Valley — best food</div>
+                    <div className="text-blue-500/70">⛵ Coastal — best reach</div>
+                    <div className="text-yellow-500/70">🏔️ Mountain — defense only</div>
+                    <div className="text-red-500/60">🏜️ Desert — avoid if possible</div>
+                  </div>
                 </div>
               )}
-
-              <button
-                onClick={handleFoundCity}
-                disabled={!selectedSubZone || foundingSubmitting}
-                className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-700 disabled:text-gray-500 text-black font-bold rounded-lg text-base transition-all"
-              >
-                {foundingSubmitting
-                  ? "Founding…"
-                  : selectedSubZone
-                  ? `🏛️ Found City at ${selectedSubZone.name} →`
-                  : "Select a location on the map first"}
-              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* FOUNDING CONFIRMED */}
-          {uiStep === "founding" && foundingResult && (
-            <div className="text-center space-y-6 pt-8">
-              <div className="text-6xl">🏛️</div>
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold text-amber-400">City Founded!</h2>
-                <p className="text-xl text-gray-300">
-                  {civName} rises at{" "}
-                  <span className="text-amber-300 font-bold">{foundingResult.foundedAt.name}</span>
-                </p>
-              </div>
-
-              <div className={`inline-block rounded-xl border px-6 py-4 text-left space-y-2 ${
-                foundingResult.harshTerrain ? "border-red-500 bg-red-500/10" : "border-emerald-500 bg-emerald-500/10"
-              }`}>
-                <div className="text-sm text-gray-400 uppercase tracking-widest font-bold">Founding Bonus Applied</div>
-                <div className="text-2xl font-bold text-emerald-400">
-                  {foundingResult.bonusApplied.description}
-                </div>
-                {foundingResult.harshTerrain && (
-                  <div className="text-sm text-red-400">
-                    ⚠️ Your people face hardship. Other civilizations who founded near rivers and coasts will grow
-                    faster — but your resilience may see you through.
-                  </div>
-                )}
-              </div>
-
-              <div className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm text-gray-400 text-left max-w-md mx-auto">
-                <p className="font-semibold text-gray-200 mb-2">Why does founding location matter?</p>
-                <p>
-                  Throughout history, the most powerful civilizations — Mesopotamia, Egypt, the Indus Valley,
-                  ancient China — all began near major rivers or coastlines. Access to fresh water meant farming.
-                  Farming meant surplus food. Surplus food meant cities. Cities meant civilization.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setUiStep("epoch_start")}
-                className="px-10 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg text-lg"
-              >
-                Begin Epoch 1 →
-              </button>
+      {/* FOUNDING CONFIRMED — full width */}
+      {uiStep === "founding" && foundingResult && (
+        <div className="flex flex-1 items-center justify-center p-8">
+          <div className="max-w-lg w-full text-center space-y-6">
+            <div className="text-7xl">🏛️</div>
+            <div className="space-y-2">
+              <h2 className="text-4xl font-bold text-amber-400">City Founded!</h2>
+              <p className="text-xl text-gray-300">
+                <span className="text-white font-semibold">{civName}</span> rises at{" "}
+                <span className="text-amber-300 font-bold">{foundingResult.foundedAt.name}</span>
+              </p>
             </div>
-          )}
 
-          {/* EPOCH START */}
+            <div className={`rounded-2xl border px-6 py-5 text-left space-y-2 ${
+              foundingResult.harshTerrain ? "border-red-500/60 bg-red-950/40" : "border-emerald-500/60 bg-emerald-950/40"
+            }`}>
+              <div className="text-xs text-gray-500 uppercase tracking-widest font-bold">Founding Bonus Applied</div>
+              <div className="text-xl font-bold text-emerald-400">{foundingResult.bonusApplied.description}</div>
+              {foundingResult.harshTerrain && (
+                <p className="text-sm text-red-400 mt-1">
+                  ⚠️ Your people face hardship. Civilizations near rivers will grow faster — but resilience may carry you through.
+                </p>
+              )}
+            </div>
+
+            <div className="bg-gray-900/60 border border-gray-800 rounded-xl p-5 text-sm text-gray-400 text-left">
+              <p className="font-semibold text-gray-200 mb-2">Why does founding location matter?</p>
+              <p className="leading-relaxed">
+                Throughout history, the most powerful civilizations — Mesopotamia, Egypt, the Indus Valley,
+                ancient China — all began near major rivers or coastlines. Access to fresh water meant farming.
+                Farming meant surplus food. Surplus food meant cities. Cities meant civilization.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setUiStep("epoch_start")}
+              className="w-full py-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl text-lg"
+            >
+              Begin Epoch 1 →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── NORMAL GAME LAYOUT (non-founding screens) ── */}
+      {uiStep !== "founding" && (
+      <div className="flex flex-1 gap-0">
+        {/* Main content */}
+        <main className="flex-1 p-6 max-w-3xl mx-auto w-full">
           {uiStep === "epoch_start" && (
             <div className="text-center space-y-6 pt-12">
               <div className="inline-block bg-gray-900 border border-gray-700 rounded-2xl px-8 py-6">
@@ -1017,7 +1027,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         </main>
 
         {/* Resource Sidebar */}
-        {uiStep !== "epoch_start" && uiStep !== "resolving" && uiStep !== "founding" && (
+        {uiStep !== "epoch_start" && uiStep !== "resolving" && (
           <div className="p-6 border-l border-gray-800">
             <ResourceSidebar resources={playerResources} population={playerPopulation} />
             {/* Mini leaderboard */}
@@ -1042,6 +1052,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
           </div>
         )}
       </div>
+      )} {/* end uiStep !== "founding" */}
     </div>
   );
 }
