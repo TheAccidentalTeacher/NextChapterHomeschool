@@ -87,8 +87,7 @@ export async function POST(
   const { data: currentResources, error: resErr } = await supabase
     .from("team_resources")
     .select("resource_type, amount")
-    .eq("team_id", teamId)
-    .eq("epoch", 0);
+    .eq("team_id", teamId);
 
   if (resErr) {
     return NextResponse.json({ error: "Failed to load team resources" }, { status: 500 });
@@ -105,7 +104,6 @@ export async function POST(
       .from("team_resources")
       .update({ amount: newAmount })
       .eq("team_id", teamId)
-      .eq("epoch", 0)
       .eq("resource_type", bonus.resource);
 
     if (updateErr) {
