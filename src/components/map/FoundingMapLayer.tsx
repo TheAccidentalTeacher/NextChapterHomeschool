@@ -36,28 +36,36 @@ interface WorldFeature extends GeoJSON.Feature {
 }
 
 // ── Antimeridian fix ───────────────────────────────────────────
-// Leaflet draws a horizontal line across the map when a polygon ring
-// has consecutive vertices that jump > 180° in longitude (i.e., the
-// ring crosses the antimeridian). We drop those rings before rendering.
-function ringCrossesAntimeridian(ring: number[][]): boolean {
-  for (let i = 0; i < ring.length - 1; i++) {
-    if (Math.abs(ring[i][0] - ring[i + 1][0]) > 180) return true;
+// When a polygon ring has consecutive vertices that jump > 180° in
+// longitude it straddles the antimeridian. Leaflet draws a horizontal
+// artifact line across the map in that case.
+//
+// Fix: instead of dropping the ring, normalise its longitudes so they
+// are continuous (e.g. +170 → -170 becomes +170 → +190). Leaflet
+// handles longitudes outside ±180 correctly — the tiles wrap, so
+// Russia's Far East renders in the right place without the artifact.
+function normalizeRing(ring: number[][]): number[][] {
+  if (ring.length === 0) return ring;
+  const result: number[][] = [[...ring[0]]];
+  for (let i = 1; i < ring.length; i++) {
+    let lng = ring[i][0];
+    const prevLng = result[i - 1][0];
+    while (lng - prevLng > 180) lng -= 360;
+    while (prevLng - lng > 180) lng += 360;
+    result.push([lng, ring[i][1]]);
   }
-  return false;
+  return result;
 }
 
-function sanitizeGeometry(geometry: GeoJSON.Geometry): GeoJSON.Geometry | null {
+function sanitizeGeometry(geometry: GeoJSON.Geometry): GeoJSON.Geometry {
   if (geometry.type === "Polygon") {
-    const rings = geometry.coordinates.filter((r) => !ringCrossesAntimeridian(r));
-    if (rings.length === 0) return null;
-    return { ...geometry, coordinates: rings };
+    return { ...geometry, coordinates: geometry.coordinates.map(normalizeRing) };
   }
   if (geometry.type === "MultiPolygon") {
-    const polys = geometry.coordinates
-      .map((poly) => poly.filter((r) => !ringCrossesAntimeridian(r)))
-      .filter((poly) => poly.length > 0);
-    if (polys.length === 0) return null;
-    return { ...geometry, coordinates: polys };
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((poly) => poly.map(normalizeRing)),
+    };
   }
   return geometry;
 }
@@ -113,9 +121,8 @@ export default function FoundingMapLayer({
         const isSelected = !!szId && szId === selectedSubZoneId;
         const isMapped = !!szId;
 
-        // Drop rings that cross the antimeridian to prevent horizontal artifact lines
+        // Normalise antimeridian-crossing rings so Russia / Alaska render correctly
         const safeGeometry = sanitizeGeometry(feature.geometry);
-        if (!safeGeometry) return null;
 
         const baseColor = terrain ? (TERRAIN_COLORS[terrain] ?? "#444") : "#1e293b";
         const fillOpacity = isSelected ? 0.75 : isMapped ? 0.45 : 0.12;
