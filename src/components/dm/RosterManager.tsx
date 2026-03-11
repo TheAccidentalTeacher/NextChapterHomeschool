@@ -161,13 +161,18 @@ interface CreateTeamFormProps {
   onCreated: () => void;
 }
 
-function CreateTeamForm({ gameId, onCreated }: CreateTeamFormProps) {
+function CreateTeamForm({ gameId, onCreated, usedRegionIds }: CreateTeamFormProps & { usedRegionIds: number[] }) {
   const [teamNumber, setTeamNumber] = useState(1);
-  const [regionId, setRegionId] = useState(1);
+  const [regionId, setRegionId] = useState<number>(() =>
+    REGIONS.find((r) => !usedRegionIds.includes(r.id))?.id ?? 1
+  );
   const [teamName, setTeamName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const isDuplicate = usedRegionIds.includes(regionId);
+
   const handleSubmit = async (e: React.FormEvent) => {
+    if (isDuplicate) return;
     e.preventDefault();
     setSaving(true);
     try {
@@ -215,8 +220,8 @@ function CreateTeamForm({ gameId, onCreated }: CreateTeamFormProps) {
           className="mt-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-sm text-stone-300 focus:border-red-500 focus:outline-none"
         >
           {REGIONS.map((r) => (
-            <option key={r.id} value={r.id}>
-              {r.id}. {r.label}
+            <option key={r.id} value={r.id} disabled={usedRegionIds.includes(r.id)}>
+              {r.id}. {r.label}{usedRegionIds.includes(r.id) ? " (taken)" : ""}
             </option>
           ))}
         </select>
@@ -233,13 +238,18 @@ function CreateTeamForm({ gameId, onCreated }: CreateTeamFormProps) {
           className="mt-1 w-40 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-sm text-stone-300 placeholder:text-stone-600 focus:border-red-500 focus:outline-none"
         />
       </div>
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
-      >
-        {saving ? "Creating…" : "+ Add Team"}
-      </button>
+      <div className="flex flex-col gap-1">
+        {isDuplicate && (
+          <p className="text-xs text-red-400">⚠ That region is already taken by another team</p>
+        )}
+        <button
+          type="submit"
+          disabled={saving || isDuplicate}
+          className="rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+        >
+          {saving ? "Creating…" : "+ Add Team"}
+        </button>
+      </div>
     </form>
   );
 }
@@ -271,6 +281,12 @@ export default function RosterManager({
   teams,
   onRefresh,
 }: RosterManagerProps) {
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (!confirm(`Delete "${teamName}" and all its members? This cannot be undone.`)) return;
+    await fetch(`/api/games/${gameId}/teams/${teamId}`, { method: "DELETE" });
+    onRefresh();
+  };
+
   const handleRoleChange = async (
     teamId: string,
     memberId: string,
@@ -315,7 +331,7 @@ export default function RosterManager({
   return (
     <div className="space-y-6">
       {/* Create Team Form */}
-      <CreateTeamForm gameId={gameId} onCreated={onRefresh} />
+      <CreateTeamForm gameId={gameId} onCreated={onRefresh} usedRegionIds={teams.map((t) => t.region_id)} />
 
       {/* Teams Grid */}
       {teams.length === 0 ? (
@@ -351,9 +367,19 @@ export default function RosterManager({
                       {team.population}
                     </p>
                   </div>
-                  <span className="rounded-full bg-stone-800 px-2 py-0.5 text-xs text-stone-400">
-                    {members.length}/5
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-stone-800 px-2 py-0.5 text-xs text-stone-400">
+                      {members.length}/5
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteTeam(team.id, team.name)}
+                      className="rounded px-1.5 py-0.5 text-xs text-stone-600 transition hover:bg-red-900/40 hover:text-red-400"
+                      title="Delete team"
+                    >
+                      🗑
+                    </button>
+                  </div>
                 </div>
 
                 {/* Members */}
