@@ -84,6 +84,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [unlockedTechs, setUnlockedTechs] = useState<string[]>([]);
   const [activeResearchId, setActiveResearchId] = useState<string | null>(null);
   const [legacyInvested, setLegacyInvested] = useState<Record<string, number>>({});
+  // Role-switcher: lets one student submit for any role during testing
+  const [overrideRole, setOverrideRole] = useState<RoleName | null>(null);
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -181,6 +183,12 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const isRouting = isRoutingStep(currentStep);
   const resourceType = (STEP_TO_RESOURCE[currentStep] ?? "production") as ResourceType;
 
+  const ROLES: RoleName[] = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
+  const ROLE_ICONS: Record<RoleName, string> = {
+    architect: "🏛", merchant: "🪙", diplomat: "🕊", lorekeeper: "📖", warlord: "⚔",
+  };
+  const effectiveRole = overrideRole ?? role;
+
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
       <ArchitectPanel
@@ -254,6 +262,23 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         ciScore={0}
       />
 
+      {/* Role switcher — allows testing all 5 roles from one browser */}
+      <div className="flex items-center gap-1 rounded-lg bg-stone-900/60 p-1">
+        {ROLES.map((r) => (
+          <button
+            key={r}
+            onClick={() => setOverrideRole(effectiveRole === r && r !== role ? null : r)}
+            className={`flex-1 rounded px-2 py-1 text-xs font-medium capitalize transition ${
+              effectiveRole === r
+                ? "bg-amber-800/50 text-amber-300 ring-1 ring-amber-600/40"
+                : "text-stone-500 hover:text-stone-300"
+            }`}
+          >
+            {ROLE_ICONS[r]} {r}{r === role ? " ·" : ""}
+          </button>
+        ))}
+      </div>
+
       {/* Tab Navigation */}
       <div className="flex gap-1 rounded-lg bg-stone-900/50 p-1">
         {(["action", "map", "role", "tech"] as const).map((t) => (
@@ -266,7 +291,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                 : "text-stone-400 hover:text-stone-200"
             }`}
           >
-            {t === "action" ? "📝 Action" : t === "map" ? "🗺️ Map" : t === "tech" ? "🔬 Tech" : `${role ? "🎭 " + role : "🎭 Role"}`}
+            {t === "action" ? "📝 Action" : t === "map" ? "🗺️ Map" : t === "tech" ? "🔬 Tech" : `${effectiveRole ? "🎭 " + effectiveRole : "🎭 Role"}`}
           </button>
         ))}
       </div>
@@ -292,7 +317,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           )}
 
           {/* Submission or Routing */}
-          {isAction && role && (
+          {isAction && effectiveRole && (
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <RoundSubmissionCard
@@ -300,7 +325,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                   teamId={team.id}
                   epoch={currentEpoch}
                   roundType={currentRound}
-                  role={role}
+                  role={effectiveRole}
                   promptText="What strategic decision will your civilization make this round?"
                   options={[
                     { id: "a", label: "Focus on growth and expansion" },
@@ -322,7 +347,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
             </div>
           )}
 
-          {isRouting && role && (
+          {isRouting && effectiveRole && (
             <RoutingPanel
               gameId={team.game_id}
               teamId={team.id}
@@ -362,7 +387,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         </div>
       )}
 
-      {tab === "role" && role && rolePanelMap[role]}
+      {tab === "role" && effectiveRole && rolePanelMap[effectiveRole]}
 
       {tab === "tech" && team && (
         <TechTree
