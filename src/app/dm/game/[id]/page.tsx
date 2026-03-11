@@ -26,6 +26,7 @@ import IntelDropForm from "@/components/dm/IntelDropForm";
 import GlobalEventForm from "@/components/dm/GlobalEventForm";
 import ConflictFlagBanner from "@/components/dm/ConflictFlagBanner";
 import PushToProjector from "@/components/dm/PushToProjector";
+import AutoplayPanel from "./AutoplayPanel";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -61,7 +62,7 @@ export default function DMGamePage({
     teamName: string;
     role: RoleName;
   } | null>(null);
-  const [sidePanel, setSidePanel] = useState<"submissions" | "tools">("submissions");
+  const [sidePanel, setSidePanel] = useState<"submissions" | "tools" | "autoplay">("submissions");
 
   // Resolve params
   useEffect(() => {
@@ -181,6 +182,16 @@ export default function DMGamePage({
             >
               DM Tools
             </button>
+            <button
+              onClick={() => setSidePanel("autoplay")}
+              className={`flex-1 rounded-md px-3 py-1.5 text-sm transition ${
+                sidePanel === "autoplay"
+                  ? "bg-violet-700 text-white"
+                  : "text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              🎭 Sim
+            </button>
           </div>
 
           {sidePanel === "submissions" ? (
@@ -196,6 +207,14 @@ export default function DMGamePage({
                   role,
                 });
               }}
+            />
+          ) : sidePanel === "autoplay" ? (
+            <AutoplayPanel
+              gameId={gameId}
+              currentStep={game.current_step}
+              currentEpoch={game.current_epoch}
+              teams={teams}
+              onStepComplete={fetchState}
             />
           ) : (
             <div className="space-y-4">
