@@ -25,16 +25,16 @@ export default function CivNamePrompt() {
         return res.json();
       })
       .then((data) => {
-        if (!data.team_id || !data.game_id) {
+        if (!data.team?.id || !data.team?.game_id) {
           setStatus("no-team");
           return;
         }
-        setTeamId(data.team_id);
-        setGameId(data.game_id);
+        setTeamId(data.team.id);
+        setGameId(data.team.game_id);
 
         // Check civ name status
         return fetch(
-          `/api/games/${data.game_id}/teams/${data.team_id}/name`
+          `/api/games/${data.team.game_id}/teams/${data.team.id}/name`
         ).then((res) => res.json());
       })
       .then((data) => {

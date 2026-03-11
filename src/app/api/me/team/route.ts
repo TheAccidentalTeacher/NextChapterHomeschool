@@ -50,15 +50,22 @@ export async function GET() {
     };
 
     return NextResponse.json({
-      member_id: membership.id,
-      team_id: team.id,
-      team_name: team.name,
-      civilization_name: team.civilization_name,
-      region_id: team.region_id,
-      game_id: team.game_id,
-      display_name: membership.display_name,
-      assigned_role: membership.assigned_role,
-      is_absent: membership.is_absent,
+      team: {
+        id: team.id,
+        name: team.name,
+        civilization_name: team.civilization_name,
+        region_id: team.region_id,
+        population: team.population,
+        game_id: team.game_id,
+        is_in_dark_age: false,
+        war_exhaustion_level: 0,
+      },
+      member: {
+        id: membership.id,
+        display_name: membership.display_name,
+        assigned_role: membership.assigned_role,
+        is_absent: membership.is_absent,
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unauthorized";
