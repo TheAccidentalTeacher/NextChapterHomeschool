@@ -35,6 +35,33 @@ interface WorldFeature extends GeoJSON.Feature {
   };
 }
 
+// ── Antimeridian fix ───────────────────────────────────────────
+// Leaflet draws a horizontal line across the map when a polygon ring
+// has consecutive vertices that jump > 180° in longitude (i.e., the
+// ring crosses the antimeridian). We drop those rings before rendering.
+function ringCrossesAntimeridian(ring: number[][]): boolean {
+  for (let i = 0; i < ring.length - 1; i++) {
+    if (Math.abs(ring[i][0] - ring[i + 1][0]) > 180) return true;
+  }
+  return false;
+}
+
+function sanitizeGeometry(geometry: GeoJSON.Geometry): GeoJSON.Geometry | null {
+  if (geometry.type === "Polygon") {
+    const rings = geometry.coordinates.filter((r) => !ringCrossesAntimeridian(r));
+    if (rings.length === 0) return null;
+    return { ...geometry, coordinates: rings };
+  }
+  if (geometry.type === "MultiPolygon") {
+    const polys = geometry.coordinates
+      .map((poly) => poly.filter((r) => !ringCrossesAntimeridian(r)))
+      .filter((poly) => poly.length > 0);
+    if (polys.length === 0) return null;
+    return { ...geometry, coordinates: polys };
+  }
+  return geometry;
+}
+
 interface SubZoneSummary {
   id: string;
   name: string;
@@ -86,6 +113,10 @@ export default function FoundingMapLayer({
         const isSelected = !!szId && szId === selectedSubZoneId;
         const isMapped = !!szId;
 
+        // Drop rings that cross the antimeridian to prevent horizontal artifact lines
+        const safeGeometry = sanitizeGeometry(feature.geometry);
+        if (!safeGeometry) return null;
+
         const baseColor = terrain ? (TERRAIN_COLORS[terrain] ?? "#444") : "#1e293b";
         const fillOpacity = isSelected ? 0.75 : isMapped ? 0.45 : 0.12;
         const borderColor = isSelected ? "#f59e0b" : isMapped ? "#ffffff22" : "#ffffff11";
@@ -94,7 +125,7 @@ export default function FoundingMapLayer({
         return (
           <GeoJSON
             key={`${feature.id ?? idx}`}
-            data={feature as unknown as GeoJSON.GeoJsonObject}
+            data={{ ...feature, geometry: safeGeometry } as unknown as GeoJSON.GeoJsonObject}
             style={() => ({
               fillColor: isSelected ? "#f59e0b" : baseColor,
               fillOpacity,
