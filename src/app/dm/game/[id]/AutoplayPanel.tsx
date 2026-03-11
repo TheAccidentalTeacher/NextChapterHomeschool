@@ -217,7 +217,7 @@ export default function AutoplayPanel({
           </p>
           <div className="flex flex-wrap gap-1.5">
             <a
-              href="/projector"
+              href={`/projector?game=${gameId}`}
               target="_blank"
               rel="noopener"
               className="rounded bg-blue-900/50 px-2 py-1 text-xs text-blue-400 hover:bg-blue-900"

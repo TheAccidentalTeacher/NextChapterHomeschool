@@ -52,9 +52,9 @@ interface GlobalEvent {
   event_type: string;
 }
 
-export default function ProjectorClient() {
+export default function ProjectorClient({ initialGameId }: { initialGameId?: string | null }) {
   debug.render("ProjectorClient mounted");
-  const [gameId, setGameId] = useState<string | null>(null);
+  const [gameId, setGameId] = useState<string | null>(initialGameId ?? null);
   const [teams, setTeams] = useState<Team[]>([]);
   const [epoch, setEpoch] = useState(1);
   const [step, setStep] = useState<EpochStep>("login");
@@ -65,24 +65,22 @@ export default function ProjectorClient() {
   const [teamResources, setTeamResources] = useState<Record<string, Record<ResourceType, number>>>({});
   const [dismissedEvents, setDismissedEvents] = useState<Set<string>>(new Set());
 
-  // Find active game
+  // Find active game (only if no gameId passed via URL)
   useEffect(() => {
+    if (initialGameId) return; // already have it from URL param
     async function findGame() {
       try {
-        const res = await fetch("/api/games");
+        const res = await fetch("/api/projector/active-game");
         if (res.ok) {
           const data = await res.json();
-          const games = data.games ?? [];
-          if (games.length > 0) {
-            setGameId(games[0].id);
-          }
+          if (data.gameId) setGameId(data.gameId);
         }
       } catch {
         // ignore
       }
     }
     findGame();
-  }, []);
+  }, [initialGameId]);
 
   const fetchState = useCallback(async () => {
     if (!gameId) return;
