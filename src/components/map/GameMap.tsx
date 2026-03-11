@@ -21,6 +21,7 @@ import "leaflet/dist/leaflet.css";
 import SubZoneLayer from "./SubZoneLayer";
 import MarkerLayer from "./MarkerLayer";
 import RegionLayer, { type TeamRegion } from "./RegionLayer";
+import FitBoundsToRegion from "./FitBoundsToRegion";
 
 export interface SubZoneData {
   id: string;
@@ -61,6 +62,7 @@ export interface GameMapProps {
   subZones: SubZoneData[];
   teamColors: TeamColor[];
   teamRegions?: TeamRegion[];
+  focusRegionId?: number;
   fogState?: FogEntry[];
   markers?: MapMarker[];
   onSubZoneClick?: (subZone: SubZoneData) => void;
@@ -78,6 +80,7 @@ export default function GameMap({
   subZones,
   teamColors,
   teamRegions,
+  focusRegionId,
   fogState,
   markers = [],
   onSubZoneClick,
@@ -104,6 +107,10 @@ export default function GameMap({
 
       {teamRegions && teamRegions.length > 0 && (
         <RegionLayer teamRegions={teamRegions} />
+      )}
+
+      {focusRegionId != null && (
+        <FitBoundsToRegion regionId={focusRegionId} />
       )}
 
       <SubZoneLayer

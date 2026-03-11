@@ -158,7 +158,7 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-stone-950 text-white">
+    <div className="flex h-screen flex-col overflow-hidden bg-stone-950 text-white">
       {/* Top Bar */}
       <header className="flex items-center justify-between border-b border-stone-800 px-6 py-3">
         <h1 className="text-xl font-bold text-amber-400">
@@ -177,8 +177,8 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
         </div>
       </header>
 
-      {/* Main area */}
-      <main className="relative flex-1">
+      {/* Main area: fills remaining height so the map has a definite pixel height */}
+      <main className="relative" style={{ height: "calc(100vh - 49px)" }}>
         {/* Map */}
         <div className="h-full">
           <GameMap

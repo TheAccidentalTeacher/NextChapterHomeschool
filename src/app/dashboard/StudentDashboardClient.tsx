@@ -53,6 +53,7 @@ interface TeamInfo {
   game_id: string;
   name: string;
   civilization_name: string | null;
+  region_id: number;
   population: number;
   is_in_dark_age: boolean;
   war_exhaustion_level: number;
@@ -407,6 +408,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
               subZones={[]}
               teamColors={[]}
               teamRegions={allTeamRegions}
+              focusRegionId={team.region_id}
               fogState={[]}
               markers={[]}
               showFog={false}
