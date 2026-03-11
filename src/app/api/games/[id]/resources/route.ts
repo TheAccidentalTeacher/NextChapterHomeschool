@@ -3,6 +3,51 @@ import { createClient } from "@/lib/supabase/server";
 import { getClerkUserId, isTeacher } from "@/lib/auth/roles";
 
 /**
+ * GET /api/games/[id]/resources?team_id=xxx
+ * Returns current resource amounts for a team.
+ */
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: gameId } = await params;
+  const userId = await getClerkUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const teamId = req.nextUrl.searchParams.get("team_id");
+  if (!teamId) {
+    return NextResponse.json({ error: "team_id required" }, { status: 400 });
+  }
+
+  const supabase = await createClient();
+
+  const { data: rows, error } = await supabase
+    .from("team_resources")
+    .select("resource_type, amount")
+    .eq("team_id", teamId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Build a flat map with defaults
+  const resources: Record<string, number> = {
+    production: 0,
+    reach: 0,
+    legacy: 0,
+    resilience: 0,
+    food: 0,
+  };
+  for (const row of rows ?? []) {
+    resources[row.resource_type] = row.amount;
+  }
+
+  return NextResponse.json({ resources, gameId, teamId });
+}
+
+/**
  * POST /api/games/[id]/resources/route
  * Leading role routes earned resources: Spend / Contribute / Bank.
  *

@@ -43,22 +43,9 @@ export async function GET(
 
   const completedTechIds = (completedRows ?? []).map((r: { tech_key: string }) => r.tech_key);
 
-  // Fetch active research (from game_events or a dedicated tracker)
-  // We store active research in the team_resources metadata or game_events
-  // For simplicity, we use the "active_research" field in teams table
-  const { data: teamData, error: teamErr } = await supabase
-    .from("teams")
-    .select("metadata")
-    .eq("id", teamId)
-    .single();
-
-  if (teamErr && teamErr.code !== "PGRST116") {
-    return NextResponse.json({ error: teamErr.message }, { status: 500 });
-  }
-
-  const metadata = (teamData?.metadata as Record<string, unknown>) ?? {};
-  const activeResearchId = (metadata.active_research_id as string) ?? null;
-  const legacyInvestedMap = (metadata.legacy_invested as Record<string, number>) ?? {};
+  // No in-progress research tracker in DB schema yet — return empty defaults
+  const activeResearchId = null;
+  const legacyInvestedMap: Record<string, number> = {};
 
   // Compute tech states
   const techStates = getTechStates(completedTechIds, activeResearchId, legacyInvestedMap);
