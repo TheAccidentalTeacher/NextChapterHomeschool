@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import subZonesJson from "@/../public/data/sub-zones.json";
 
-// Dynamic import — Leaflet requires browser APIs (no SSR)
+// Dynamic imports — Leaflet requires browser APIs (no SSR)
 const MapWrapper = dynamic(() => import("@/components/map/MapWrapper"), {
   ssr: false,
   loading: () => (
@@ -17,6 +17,12 @@ const MapWrapper = dynamic(() => import("@/components/map/MapWrapper"), {
     </div>
   ),
 });
+
+// Founding screen uses actual country polygons (not the rectangular SubZoneLayer)
+const FoundingMapWrapper = dynamic(
+  () => import("@/components/map/FoundingMapWrapper"),
+  { ssr: false }
+);
 
 // ── Types ──────────────────────────────────────────────────────
 type ActionStep = "build" | "expand" | "define" | "defend";
@@ -465,32 +471,6 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   const epoch = gameData?.currentEpoch ?? 1;
   const civName = gameData?.playerCivName ?? "Your Civilization";
 
-  // Pre-compute founding map props
-  const foundingSubZones = ALL_SUB_ZONES.map((sz) => ({
-    id: sz.id,
-    name: sz.name,
-    region_id: sz.region_id,
-    terrain_type: sz.terrain_type,
-    geojson: sz.geojson,
-    yield_modifier: sz.yield_modifier,
-    controlled_by_team_id: null,
-    soil_fertility: 100,
-    wildlife_stock: 100,
-    settlement_name: null,
-    buildings: [],
-  }));
-
-  // Highlight selected sub-zone by treating it as "controlled" by a special color team
-  const foundingTeamColors = selectedSubZone
-    ? [{ teamId: "__selected__", color: "#f59e0b", name: "Your City" }]
-    : [];
-
-  const foundingSubZonesDisplay = foundingSubZones.map((sz) =>
-    sz.id === selectedSubZone?.id
-      ? { ...sz, controlled_by_team_id: "__selected__" }
-      : sz
-  );
-
   const selectedBonus = selectedSubZone
     ? TERRAIN_BONUS[selectedSubZone.terrain_type]
     : null;
@@ -549,14 +529,11 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
 
           {/* Map + info panel side by side */}
           <div className="flex flex-1 gap-4 px-8 pb-8 min-h-0">
-            {/* Map — takes all remaining height */}
+            {/* Map — actual country polygon shapes (not rectangles) */}
             <div className="flex-1 rounded-xl overflow-hidden border border-gray-700 min-h-0" style={{ minHeight: "520px" }}>
-              <MapWrapper
-                subZones={foundingSubZonesDisplay}
-                teamColors={foundingTeamColors}
-                fogState={[]}
-                markers={[]}
-                showFog={false}
+              <FoundingMapWrapper
+                subZones={ALL_SUB_ZONES}
+                selectedSubZoneId={selectedSubZone?.id ?? null}
                 onSubZoneClick={(sz) => {
                   const full = ALL_SUB_ZONES.find((s) => s.id === sz.id);
                   if (full) setSelectedSubZone(full);

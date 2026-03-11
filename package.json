@@ -30,6 +30,7 @@
     "postgres": "^3.4.8",
     "supabase": "^2.76.17",
     "tailwindcss": "^4",
+    "topojson-client": "^3.1.0",
     "typescript": "^5"
   }
 }
