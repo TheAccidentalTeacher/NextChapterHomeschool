@@ -1,8 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ROLES, REGIONS } from "@/lib/constants";
 import type { RoleName } from "@/types/database";
+
+interface ClerkUser {
+  id: string;
+  displayName: string;
+  email: string;
+  username: string;
+}
 
 interface AddStudentFormProps {
   gameId: string;
@@ -11,14 +18,47 @@ interface AddStudentFormProps {
 }
 
 function AddStudentForm({ gameId, teamId, onAdded }: AddStudentFormProps) {
-  const [name, setName] = useState("");
-  const [clerkId, setClerkId] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<ClerkUser[]>([]);
+  const [selected, setSelected] = useState<ClerkUser | null>(null);
   const [role, setRole] = useState<RoleName>("architect");
   const [saving, setSaving] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Live search as teacher types
+  useEffect(() => {
+    if (selected) return; // don't re-search once picked
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.length < 2) { setResults([]); return; }
+
+    debounceRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/dm/users/search?q=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        setResults(data.users ?? []);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+  }, [query, selected]);
+
+  function pick(user: ClerkUser) {
+    setSelected(user);
+    setQuery(user.displayName || user.email || user.username);
+    setResults([]);
+  }
+
+  function clear() {
+    setSelected(null);
+    setQuery("");
+    setResults([]);
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !clerkId.trim()) return;
+    if (!selected) return;
 
     setSaving(true);
     try {
@@ -28,16 +68,15 @@ function AddStudentForm({ gameId, teamId, onAdded }: AddStudentFormProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            clerk_user_id: clerkId.trim(),
-            display_name: name.trim(),
+            clerk_user_id: selected.id,
+            display_name: selected.displayName || selected.username || selected.email,
             assigned_role: role,
           }),
         }
       );
 
       if (res.ok) {
-        setName("");
-        setClerkId("");
+        clear();
         setRole("architect");
         onAdded();
       }
@@ -47,39 +86,72 @@ function AddStudentForm({ gameId, teamId, onAdded }: AddStudentFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap gap-2">
-      <input
-        type="text"
-        placeholder="First name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        className="w-28 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-300 placeholder:text-stone-600 focus:border-red-500 focus:outline-none"
-      />
-      <input
-        type="text"
-        placeholder="Clerk username"
-        value={clerkId}
-        onChange={(e) => setClerkId(e.target.value)}
-        className="w-32 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-300 placeholder:text-stone-600 focus:border-red-500 focus:outline-none"
-      />
-      <select
-        value={role}
-        onChange={(e) => setRole(e.target.value as RoleName)}
-        className="rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-300 focus:border-red-500 focus:outline-none"
-      >
-        {Object.entries(ROLES).map(([key, r]) => (
-          <option key={key} value={key}>
-            {r.emoji} {r.label}
-          </option>
-        ))}
-      </select>
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
-      >
-        {saving ? "…" : "Add"}
-      </button>
+    <form onSubmit={handleSubmit} className="space-y-2">
+      {/* User search */}
+      <div className="relative">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search by name or email…"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); if (selected) clear(); }}
+              className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-300 placeholder:text-stone-600 focus:border-red-500 focus:outline-none"
+            />
+            {searching && (
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-stone-500">…</span>
+            )}
+          </div>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as RoleName)}
+            className="rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-300 focus:border-red-500 focus:outline-none"
+          >
+            {Object.entries(ROLES).map(([key, r]) => (
+              <option key={key} value={key}>
+                {r.emoji} {r.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="submit"
+            disabled={saving || !selected}
+            className="rounded bg-red-600 px-3 py-1 text-xs font-medium text-white transition hover:bg-red-500 disabled:opacity-50"
+          >
+            {saving ? "…" : "Add"}
+          </button>
+        </div>
+
+        {/* Dropdown results */}
+        {results.length > 0 && (
+          <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-stone-700 bg-stone-900 shadow-xl">
+            {results.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => pick(u)}
+                className="flex w-full items-center gap-3 px-3 py-2 text-left text-xs transition hover:bg-stone-800"
+              >
+                <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-stone-700 text-stone-300">
+                  {(u.displayName || u.username || "?")[0].toUpperCase()}
+                </div>
+                <div>
+                  <div className="font-medium text-stone-200">{u.displayName || u.username}</div>
+                  <div className="text-stone-500">{u.email}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Selected indicator */}
+        {selected && (
+          <div className="mt-1 flex items-center gap-2 rounded bg-green-950/50 px-2 py-1">
+            <span className="text-xs text-green-400">✓ {selected.displayName || selected.username}</span>
+            <button type="button" onClick={clear} className="ml-auto text-xs text-stone-500 hover:text-stone-300">✕</button>
+          </div>
+        )}
+      </div>
     </form>
   );
 }
