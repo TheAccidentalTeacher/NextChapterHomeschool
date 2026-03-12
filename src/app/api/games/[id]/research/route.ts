@@ -43,9 +43,17 @@ export async function GET(
 
   const completedTechIds = (completedRows ?? []).map((r: { tech_key: string }) => r.tech_key);
 
-  // No in-progress research tracker in DB schema yet — return empty defaults
-  const activeResearchId = null;
-  const legacyInvestedMap: Record<string, number> = {};
+  // Read active research + legacy invested from team metadata
+  const { data: teamRow } = await supabase
+    .from("teams")
+    .select("metadata")
+    .eq("id", teamId)
+    .single();
+
+  const metadata = (teamRow?.metadata as Record<string, unknown>) ?? {};
+  const activeResearchId = (metadata.active_research_id as string) ?? null;
+  const legacyInvestedMap: Record<string, number> =
+    (metadata.legacy_invested as Record<string, number>) ?? {};
 
   // Compute tech states
   const techStates = getTechStates(completedTechIds, activeResearchId, legacyInvestedMap);

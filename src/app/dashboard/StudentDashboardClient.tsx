@@ -99,6 +99,16 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [subZones, setSubZones] = useState<SubZoneData[]>([]);
   const [selectedSubZone, setSelectedSubZone] = useState<SubZoneData | null>(null);
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
+  // Live question from the bank (Decision 27)
+  const [currentQuestion, setCurrentQuestion] = useState<{
+    id: string;
+    promptText: string;
+    options: Array<{ id: string; label: string; description?: string }>;
+    allowFreeText: boolean;
+    historicalContext: string;
+    scaffolding6th: string;
+    scaffolding78: string;
+  } | null>(null);
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -200,6 +210,30 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Fetch contextual question whenever team, role, or round changes (Decision 27)
+  useEffect(() => {
+    if (!team || !role) return;
+    const effectiveRoleForQ = overrideRole ?? role;
+    const stepNow = epoch?.current_step ?? "login";
+    const roundNow = STEP_TO_ROUND[stepNow] ?? epoch?.current_round ?? "BUILD";
+    if (!isActionStep(stepNow)) return; // only fetch during action phases
+
+    async function fetchQuestion() {
+      try {
+        const res = await fetch(
+          `/api/games/${team!.game_id}/questions?team_id=${team!.id}&round=${roundNow}&role=${effectiveRoleForQ}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentQuestion(data.question ?? null);
+        }
+      } catch {
+        // question fetch failure is non-critical — card falls back to placeholder
+      }
+    }
+    fetchQuestion();
+  }, [team, role, overrideRole, epoch?.current_step, epoch?.current_round]);
 
   if (loading) {
     return (
@@ -380,14 +414,22 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                   epoch={currentEpoch}
                   roundType={currentRound}
                   role={effectiveRole}
-                  promptText="What strategic decision will your civilization make this round?"
-                  options={[
-                    { id: "a", label: "Focus on growth and expansion" },
-                    { id: "b", label: "Invest in infrastructure" },
-                    { id: "c", label: "Strengthen defenses" },
-                  ]}
-                  historicalContext="Your civilization faces a pivotal moment."
-                  allowFreeText={true}
+                  promptText={
+                    currentQuestion?.promptText ??
+                    "What strategic decision will your civilization make this round?"
+                  }
+                  options={
+                    currentQuestion?.options ?? [
+                      { id: "a", label: "Focus on growth and expansion" },
+                      { id: "b", label: "Invest in infrastructure" },
+                      { id: "c", label: "Strengthen defenses" },
+                    ]
+                  }
+                  historicalContext={
+                    currentQuestion?.historicalContext ??
+                    "Your civilization faces a pivotal moment."
+                  }
+                  allowFreeText={currentQuestion?.allowFreeText ?? true}
                   grade="7_8th"
                 />
               </div>
