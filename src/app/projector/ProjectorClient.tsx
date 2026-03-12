@@ -2,18 +2,19 @@
 // ProjectorClient — Classroom projector display
 // Decision 16: Shared projector view, no student login needed
 // Decision 79: Epoch state machine sync
+// Decision 102: Defaults to civilization standings board; DM can toggle to map
 //
 // Full-screen display for the classroom projector/TV.
 // Auto-discovers the active game and polls for state.
 // Renders:
-//   - GameMap with all team territories
+//   - Leaderboard (default) — civilization standings with resource breakdown
+//   - GameMap with all team territories (toggled by keyboard / button)
 //   - PausedOverlay when DM pauses the game
 //   - ResolveSequence during epoch resolution
 //   - AnnouncementOverlay for DM announcements
 //   - EventCardOverlay for global events
 //   - DailyRecapCard at end of class
 //   - ExitHookCard with dinner questions
-//   - Resource leaderboard per team
 // ============================================
 
 "use client";
@@ -27,10 +28,10 @@ import EventCardOverlay from "@/components/projector/EventCardOverlay";
 import DailyRecapCard from "@/components/projector/DailyRecapCard";
 import ExitHookCard, { getExitPrompt } from "@/components/projector/ExitHookCard";
 import { STEP_LABELS, type EpochStep } from "@/lib/game/epoch-machine";
-import { RESOURCES } from "@/lib/constants";
-import type { ResourceType } from "@/types/database";
+
 import { debug } from "@/lib/debug";
 import type { TeamRegion } from "@/components/map/GameMap";
+import type { LeaderboardEntry } from "@/app/api/games/[id]/leaderboard/route";
 
 const TEAM_COLOR_PALETTE = [
   "#e63946", "#2a9d8f", "#e9c46a", "#f4a261",
@@ -70,8 +71,10 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
   const [isResolving, setIsResolving] = useState(false);
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [globalEvent, setGlobalEvent] = useState<GlobalEvent | null>(null);
-  const [teamResources, setTeamResources] = useState<Record<string, Record<ResourceType, number>>>({});
   const [dismissedEvents, setDismissedEvents] = useState<Set<string>>(new Set());
+  // Decision 102: default to standings board; DM can press M or click to toggle map
+  const [view, setView] = useState<"leaderboard" | "map">("leaderboard");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
 
   // Find active game (only if no gameId passed via URL)
   useEffect(() => {
@@ -93,10 +96,11 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
   const fetchState = useCallback(async () => {
     if (!gameId) return;
     try {
-      const [epochRes, teamsRes, eventsRes] = await Promise.all([
+      const [epochRes, teamsRes, eventsRes, lbRes] = await Promise.all([
         fetch(`/api/games/${gameId}/epoch/state`),
         fetch(`/api/games/${gameId}/map-data`),
         fetch(`/api/games/${gameId}/events/global?epoch=${epoch}`),
+        fetch(`/api/games/${gameId}/leaderboard`),
       ]);
 
       if (epochRes.ok) {
@@ -125,6 +129,11 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
         const newEvt = events.find((e) => !dismissedEvents.has(e.id));
         if (newEvt) setGlobalEvent(newEvt);
       }
+
+      if (lbRes.ok) {
+        const lbd = await lbRes.json();
+        setLeaderboard(lbd.leaderboard ?? []);
+      }
     } catch {
       // ignore
     }
@@ -142,6 +151,17 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
       setIsResolving(true);
     }
   }, [step, isResolving]);
+
+  // Keyboard shortcut: M = toggle map/leaderboard (for teacher/DM control)
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "m" || e.key === "M") {
+        setView((v) => (v === "leaderboard" ? "map" : "leaderboard"));
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   if (!gameId) {
     return (
@@ -161,9 +181,7 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
     <div className="flex h-screen flex-col overflow-hidden bg-stone-950 text-white">
       {/* Top Bar */}
       <header className="flex items-center justify-between border-b border-stone-800 px-6 py-3">
-        <h1 className="text-xl font-bold text-amber-400">
-          🏛️ ClassCiv
-        </h1>
+        <h1 className="text-xl font-bold text-amber-400">🏛️ ClassCiv</h1>
         <div className="flex items-center gap-4 text-sm">
           <span className="text-stone-400">Epoch {epoch}</span>
           <span className="rounded bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
@@ -174,52 +192,121 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
               PAUSED
             </span>
           )}
+          {/* View toggle — Decision 102: DM can switch between standings and map */}
+          <button
+            onClick={() => setView((v) => (v === "leaderboard" ? "map" : "leaderboard"))}
+            className="rounded border border-stone-700 bg-stone-800 px-3 py-0.5 text-xs text-stone-300 hover:bg-stone-700"
+            title="Toggle view (M)"
+          >
+            {view === "leaderboard" ? "🗺️ Map" : "🏆 Standings"}
+          </button>
         </div>
       </header>
 
-      {/* Main area: fills remaining height so the map has a definite pixel height */}
-      <main className="relative" style={{ height: "calc(100vh - 49px)" }}>
-        {/* Map */}
-        <div className="h-full">
-          <GameMap
-            subZones={[]}
-            teamColors={[]}
-            teamRegions={teams.map((t, i) => ({
-              teamId: t.id,
-              regionId: t.region_id,
-              color: TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length],
-              name: t.civilization_name ?? t.name,
-            }))}
-            fogState={[]}
-            markers={[]}
-            showFog={false}
-          />
-        </div>
+      {/* Main content area */}
+      <main className="relative flex-1 overflow-hidden" style={{ height: "calc(100vh - 49px)" }}>
 
-        {/* Leaderboard overlay at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 border-t border-stone-800 bg-black/80 backdrop-blur">
-          <div className="flex items-center gap-3 overflow-x-auto px-4 py-2">
-            <span className="shrink-0 text-xs text-stone-500">
-              LEADERBOARD
-            </span>
-            {teams.map((team) => {
-              const tr = teamResources[team.id] ?? {};
-              const total = Object.values(tr).reduce((s, v) => s + (v || 0), 0);
-              return (
-                <div
-                  key={team.id}
-                  className="flex shrink-0 items-center gap-2 rounded border border-stone-800 bg-stone-900 px-3 py-1.5 text-xs"
-                >
-                  <span className="font-bold text-amber-400">
-                    {team.civilization_name ?? team.name}
-                  </span>
-                  <span className="text-stone-500">👥 {team.population}</span>
-                  <span className="text-stone-500">{total} pts</span>
-                </div>
-              );
-            })}
+        {/* ——— LEADERBOARD VIEW (default) ——— */}
+        {view === "leaderboard" && (
+          <div className="flex h-full flex-col overflow-y-auto px-8 py-6">
+            <h2 className="mb-6 text-center text-3xl font-bold tracking-wide text-amber-400">
+              Civilization Standings
+            </h2>
+
+            {/* Resource column headers */}
+            <div className="mb-2 grid grid-cols-[2.5rem_1fr_6rem_6rem_6rem_6rem_6rem_6rem] items-center gap-3 px-4 text-xs font-semibold uppercase tracking-widest text-stone-500">
+              <span>#</span>
+              <span>Civilization</span>
+              <span className="text-center">👥 Pop</span>
+              <span className="text-center">⚙️ Prod</span>
+              <span className="text-center">🧭 Reach</span>
+              <span className="text-center">📜 Legacy</span>
+              <span className="text-center">🛡️ Resil</span>
+              <span className="text-center">Total</span>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              {leaderboard.map((entry, i) => {
+                const color = TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length];
+                const isTop = entry.rank === 1;
+                return (
+                  <div
+                    key={entry.teamId}
+                    className={`grid grid-cols-[2.5rem_1fr_6rem_6rem_6rem_6rem_6rem_6rem] items-center gap-3 rounded-lg border px-4 py-3 ${
+                      isTop
+                        ? "border-amber-500/50 bg-amber-900/20"
+                        : "border-stone-800 bg-stone-900/60"
+                    }`}
+                  >
+                    {/* Rank */}
+                    <span className={`text-lg font-bold ${isTop ? "text-amber-400" : "text-stone-500"}`}>
+                      {isTop ? "👑" : `#${entry.rank}`}
+                    </span>
+
+                    {/* Civ name + team name */}
+                    <div>
+                      <div className="text-base font-bold" style={{ color }}>
+                        {entry.civName}
+                      </div>
+                      <div className="text-xs text-stone-500">{entry.teamName}</div>
+                    </div>
+
+                    {/* Population */}
+                    <span className="text-center text-sm font-semibold text-stone-300">
+                      {entry.population.toLocaleString()}
+                    </span>
+
+                    {/* Resources */}
+                    <span className="text-center text-sm font-semibold text-amber-400/90">
+                      {entry.resources.production}
+                    </span>
+                    <span className="text-center text-sm font-semibold text-blue-400/90">
+                      {entry.resources.reach}
+                    </span>
+                    <span className="text-center text-sm font-semibold text-purple-400/90">
+                      {entry.resources.legacy}
+                    </span>
+                    <span className="text-center text-sm font-semibold text-green-400/90">
+                      {entry.resources.resilience}
+                    </span>
+
+                    {/* Total */}
+                    <span className={`text-center text-base font-bold ${isTop ? "text-amber-300" : "text-stone-200"}`}>
+                      {entry.total}
+                    </span>
+                  </div>
+                );
+              })}
+
+              {leaderboard.length === 0 && (
+                <p className="py-16 text-center text-stone-600">No standings yet — waiting for game data…</p>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* ——— MAP VIEW ——— */}
+        {view === "map" && (
+          <div className="h-full">
+            <GameMap
+              subZones={[]}
+              teamColors={leaderboard.map((e, i) => ({
+                teamId: e.teamId,
+                color: TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length],
+                name: e.civName,
+              }))}
+              teamRegions={teams.map((t, i) => ({
+                teamId: t.id,
+                regionId: t.region_id,
+                color: TEAM_COLOR_PALETTE[i % TEAM_COLOR_PALETTE.length],
+                name: t.civilization_name ?? t.name,
+              }))}
+              fogState={[]}
+              markers={[]}
+              showFog={false}
+            />
+          </div>
+        )}
       </main>
 
       {/* Overlays */}
