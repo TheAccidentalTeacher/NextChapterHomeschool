@@ -32,13 +32,14 @@ import RoundSubmissionCard from "@/components/submission/RoundSubmissionCard";
 import SubmissionStatus from "@/components/submission/SubmissionStatus";
 import RoutingPanel from "@/components/game/RoutingPanel";
 import TechTree from "@/components/game/TechTree";
+import CityPanel from "@/components/game/CityPanel";
 import IntelDropModal from "@/components/modals/IntelDropModal";
 import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
 import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
-import type { TeamRegion } from "@/components/map/GameMap";
+import type { TeamRegion, SubZoneData } from "@/components/map/GameMap";
 
 const TEAM_COLOR_PALETTE = [
   "#e63946", "#2a9d8f", "#e9c46a", "#f4a261",
@@ -95,6 +96,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   // Role-switcher: lets one student submit for any role during testing
   const [overrideRole, setOverrideRole] = useState<RoleName | null>(null);
   const [allTeamRegions, setAllTeamRegions] = useState<TeamRegion[]>([]);
+  const [subZones, setSubZones] = useState<SubZoneData[]>([]);
+  const [selectedSubZone, setSelectedSubZone] = useState<SubZoneData | null>(null);
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -166,6 +169,15 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           }))
         );
       }
+
+      // Get sub-zones for map interactivity + CityPanel
+      const szRes = await fetch(
+        `/api/games/${t.game_id}/sub-zones?region_id=${t.region_id}`
+      );
+      if (szRes.ok) {
+        const szd = await szRes.json();
+        setSubZones(szd.subZones ?? []);
+      }
     } catch (err) {
       debug.error("StudentDashboard fetchData failed", err);
     } finally {
@@ -207,6 +219,10 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const isAction = isActionStep(currentStep);
   const isRouting = isRoutingStep(currentStep);
   const resourceType = (STEP_TO_RESOURCE[currentStep] ?? "production") as ResourceType;
+
+  const handleSubZoneClick = useCallback((sz: SubZoneData) => {
+    setSelectedSubZone(sz);
+  }, []);
 
   const ROLES: RoleName[] = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
   const ROLE_ICONS: Record<RoleName, string> = {
@@ -402,18 +418,45 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       )}
 
       {tab === "map" && (
-        <div className="overflow-hidden rounded-xl border border-stone-800">
-          <div className="h-[500px]">
-            <GameMap
-              subZones={[]}
-              teamColors={[]}
-              teamRegions={allTeamRegions}
-              focusRegionId={team.region_id}
-              fogState={[]}
-              markers={[]}
-              showFog={false}
-            />
+        <div className="space-y-0">
+          <div
+            className={`overflow-hidden border border-stone-800 transition-all duration-200 ${
+              selectedSubZone ? "rounded-t-xl" : "rounded-xl"
+            }`}
+          >
+            <div
+              className={`transition-all duration-200 ${
+                selectedSubZone ? "h-[300px]" : "h-[500px]"
+              }`}
+            >
+              <GameMap
+                subZones={subZones}
+                teamColors={[]}
+                teamRegions={allTeamRegions}
+                focusRegionId={team.region_id}
+                fogState={[]}
+                markers={[]}
+                showFog={false}
+                onSubZoneClick={handleSubZoneClick}
+              />
+            </div>
           </div>
+          {selectedSubZone && (
+            <CityPanel
+              subZone={selectedSubZone}
+              teamId={team.id}
+              regionId={team.region_id}
+              role={effectiveRole ?? "architect"}
+              allTeams={allTeamRegions.map((tr) => ({
+                id: tr.teamId,
+                name: tr.name,
+                color: tr.color,
+              }))}
+              gameId={team.game_id}
+              epoch={currentEpoch}
+              onClose={() => setSelectedSubZone(null)}
+            />
+          )}
         </div>
       )}
 
