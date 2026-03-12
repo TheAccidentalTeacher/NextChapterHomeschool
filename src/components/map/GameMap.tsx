@@ -36,6 +36,8 @@ export interface SubZoneData {
   soil_fertility?: number;
   wildlife_stock?: number;
   settlement_name?: string | null;
+  founding_claim?: string | null;
+  founding_bonus_active?: boolean;
   buildings?: string[];
 }
 

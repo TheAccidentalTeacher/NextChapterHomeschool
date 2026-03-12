@@ -211,12 +211,27 @@ export async function POST(
 
     isFoundingEvent = !existingInZone || existingInZone.length === 0;
 
-    // If founding data provided, apply it
+    // If founding data provided, apply it + founding bonuses
     if (isFoundingEvent && settlement_name && founding_claim) {
-      // Calculate First Settler decay
+      // Read current yield_modifier before modifying
+      const { data: szRow } = await supabase
+        .from("sub_zones")
+        .select("yield_modifier")
+        .eq("id", sub_zone_id)
+        .single();
+
+      const currentYield = (szRow as unknown as { yield_modifier: number })?.yield_modifier ?? 1.0;
+      let newYield = currentYield;
+      if (founding_claim === "resource_hub") {
+        newYield += FOUNDING.RESOURCE_HUB_BONUS; // +15%
+      } else if (founding_claim === "first_settler") {
+        newYield += 0.10; // +10%
+      }
+      // natural_landmark: no yield change — grants Legacy instead
+
       const decayEpochs =
         founding_claim === "first_settler"
-          ? Math.floor(Math.random() * 4) + 1 // 1-4 epochs, hidden from student
+          ? Math.floor(Math.random() * 4) + 1 // 1–4 epochs, hidden from student
           : 0;
 
       await supabase
@@ -227,8 +242,33 @@ export async function POST(
           founding_epoch: currentEpoch,
           first_settler_decay_epochs: decayEpochs,
           founding_bonus_active: true,
+          yield_modifier: Number(newYield.toFixed(2)),
         })
         .eq("id", sub_zone_id);
+
+      // Natural Landmark: grant immediate Legacy bonus
+      if (founding_claim === "natural_landmark") {
+        const { data: legacyRow } = await supabase
+          .from("team_resources")
+          .select("amount")
+          .eq("team_id", team_id)
+          .eq("resource_type", "legacy")
+          .single();
+
+        const currentLegacy = (legacyRow as unknown as { amount: number })?.amount ?? 0;
+        await supabase
+          .from("team_resources")
+          .upsert(
+            {
+              team_id,
+              game_id: gameId,
+              resource_type: "legacy",
+              amount: currentLegacy + FOUNDING.NATURAL_LANDMARK_CI,
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "team_id,resource_type" }
+          );
+      }
     }
   }
 

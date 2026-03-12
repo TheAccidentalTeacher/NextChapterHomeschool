@@ -16,7 +16,7 @@
 "use client";
 
 import { useState } from "react";
-import { TERRAIN } from "@/lib/constants";
+import { TERRAIN, FOUNDING } from "@/lib/constants";
 import { BUILDINGS, UNITS, getAdjustedCost } from "@/lib/game/purchase-catalog";
 import type { SubZoneData } from "@/components/map/GameMap";
 import type { TerrainType, RoleName } from "@/types/database";
@@ -138,6 +138,10 @@ export default function CityPanel({
   const [buildError, setBuildError] = useState<string | null>(null);
   const [buildSuccess, setBuildSuccess] = useState<string | null>(null);
   const [deployingKey, setDeployingKey] = useState<string | null>(null);
+  // Founding flow — intercepts the first build in an unfounded sub-zone
+  const [pendingBuildKey, setPendingBuildKey] = useState<string | null>(null);
+  const [foundingName, setFoundingName] = useState("");
+  const [foundingClaim, setFoundingClaim] = useState("");
 
   const soilFertility = subZone.soil_fertility ?? 100;
   const wildlifeStock = subZone.wildlife_stock ?? 100;
@@ -148,6 +152,8 @@ export default function CityPanel({
   const isInOwnRegion = subZone.region_id === regionId;
   const isUnclaimed = !subZone.controlled_by_team_id;
   const hint = ROLE_HINTS[role];
+  // True when this is the first buildable action in a zone — triggers founding
+  const isFirstBuild = buildings.length === 0 && !subZone.settlement_name && isOwnTeam;
 
   const yieldPct = Math.round((subZone.yield_modifier - 1) * 100);
   const yieldLabel =
@@ -160,6 +166,13 @@ export default function CityPanel({
   async function handleBuild(itemKey: string) {
     if (!subZone.db_id) {
       setBuildError("Sub-zone not ready — please refresh the map.");
+      return;
+    }
+    // Decision 90: First building in an unfounded sub-zone triggers founding modal
+    if (isFirstBuild) {
+      setPendingBuildKey(itemKey);
+      setBuildError(null);
+      setBuildSuccess(null);
       return;
     }
     setBuildingKey(itemKey);
@@ -193,8 +206,48 @@ export default function CityPanel({
     }
   }
 
-  async function handleDeploy(itemKey: string) {
-    if (!subZone.db_id) {
+  /** Submits the founding + first build in a single request (Decision 90) */
+  async function handleFoundAndBuild() {
+    if (!pendingBuildKey || !subZone.db_id || !foundingName.trim() || !foundingClaim) return;
+    setBuildingKey(pendingBuildKey);
+    setBuildError(null);
+    setBuildSuccess(null);
+
+    try {
+      const res = await fetch(`/api/games/${gameId}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          team_id: teamId,
+          item_key: pendingBuildKey,
+          sub_zone_id: subZone.db_id,
+          has_builder: hasBuilder,
+          settlement_name: foundingName.trim(),
+          founding_claim: foundingClaim,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBuildError(data.error ?? "Founding failed");
+      } else {
+        const built = BUILDINGS.find((b) => b.key === pendingBuildKey);
+        setBuildSuccess(
+          `🏛️ ${foundingName.trim()} founded! ${built?.emoji ?? "🏗️"} ${built?.name ?? pendingBuildKey} built.`
+        );
+        setPendingBuildKey(null);
+        setFoundingName("");
+        setFoundingClaim("");
+        onBuildSuccess?.();
+      }
+    } catch {
+      setBuildError("Network error — please try again.");
+    } finally {
+      setBuildingKey(null);
+    }
+  }
+
+  async function handleDeploy(itemKey: string) {    if (!subZone.db_id) {
       setBuildError("Sub-zone not ready — please refresh the map.");
       return;
     }
@@ -390,59 +443,155 @@ export default function CityPanel({
             </p>
           )}
 
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
-            {BUILDINGS.map((b) => {
-              const cost = getAdjustedCost(b, hasBuilder);
-              const alreadyOwned = !b.isStackable && buildings.includes(b.key);
-              const lockedByTech = b.techGate !== null && !unlockedTechs.includes(b.techGate);
-              const canAfford = (resources.production ?? 0) >= cost;
-              const isLoading = buildingKey === b.key;
-              const disabled = alreadyOwned || lockedByTech || !canAfford || !!buildingKey;
+          {/* Founding form — shown when first-build is intercepted (Decision 90) */}
+          {pendingBuildKey && (
+            <div className="rounded-lg border border-amber-700/40 bg-amber-900/20 p-3 space-y-3">
+              <p className="text-xs font-bold text-amber-400">🏛️ Found a Settlement</p>
+              <p className="text-xs text-stone-400">
+                You are placing the first building in this zone. Name your settlement and choose a founding claim.
+              </p>
 
-              return (
-                <button
-                  key={b.key}
-                  onClick={() => handleBuild(b.key)}
-                  disabled={disabled}
-                  title={
-                    alreadyOwned
-                      ? "Already built"
-                      : lockedByTech
-                      ? `Requires ${b.techGate} tech`
-                      : !canAfford
-                      ? `Need ${cost} production (have ${resources.production ?? 0})`
-                      : b.benefit
-                  }
-                  className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-center transition ${
-                    alreadyOwned
-                      ? "border-green-800/40 bg-green-900/20 text-green-600"
-                      : lockedByTech
-                      ? "border-stone-800 bg-stone-900/40 text-stone-600 opacity-50"
-                      : !canAfford
-                      ? "border-stone-800 bg-stone-900/40 text-stone-600"
-                      : "border-stone-700 bg-stone-800/60 text-stone-300 hover:border-amber-600/60 hover:bg-amber-900/20 hover:text-white"
-                  }`}
-                >
-                  <span className="text-base leading-none">{isLoading ? "⏳" : b.emoji}</span>
-                  <span className="text-xs font-medium leading-tight">{b.name}</span>
-                  {alreadyOwned ? (
-                    <span className="text-xs text-green-500">✓ Built</span>
-                  ) : (
-                    <span className="text-xs text-stone-500">
-                      ⚙️ {cost}
-                      {hasBuilder && b.category === "building" && (
-                        <span className="ml-0.5 text-amber-500">🔨</span>
-                      )}
+              {/* Name input */}
+              <div>
+                <label className="block mb-1 text-xs text-stone-500">Settlement Name (max 32 chars)</label>
+                <input
+                  type="text"
+                  maxLength={32}
+                  value={foundingName}
+                  onChange={(e) => setFoundingName(e.target.value)}
+                  placeholder="e.g. Stonehaven"
+                  className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1.5 text-sm text-white placeholder-stone-600 focus:border-amber-600 focus:outline-none"
+                />
+              </div>
+
+              {/* Founding claim selector */}
+              <div className="space-y-1.5">
+                <label className="block text-xs text-stone-500">Founding Claim</label>
+                {([
+                  {
+                    key: "first_settler",
+                    emoji: "🌱",
+                    label: "First Settler",
+                    desc: "+10% yield. Bonus decays after a few epochs — you won't know how long.",
+                  },
+                  {
+                    key: "resource_hub",
+                    emoji: "⚙️",
+                    label: "Resource Hub",
+                    desc: `Permanent +${FOUNDING.RESOURCE_HUB_BONUS * 100}% yield bonus.`,
+                  },
+                  {
+                    key: "natural_landmark",
+                    emoji: "🗿",
+                    label: "Natural Landmark",
+                    desc: `Permanent +${FOUNDING.NATURAL_LANDMARK_CI} Legacy granted immediately. Appears on the projector map.`,
+                  },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setFoundingClaim(opt.key)}
+                    className={`w-full flex items-start gap-2 rounded-md border px-3 py-2 text-left text-xs transition ${
+                      foundingClaim === opt.key
+                        ? "border-amber-600 bg-amber-900/40 text-amber-300"
+                        : "border-stone-700 bg-stone-900/40 text-stone-300 hover:border-stone-600"
+                    }`}
+                  >
+                    <span className="mt-0.5 text-base shrink-0">{opt.emoji}</span>
+                    <span>
+                      <span className="font-semibold">{opt.label}</span>
+                      <br />
+                      <span className="text-stone-400">{opt.desc}</span>
                     </span>
-                  )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Confirm / cancel */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleFoundAndBuild}
+                  disabled={!foundingName.trim() || !foundingClaim || !!buildingKey}
+                  className="flex-1 rounded-md bg-amber-700 px-3 py-2 text-xs font-bold text-white hover:bg-amber-600 disabled:opacity-40"
+                >
+                  {buildingKey
+                    ? "⏳ Founding…"
+                    : `🏛️ Found & Build ${BUILDINGS.find((b) => b.key === pendingBuildKey)?.name ?? ""}`}
                 </button>
-              );
-            })}
-          </div>
-          {hasBuilder && (
-            <p className="text-xs text-amber-500/70">
-              🔨 Builder deployed — building costs reduced by 3
-            </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingBuildKey(null);
+                    setFoundingName("");
+                    setFoundingClaim("");
+                  }}
+                  className="rounded-md border border-stone-700 px-3 py-2 text-xs text-stone-400 hover:border-stone-600"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Building grid — hidden while founding form is open */}
+          {!pendingBuildKey && (
+            <>
+            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+              {BUILDINGS.map((b) => {
+                const cost = getAdjustedCost(b, hasBuilder);
+                const alreadyOwned = !b.isStackable && buildings.includes(b.key);
+                const lockedByTech = b.techGate !== null && !unlockedTechs.includes(b.techGate);
+                const canAfford = (resources.production ?? 0) >= cost;
+                const isLoading = buildingKey === b.key;
+                const disabled = alreadyOwned || lockedByTech || !canAfford || !!buildingKey;
+
+                return (
+                  <button
+                    key={b.key}
+                    onClick={() => handleBuild(b.key)}
+                    disabled={disabled}
+                    title={
+                      alreadyOwned
+                        ? "Already built"
+                        : lockedByTech
+                        ? `Requires ${b.techGate} tech`
+                        : !canAfford
+                        ? `Need ${cost} production (have ${resources.production ?? 0})`
+                        : b.benefit
+                    }
+                    className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-center transition ${
+                      alreadyOwned
+                        ? "border-green-800/40 bg-green-900/20 text-green-600"
+                        : lockedByTech
+                        ? "border-stone-800 bg-stone-900/40 text-stone-600 opacity-50"
+                        : !canAfford
+                        ? "border-stone-800 bg-stone-900/40 text-stone-600"
+                        : "border-stone-700 bg-stone-800/60 text-stone-300 hover:border-amber-600/60 hover:bg-amber-900/20 hover:text-white"
+                    }`}
+                  >
+                    <span className="text-base leading-none">{isLoading ? "⏳" : b.emoji}</span>
+                    <span className="text-xs font-medium leading-tight">{b.name}</span>
+                    {alreadyOwned ? (
+                      <span className="text-xs text-green-500">✓ Built</span>
+                    ) : (
+                      <span className="text-xs text-stone-500">
+                        ⚙️ {cost}
+                        {hasBuilder && b.category === "building" && (
+                          <span className="ml-0.5 text-amber-500">🔨</span>
+                        )}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {hasBuilder && (
+              <p className="text-xs text-amber-500/70">
+                🔨 Builder deployed — building costs reduced by 3
+              </p>
+            )}
+            </>
           )}
         </div>
       )}
