@@ -15,7 +15,9 @@
 
 "use client";
 
+import { useState } from "react";
 import { TERRAIN } from "@/lib/constants";
+import { BUILDINGS, getAdjustedCost } from "@/lib/game/purchase-catalog";
 import type { SubZoneData } from "@/components/map/GameMap";
 import type { TerrainType, RoleName } from "@/types/database";
 
@@ -33,8 +35,11 @@ interface CityPanelProps {
   allTeams: TeamInfo[];
   gameId: string;
   epoch: number;
+  resources: Record<string, number>;  // current team resources for affordability
+  hasBuilder?: boolean;               // builder unit discount
+  unlockedTechs?: string[];
   onClose: () => void;
-  onFoundtle?: () => void;    // placeholder for future founding flow
+  onBuildSuccess?: () => void;        // callback to re-fetch sub-zones after build
 }
 
 /** Visual status bar used for soil fertility and wildlife stock */
@@ -122,8 +127,17 @@ export default function CityPanel({
   regionId,
   role,
   allTeams,
+  gameId,
+  resources,
+  hasBuilder = false,
+  unlockedTechs = [],
   onClose,
+  onBuildSuccess,
 }: CityPanelProps) {
+  const [buildingKey, setBuildingKey] = useState<string | null>(null);
+  const [buildError, setBuildError] = useState<string | null>(null);
+  const [buildSuccess, setBuildSuccess] = useState<string | null>(null);
+
   const soilFertility = subZone.soil_fertility ?? 100;
   const wildlifeStock = subZone.wildlife_stock ?? 100;
   const buildings = subZone.buildings ?? [];
@@ -134,7 +148,6 @@ export default function CityPanel({
   const isUnclaimed = !subZone.controlled_by_team_id;
   const hint = ROLE_HINTS[role];
 
-  // Yield modifier formatted as percentage bonus/penalty
   const yieldPct = Math.round((subZone.yield_modifier - 1) * 100);
   const yieldLabel =
     yieldPct > 0
@@ -142,6 +155,42 @@ export default function CityPanel({
       : yieldPct < 0
       ? `${yieldPct}% yield`
       : "Standard yield";
+
+  async function handleBuild(itemKey: string) {
+    if (!subZone.db_id) {
+      setBuildError("Sub-zone not ready — please refresh the map.");
+      return;
+    }
+    setBuildingKey(itemKey);
+    setBuildError(null);
+    setBuildSuccess(null);
+
+    try {
+      const res = await fetch(`/api/games/${gameId}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          team_id: teamId,
+          item_key: itemKey,
+          sub_zone_id: subZone.db_id,
+          has_builder: hasBuilder,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBuildError(data.error ?? "Build failed");
+      } else {
+        const built = BUILDINGS.find((b) => b.key === itemKey);
+        setBuildSuccess(`${built?.emoji ?? "🏗️"} ${built?.name ?? itemKey} built!`);
+        onBuildSuccess?.();
+      }
+    } catch {
+      setBuildError("Network error — please try again.");
+    } finally {
+      setBuildingKey(null);
+    }
+  }
 
   return (
     <div className="rounded-xl border border-stone-700 bg-stone-950/95 shadow-2xl">
@@ -285,11 +334,94 @@ export default function CityPanel({
         </div>
       </div>
 
-      {/* Role hint strip */}
-      <div className="flex items-start gap-2 rounded-b-xl border-t border-stone-800 bg-stone-900/50 px-4 py-2.5">
-        <span className="mt-0.5 text-sm">{hint.icon}</span>
-        <p className="text-xs text-stone-400">{hint.text}</p>
-      </div>
+      {/* Architect build menu — only show when viewing own territory */}
+      {role === "architect" && isOwnTeam && (
+        <div className="border-t border-stone-800 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            🏗️ Build Here — ⚙️ {resources.production ?? 0} Production available
+          </p>
+
+          {/* Success/error feedback */}
+          {buildSuccess && (
+            <p className="rounded-md bg-green-900/40 px-3 py-1.5 text-xs text-green-400">
+              ✓ {buildSuccess}
+            </p>
+          )}
+          {buildError && (
+            <p className="rounded-md bg-red-900/40 px-3 py-1.5 text-xs text-red-400">
+              ✗ {buildError}
+            </p>
+          )}
+
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+            {BUILDINGS.map((b) => {
+              const cost = getAdjustedCost(b, hasBuilder);
+              const alreadyOwned = !b.isStackable && buildings.includes(b.key);
+              const lockedByTech = b.techGate !== null && !unlockedTechs.includes(b.techGate);
+              const canAfford = (resources.production ?? 0) >= cost;
+              const isLoading = buildingKey === b.key;
+              const disabled = alreadyOwned || lockedByTech || !canAfford || !!buildingKey;
+
+              return (
+                <button
+                  key={b.key}
+                  onClick={() => handleBuild(b.key)}
+                  disabled={disabled}
+                  title={
+                    alreadyOwned
+                      ? "Already built"
+                      : lockedByTech
+                      ? `Requires ${b.techGate} tech`
+                      : !canAfford
+                      ? `Need ${cost} production (have ${resources.production ?? 0})`
+                      : b.benefit
+                  }
+                  className={`flex flex-col items-center gap-1 rounded-lg border px-2 py-2 text-center transition ${
+                    alreadyOwned
+                      ? "border-green-800/40 bg-green-900/20 text-green-600"
+                      : lockedByTech
+                      ? "border-stone-800 bg-stone-900/40 text-stone-600 opacity-50"
+                      : !canAfford
+                      ? "border-stone-800 bg-stone-900/40 text-stone-600"
+                      : "border-stone-700 bg-stone-800/60 text-stone-300 hover:border-amber-600/60 hover:bg-amber-900/20 hover:text-white"
+                  }`}
+                >
+                  <span className="text-base leading-none">{isLoading ? "⏳" : b.emoji}</span>
+                  <span className="text-xs font-medium leading-tight">{b.name}</span>
+                  {alreadyOwned ? (
+                    <span className="text-xs text-green-500">✓ Built</span>
+                  ) : (
+                    <span className="text-xs text-stone-500">
+                      ⚙️ {cost}
+                      {hasBuilder && b.category === "building" && (
+                        <span className="ml-0.5 text-amber-500">🔨</span>
+                      )}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {hasBuilder && (
+            <p className="text-xs text-amber-500/70">
+              🔨 Builder deployed — building costs reduced by 3
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Role hint strip — shown for non-architect roles */}
+      {role !== "architect" && (
+        <div className="flex items-start gap-2 rounded-b-xl border-t border-stone-800 bg-stone-900/50 px-4 py-2.5">
+          <span className="mt-0.5 text-sm">{hint.icon}</span>
+          <p className="text-xs text-stone-400">{hint.text}</p>
+        </div>
+      )}
+      {role === "architect" && (
+        <div className="flex items-start gap-2 rounded-b-xl border-t border-stone-800 bg-stone-900/50 px-4 py-2">
+          <p className="text-xs text-stone-500">Hover any building for its benefit</p>
+        </div>
+      )}
     </div>
   );
 }

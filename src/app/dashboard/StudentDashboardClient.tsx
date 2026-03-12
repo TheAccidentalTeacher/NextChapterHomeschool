@@ -454,7 +454,32 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
               }))}
               gameId={team.game_id}
               epoch={currentEpoch}
+              resources={resources}
+              hasBuilder={false}
+              unlockedTechs={unlockedTechs}
               onClose={() => setSelectedSubZone(null)}
+              onBuildSuccess={async () => {
+                // Re-fetch sub-zones so buildings appear immediately
+                const szRes = await fetch(
+                  `/api/games/${team.game_id}/sub-zones?region_id=${team.region_id}`
+                );
+                if (szRes.ok) {
+                  const szd = await szRes.json();
+                  const fresh: SubZoneData[] = szd.subZones ?? [];
+                  setSubZones(fresh);
+                  // Also update selectedSubZone so the panel reflects new buildings
+                  const updated = fresh.find((z) => z.id === selectedSubZone.id);
+                  if (updated) setSelectedSubZone(updated);
+                }
+                // Also refresh resources since production was spent
+                const resRes = await fetch(
+                  `/api/games/${team.game_id}/resources?team_id=${team.id}`
+                );
+                if (resRes.ok) {
+                  const rd = await resRes.json();
+                  if (rd.resources) setResources(rd.resources);
+                }
+              }}
             />
           )}
         </div>

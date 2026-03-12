@@ -30,6 +30,8 @@ export interface SubZoneData {
   terrain_type: string;
   geojson: GeoJSON.Geometry;
   yield_modifier: number;
+  db_id?: string | null;        // UUID from sub_zones DB table (for asset placement)
+  zone_number?: number;
   controlled_by_team_id?: string | null;
   soil_fertility?: number;
   wildlife_stock?: number;
