@@ -1513,6 +1513,81 @@ This is the Olympics, gladiatorial games, the Aztec ball court — entertainment
 
 ---
 
+### Session 2 — March 11, 2026
+- Full workspace audit completed (all 9 documents + entire codebase)
+- Scott delivered two voice-transcribed brain dumps answering 20 design questions
+- Decisions 95–103 locked (see below)
+- Build sprint: sub-zone detail API + CityPanel + live map wiring
+
+**Decisions locked this session:**
+
+#### Decision 95 — Half-Epoch Per Class Day ✅ LOCKED (supersedes Decision 94)
+Each class day = half an epoch.
+- **Day 1:** LOGIN → BUILD → EXPAND
+- **Day 2:** DEFINE → DEFEND → RESOLVE → EXIT
+- **Run:** 30 class days over ~7 weeks = ~15 full epochs
+- **Previous decision 94** (30 full epochs over 6 weeks) is superseded.
+
+#### Decision 96 — Full Unit Movement on Map ✅ LOCKED
+Scout, Soldier, Merchant, Builder are actual markers on the Leaflet map.
+- Units receive move orders during the epoch; orders execute at next epoch resolution
+- Civ I–style: explore → find spot → settle
+- Unit types: Scout 🧭 Soldier 🛡️ Merchant 💰 Builder 🔨
+
+#### Decision 97 — Pre-Generated Exit Ticket Question Bank ✅ LOCKED
+Exit tickets = DOK3 questions, selected contextually by gameplay events.
+- Written for below-grade-level 6th graders (3–5 sentences for 6th grade, 6–8 for 7/8)
+- Questions exist in a bank; the game picks the relevant one based on what happened that epoch
+- NOT AI-generated on the fly — curated bank, reviewed by Scott
+
+#### Decision 98 — Three-Scale Zoom Model ✅ LOCKED
+One continuous Leaflet zoom with three meaningful stops:
+1. **World** — fog of war + colored regions, no detail
+2. **Region** — sub-zones visible with terrain, resources, buildings
+3. **City** — half-screen CityPanel opens on sub-zone click
+
+#### Decision 99 — CityPanel = Half-Screen, Role-Specific ✅ LOCKED
+City management panel opens below the map when a student clicks a sub-zone.
+- Panel height ~50% of viewport; map shrinks to 300 px
+- Role-specific sections: Architect sees build menu, Warlord sees military, etc.
+- NOT a full-screen takeover — map stays visible above
+
+#### Decision 100 — Geography = Decision-Making, Not Recall ✅ LOCKED
+Math (multiplication, fractions, 6th-grade level) = toll booth on purchases/tech.
+Geography = the road itself — embedded in place names, terrain visibility, organic decisions.
+- Students see real sub-zone names ("Copper River Delta") and terrain emoji
+- They internalize geography by deciding WHERE to build, settle, and expand
+- No geography quiz questions; math questions gate resources and tech
+
+#### Decision 101 — Depletion Rate Adjusted ✅ LOCKED
+Soil fertility and wildlife stock tick down at **−3 to −5 per epoch** (balance TBD).
+- Tech advances (irrigation, forestry) restore fertility
+- Previous rate was deemed too aggressive; new rate is slower / more forgiving
+- See Decision 87 for depletion mechanic origin
+
+#### Decision 102 — Projector Default = Civilization Leaderboard ✅ LOCKED
+The projector screen defaults to a **civilization standings board**, not the colored map.
+- Shows: team name, population, resources, epoch rank
+- DM can manually switch to map view during exploration phases
+- Decision 82's map-on-projector behavior applies only when DM activates it
+
+#### Decision 103 — Buildings Live in Specific Sub-Zones ✅ LOCKED
+Buildings are placed in individual sub-zones, not abstracted team-wide.
+- A Farm built in "Copper River Delta" appears as a 🌾 marker in that polygon
+- City management is per-settlement (CityPanel shows buildings for that sub-zone only)
+- Aligns with Decision 96 (units move on map) for a coherent spatial game layer
+
+**Build shipped this session:**
+- `GET /api/games/[id]/sub-zones` — 72 enriched sub-zones, ownership from teams table
+- `CityPanel.tsx` — half-screen detail panel, terrain/resource bars, role hints, "Found Settlement" placeholder
+- `StudentDashboardClient.tsx` — sub-zone fetch wired, map click opens CityPanel, map shrinks 500→300px
+- Zero TypeScript errors, production build clean
+
+**Unblocked:**
+- U1 is fully answered: a team's epoch loop = explore map → click sub-zone → build/send units → submit resource routing → exit ticket
+
+---
+
 *Velocity Rule: The first playable version has a map, two teams, a teacher who can fire one event, and resources that change. Ship that. Then iterate.*
 
-*Updated: March 2, 2026*
+*Updated: March 11, 2026*
