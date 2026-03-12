@@ -3,17 +3,21 @@
 // Renders emoji-based Leaflet markers for scouts,
 // soldiers, merchants, farms, barracks, etc.
 // Colored per team using DivIcon with emoji text.
+//
+// Centroid calc: uses the average of GeoJSON polygon ring vertices.
+// SubZones are passed in so we can look up GeoJSON without a DB call.
 // ============================================
 
 "use client";
 
 import { Marker, Tooltip } from "react-leaflet";
 import L from "leaflet";
-import type { MapMarker, TeamColor } from "./GameMap";
+import type { MapMarker, TeamColor, SubZoneData } from "./GameMap";
 
 interface MarkerLayerProps {
   markers: MapMarker[];
   teamColors: TeamColor[];
+  subZones?: SubZoneData[];  // for centroid lookup
 }
 
 /** Emoji icons for each marker type */
@@ -97,43 +101,65 @@ function createMarkerIcon(
 }
 
 /**
- * Simple center-of-polygon calculation for marker placement
+ * Compute the centroid of a GeoJSON Polygon or MultiPolygon.
+ * Returns [lat, lng] (Leaflet order).
  */
-function getSubZoneCenter(subZoneId: string): [number, number] | null {
-  // In a full impl this would look up the GeoJSON centroid.
-  // For now, markers are positioned by the SubZone data passed in.
-  // This is a placeholder — real centroid calc comes from GeoJSON data.
-  void subZoneId;
-  return null;
+function computeCentroid(geojson: GeoJSON.Geometry): [number, number] | null {
+  let rings: number[][][] = [];
+
+  if (geojson.type === "Polygon") {
+    rings = geojson.coordinates as number[][][];
+  } else if (geojson.type === "MultiPolygon") {
+    // Use the first polygon
+    const coords = geojson.coordinates as number[][][][];
+    if (coords.length > 0) rings = coords[0];
+  }
+
+  if (rings.length === 0) return null;
+
+  // Average the outer ring vertices (GeoJSON = [lng, lat])
+  const ring = rings[0];
+  if (ring.length === 0) return null;
+
+  let sumLng = 0;
+  let sumLat = 0;
+  let count = 0;
+  for (const [lng, lat] of ring) {
+    sumLng += lng;
+    sumLat += lat;
+    count++;
+  }
+
+  return [sumLat / count, sumLng / count];  // [lat, lng] for Leaflet
 }
 
-export default function MarkerLayer({ markers, teamColors }: MarkerLayerProps) {
+export default function MarkerLayer({ markers, teamColors, subZones = [] }: MarkerLayerProps) {
+  // Build sub-zone centroid cache from GeoJSON
+  const centroidCache = new Map<string, [number, number]>();
+  for (const sz of subZones) {
+    if (sz.geojson) {
+      const c = computeCentroid(sz.geojson);
+      if (c) centroidCache.set(sz.id, c);
+    }
+  }
+
   const colorMap = Object.fromEntries(
     teamColors.map((tc) => [tc.teamId, tc.color])
   );
-
-  // Group markers by sub-zone for offset stacking
-  const bySubZone = new Map<string, MapMarker[]>();
-  for (const m of markers) {
-    const arr = bySubZone.get(m.subZoneId) ?? [];
-    arr.push(m);
-    bySubZone.set(m.subZoneId, arr);
-  }
 
   return (
     <>
       {markers.map((marker, idx) => {
         const teamColor = colorMap[marker.teamId] ?? "#888";
-        const center = getSubZoneCenter(marker.subZoneId);
+        const center = centroidCache.get(marker.subZoneId);
 
-        // Skip if we can't determine position (need GeoJSON centroid in production)
         if (!center) return null;
 
         const icon = createMarkerIcon(marker.type, teamColor, marker.count);
         const label = MARKER_LABELS[marker.type] ?? marker.type;
 
         return (
-          <Marker key={marker.id ?? idx} position={center} icon={icon}>
+          <Marker key={marker.id ?? `${idx}`} position={center} icon={icon}>
             <Tooltip direction="top" offset={[0, -14]}>
               <span className="text-xs">
                 {label} ×{marker.count}

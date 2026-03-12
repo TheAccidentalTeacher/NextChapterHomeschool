@@ -17,7 +17,7 @@
 
 import { useState } from "react";
 import { TERRAIN } from "@/lib/constants";
-import { BUILDINGS, getAdjustedCost } from "@/lib/game/purchase-catalog";
+import { BUILDINGS, UNITS, getAdjustedCost } from "@/lib/game/purchase-catalog";
 import type { SubZoneData } from "@/components/map/GameMap";
 import type { TerrainType, RoleName } from "@/types/database";
 
@@ -137,6 +137,7 @@ export default function CityPanel({
   const [buildingKey, setBuildingKey] = useState<string | null>(null);
   const [buildError, setBuildError] = useState<string | null>(null);
   const [buildSuccess, setBuildSuccess] = useState<string | null>(null);
+  const [deployingKey, setDeployingKey] = useState<string | null>(null);
 
   const soilFertility = subZone.soil_fertility ?? 100;
   const wildlifeStock = subZone.wildlife_stock ?? 100;
@@ -189,6 +190,42 @@ export default function CityPanel({
       setBuildError("Network error — please try again.");
     } finally {
       setBuildingKey(null);
+    }
+  }
+
+  async function handleDeploy(itemKey: string) {
+    if (!subZone.db_id) {
+      setBuildError("Sub-zone not ready — please refresh the map.");
+      return;
+    }
+    setDeployingKey(itemKey);
+    setBuildError(null);
+    setBuildSuccess(null);
+
+    try {
+      const res = await fetch(`/api/games/${gameId}/assets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          team_id: teamId,
+          item_key: itemKey,
+          sub_zone_id: subZone.db_id,
+          has_builder: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setBuildError(data.error ?? "Deploy failed");
+      } else {
+        const unit = UNITS.find((u) => u.key === itemKey);
+        setBuildSuccess(`${unit?.emoji ?? "⚔️"} ${unit?.name ?? itemKey} deployed!`);
+        onBuildSuccess?.();
+      }
+    } catch {
+      setBuildError("Network error — please try again.");
+    } finally {
+      setDeployingKey(null);
     }
   }
 
@@ -407,6 +444,48 @@ export default function CityPanel({
               🔨 Builder deployed — building costs reduced by 3
             </p>
           )}
+        </div>
+      )}
+
+      {/* Deploy units — shown for own territory, any role */}
+      {isOwnTeam && (
+        <div className="border-t border-stone-800 px-4 py-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+            ⚔️ Deploy Units Here
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {UNITS.map((u) => {
+              const resourceKey = u.costResource;
+              const canAfford = (resources[resourceKey] ?? 0) >= u.costAmount;
+              const isLoading = deployingKey === u.key;
+              const disabled = !canAfford || !!deployingKey || !!buildingKey;
+
+              return (
+                <button
+                  key={u.key}
+                  onClick={() => handleDeploy(u.key)}
+                  disabled={disabled}
+                  title={
+                    !canAfford
+                      ? `Need ${u.costAmount} ${resourceKey} (have ${resources[resourceKey] ?? 0})`
+                      : u.benefit
+                  }
+                  className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs transition ${
+                    !canAfford
+                      ? "border-stone-800 bg-stone-900/40 text-stone-600"
+                      : "border-stone-700 bg-stone-800/60 text-stone-300 hover:border-blue-600/60 hover:bg-blue-900/20 hover:text-white"
+                  }`}
+                >
+                  <span>{isLoading ? "⏳" : u.emoji}</span>
+                  <span>{u.name}</span>
+                  <span className="text-stone-500">
+                    {resourceKey === "reach" ? "🧭" : resourceKey === "resilience" ? "🛡️" : "⚙️"}
+                    {u.costAmount}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 

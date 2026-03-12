@@ -123,7 +123,7 @@ export default function GameMap({
         onSubZoneClick={onSubZoneClick}
       />
 
-      <MarkerLayer markers={markers} teamColors={teamColors} />
+      <MarkerLayer markers={markers} teamColors={teamColors} subZones={subZones} />
     </MapContainer>
   );
 }

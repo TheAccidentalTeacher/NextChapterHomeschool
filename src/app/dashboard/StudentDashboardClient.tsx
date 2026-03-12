@@ -39,7 +39,7 @@ import CivNamePrompt from "@/components/student/CivNamePrompt";
 import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
-import type { TeamRegion, SubZoneData } from "@/components/map/GameMap";
+import type { TeamRegion, SubZoneData, MapMarker } from "@/components/map/GameMap";
 
 const TEAM_COLOR_PALETTE = [
   "#e63946", "#2a9d8f", "#e9c46a", "#f4a261",
@@ -98,6 +98,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [allTeamRegions, setAllTeamRegions] = useState<TeamRegion[]>([]);
   const [subZones, setSubZones] = useState<SubZoneData[]>([]);
   const [selectedSubZone, setSelectedSubZone] = useState<SubZoneData | null>(null);
+  const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
 
   const fetchData = useCallback(async () => {
     debug.auth("Fetching student data...", { userId });
@@ -177,6 +178,15 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       if (szRes.ok) {
         const szd = await szRes.json();
         setSubZones(szd.subZones ?? []);
+      }
+
+      // Get unit markers for the map
+      const unitsRes = await fetch(
+        `/api/games/${t.game_id}/units?team_id=${t.id}`
+      );
+      if (unitsRes.ok) {
+        const ud = await unitsRes.json();
+        setMapMarkers(ud.markers ?? []);
       }
     } catch (err) {
       debug.error("StudentDashboard fetchData failed", err);
@@ -431,11 +441,11 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
             >
               <GameMap
                 subZones={subZones}
-                teamColors={[]}
+                teamColors={allTeamRegions.map((tr) => ({ teamId: tr.teamId, color: tr.color, name: tr.name }))}
                 teamRegions={allTeamRegions}
                 focusRegionId={team.region_id}
                 fogState={[]}
-                markers={[]}
+                markers={mapMarkers}
                 showFog={false}
                 onSubZoneClick={handleSubZoneClick}
               />
@@ -471,13 +481,21 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                   const updated = fresh.find((z) => z.id === selectedSubZone.id);
                   if (updated) setSelectedSubZone(updated);
                 }
-                // Also refresh resources since production was spent
+                // Refresh resources since production/reach/resilience was spent
                 const resRes = await fetch(
                   `/api/games/${team.game_id}/resources?team_id=${team.id}`
                 );
                 if (resRes.ok) {
                   const rd = await resRes.json();
                   if (rd.resources) setResources(rd.resources);
+                }
+                // Refresh unit markers so newly deployed units appear on map
+                const unitsRes = await fetch(
+                  `/api/games/${team.game_id}/units?team_id=${team.id}`
+                );
+                if (unitsRes.ok) {
+                  const ud = await unitsRes.json();
+                  setMapMarkers(ud.markers ?? []);
                 }
               }}
             />
