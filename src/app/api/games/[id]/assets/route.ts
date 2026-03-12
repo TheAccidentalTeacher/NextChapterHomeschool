@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getClerkUserId } from "@/lib/auth/roles";
 import { getPurchaseItem, getAdjustedCost } from "@/lib/game/purchase-catalog";
-import { FOUNDING } from "@/lib/constants";
+import { FOUNDING, MATH_GATE } from "@/lib/constants";
 
 /**
  * GET /api/games/[id]/assets — Fetch all team assets for a game
@@ -71,6 +71,7 @@ export async function POST(
     has_builder = false,
     settlement_name,
     founding_claim,
+    math_penalty = false,
   } = body;
 
   if (!team_id || !item_key) {
@@ -272,12 +273,29 @@ export async function POST(
     }
   }
 
+  // Decision 88: Math gate wrong-answer penalty — reduce sub_zone yield_modifier
+  if (math_penalty && item.category === "building" && sub_zone_id) {
+    const { data: szRow } = await supabase
+      .from("sub_zones")
+      .select("yield_modifier")
+      .eq("id", sub_zone_id)
+      .single();
+
+    const curYield = (szRow as unknown as { yield_modifier: number })?.yield_modifier ?? 1.0;
+    const penalized = Math.max(0.5, Number((curYield - MATH_GATE.WRONG_ANSWER_YIELD_PENALTY).toFixed(2)));
+    await supabase
+      .from("sub_zones")
+      .update({ yield_modifier: penalized })
+      .eq("id", sub_zone_id);
+  }
+
   return NextResponse.json({
     asset: newAsset,
     cost,
     resourceType: item.costResource,
     remainingAmount: currentAmount - cost,
     isFoundingEvent,
+    mathPenaltyApplied: math_penalty && item.category === "building" && !!sub_zone_id,
     item: {
       key: item.key,
       name: item.name,

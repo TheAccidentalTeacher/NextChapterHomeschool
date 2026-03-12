@@ -2,6 +2,41 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isTeacher } from "@/lib/auth/roles";
 import { EPOCH_STEP_ORDER, getNextStep, type EpochStep } from "@/lib/game/epoch-machine";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/**
+ * Decays expired First Settler founding bonuses when the epoch increments.
+ * Decision 90: yield_modifier reverts by 0.10 after first_settler_decay_epochs.
+ */
+async function applyFirstSettlerDecay(
+  supabase: SupabaseClient,
+  gameId: string,
+  newEpoch: number,
+) {
+  const { data: zones } = await supabase
+    .from("sub_zones")
+    .select("id, founding_epoch, first_settler_decay_epochs, yield_modifier")
+    .eq("game_id", gameId)
+    .eq("founding_claim", "first_settler")
+    .eq("founding_bonus_active", true);
+
+  if (!zones?.length) return;
+
+  for (const zone of zones as Array<{
+    id: string;
+    founding_epoch: number;
+    first_settler_decay_epochs: number;
+    yield_modifier: number;
+  }>) {
+    if (newEpoch >= (zone.founding_epoch ?? 0) + zone.first_settler_decay_epochs) {
+      const reverted = Math.max(1.0, Number((zone.yield_modifier - 0.10).toFixed(2)));
+      await supabase
+        .from("sub_zones")
+        .update({ founding_bonus_active: false, yield_modifier: reverted })
+        .eq("id", zone.id);
+    }
+  }
+}
 
 /**
  * PUT /api/games/[id]/epoch/advance
@@ -34,6 +69,8 @@ export async function PUT(
   }
 
   let updates: Record<string, unknown> = {};
+  let epochIncremented = false;
+  let newEpoch = game.current_epoch;
 
   switch (action) {
     case "next_step": {
@@ -42,8 +79,10 @@ export async function PUT(
 
       if (!nextStep) {
         // End of epoch — advance to next epoch's login
+        newEpoch = game.current_epoch + 1;
+        epochIncremented = true;
         updates = {
-          current_epoch: game.current_epoch + 1,
+          current_epoch: newEpoch,
           current_round: "login",
           epoch_phase: "active",
         };
@@ -57,8 +96,10 @@ export async function PUT(
     }
 
     case "next_epoch": {
+      newEpoch = game.current_epoch + 1;
+      epochIncremented = true;
       updates = {
-        current_epoch: game.current_epoch + 1,
+        current_epoch: newEpoch,
         current_round: "login",
         epoch_phase: "active",
       };
@@ -105,6 +146,11 @@ export async function PUT(
 
   if (updateErr) {
     return NextResponse.json({ error: updateErr.message }, { status: 500 });
+  }
+
+  // After epoch increments, expire any First Settler founding bonuses (Decision 90)
+  if (epochIncremented) {
+    await applyFirstSettlerDecay(supabase, gameId, newEpoch);
   }
 
   return NextResponse.json(updated);

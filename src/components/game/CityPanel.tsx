@@ -16,10 +16,12 @@
 "use client";
 
 import { useState } from "react";
-import { TERRAIN, FOUNDING } from "@/lib/constants";
+import { TERRAIN, FOUNDING, MATH_GATE } from "@/lib/constants";
 import { BUILDINGS, UNITS, getAdjustedCost } from "@/lib/game/purchase-catalog";
 import type { SubZoneData } from "@/components/map/GameMap";
 import type { TerrainType, RoleName } from "@/types/database";
+import MathGateModal from "@/components/modals/MathGateModal";
+import type { MathGateResult, MathDifficulty } from "@/lib/game/math-gate";
 
 interface TeamInfo {
   id: string;
@@ -38,6 +40,8 @@ interface CityPanelProps {
   resources: Record<string, number>;  // current team resources for affordability
   hasBuilder?: boolean;               // builder unit discount
   unlockedTechs?: string[];
+  mathGateEnabled?: boolean;
+  mathGateDifficulty?: string;
   onClose: () => void;
   onBuildSuccess?: () => void;        // callback to re-fetch sub-zones after build
 }
@@ -131,6 +135,8 @@ export default function CityPanel({
   resources,
   hasBuilder = false,
   unlockedTechs = [],
+  mathGateEnabled = false,
+  mathGateDifficulty = "multiply",
   onClose,
   onBuildSuccess,
 }: CityPanelProps) {
@@ -142,6 +148,13 @@ export default function CityPanel({
   const [pendingBuildKey, setPendingBuildKey] = useState<string | null>(null);
   const [foundingName, setFoundingName] = useState("");
   const [foundingClaim, setFoundingClaim] = useState("");
+  // Math gate — holds context while the modal is open
+  const [mathGateContext, setMathGateContext] = useState<{
+    itemKey: string;
+    isFounding: boolean;
+    cost: number;
+    resourceType: string;
+  } | null>(null);
 
   const soilFertility = subZone.soil_fertility ?? 100;
   const wildlifeStock = subZone.wildlife_stock ?? 100;
@@ -175,6 +188,26 @@ export default function CityPanel({
       setBuildSuccess(null);
       return;
     }
+
+    // Decision 88: Math gate intercept for building purchases
+    if (mathGateEnabled) {
+      const item = BUILDINGS.find((b) => b.key === itemKey);
+      if (item) {
+        setMathGateContext({
+          itemKey,
+          isFounding: false,
+          cost: getAdjustedCost(item, hasBuilder),
+          resourceType: item.costResource,
+        });
+        return;
+      }
+    }
+
+    await executeBuildRequest(itemKey, false);
+  }
+
+  /** Executes the actual build POST — called directly or after math gate */
+  async function executeBuildRequest(itemKey: string, mathPenalty: boolean) {
     setBuildingKey(itemKey);
     setBuildError(null);
     setBuildSuccess(null);
@@ -188,6 +221,7 @@ export default function CityPanel({
           item_key: itemKey,
           sub_zone_id: subZone.db_id,
           has_builder: hasBuilder,
+          ...(mathPenalty ? { math_penalty: true } : {}),
         }),
       });
 
@@ -209,6 +243,27 @@ export default function CityPanel({
   /** Submits the founding + first build in a single request (Decision 90) */
   async function handleFoundAndBuild() {
     if (!pendingBuildKey || !subZone.db_id || !foundingName.trim() || !foundingClaim) return;
+
+    // Decision 88: Math gate fires before the founding transaction confirms
+    if (mathGateEnabled) {
+      const item = BUILDINGS.find((b) => b.key === pendingBuildKey);
+      if (item) {
+        setMathGateContext({
+          itemKey: pendingBuildKey,
+          isFounding: true,
+          cost: getAdjustedCost(item, hasBuilder),
+          resourceType: item.costResource,
+        });
+        return;
+      }
+    }
+
+    await executeFoundingRequest(false);
+  }
+
+  /** Executes the actual founding POST — called directly or after math gate */
+  async function executeFoundingRequest(mathPenalty: boolean) {
+    if (!pendingBuildKey || !subZone.db_id) return;
     setBuildingKey(pendingBuildKey);
     setBuildError(null);
     setBuildSuccess(null);
@@ -224,6 +279,7 @@ export default function CityPanel({
           has_builder: hasBuilder,
           settlement_name: foundingName.trim(),
           founding_claim: foundingClaim,
+          ...(mathPenalty ? { math_penalty: true } : {}),
         }),
       });
 
@@ -244,6 +300,19 @@ export default function CityPanel({
       setBuildError("Network error — please try again.");
     } finally {
       setBuildingKey(null);
+    }
+  }
+
+  /** Handles the math gate modal result and dispatches the pending build/found action */
+  async function handleMathGateResult(result: MathGateResult) {
+    const ctx = mathGateContext;
+    setMathGateContext(null);
+    if (!ctx) return;
+    const penalty = !result.isCorrect;
+    if (ctx.isFounding) {
+      await executeFoundingRequest(penalty);
+    } else {
+      await executeBuildRequest(ctx.itemKey, penalty);
     }
   }
 
@@ -283,6 +352,18 @@ export default function CityPanel({
   }
 
   return (
+    <>
+      {/* Math Gate Modal — fires before building transactions when enabled */}
+      {mathGateContext && (
+        <MathGateModal
+          difficulty={mathGateDifficulty as MathDifficulty}
+          resourceName={mathGateContext.resourceType}
+          transactionAmount={mathGateContext.cost}
+          bankAmount={resources[mathGateContext.resourceType] ?? 0}
+          timerSeconds={0}
+          onComplete={handleMathGateResult}
+        />
+      )}
     <div className="rounded-xl border border-stone-700 bg-stone-950/95 shadow-2xl">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 border-b border-stone-800 px-4 py-3">
@@ -651,5 +732,6 @@ export default function CityPanel({
         </div>
       )}
     </div>
+    </>
   );
 }

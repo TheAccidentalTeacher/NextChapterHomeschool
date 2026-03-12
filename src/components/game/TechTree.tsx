@@ -22,6 +22,7 @@ interface TechTreeProps {
   activeResearchId: string | null;
   legacyInvested: Record<string, number>; // techId → Legacy invested
   onSelectResearch: (techId: string) => void;
+  onInvestResearch?: (amount: number) => void;
 }
 
 // Node positions — computed at layout time
@@ -53,9 +54,11 @@ export default function TechTree({
   activeResearchId,
   legacyInvested,
   onSelectResearch,
+  onInvestResearch,
 }: TechTreeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedTech, setSelectedTech] = useState<string | null>(null);
+  const [investAmount, setInvestAmount] = useState("1");
 
   // Compute tech states
   const techStates = useMemo(
@@ -309,7 +312,6 @@ export default function TechTree({
             </div>
           )}
 
-          {/* Progress bar for in-progress */}
           {selectedState === "in_progress" && (
             <div>
               <div className="h-2 w-full rounded-full bg-gray-700 overflow-hidden">
@@ -323,6 +325,35 @@ export default function TechTree({
               <div className="text-xs text-gray-500 mt-1">
                 {legacyInvested[selectedTechDef.id] ?? 0} / {selectedTechDef.legacyCost} Legacy invested
               </div>
+              {onInvestResearch && (
+                <div className="mt-3 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    value={investAmount}
+                    onChange={(e) => setInvestAmount(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const amt = parseInt(investAmount, 10);
+                        if (!isNaN(amt) && amt > 0) { onInvestResearch(amt); setInvestAmount("1"); }
+                      }
+                    }}
+                    className="w-24 rounded-lg border border-amber-700/50 bg-gray-900 px-2 py-1.5 text-sm text-white focus:border-amber-500 focus:outline-none"
+                    placeholder="Amount"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const amt = parseInt(investAmount, 10);
+                      if (!isNaN(amt) && amt > 0) { onInvestResearch(amt); setInvestAmount("1"); }
+                    }}
+                    disabled={!investAmount || parseInt(investAmount, 10) <= 0}
+                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-bold text-white hover:bg-amber-500 disabled:opacity-50"
+                  >
+                    📜 Invest Legacy
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

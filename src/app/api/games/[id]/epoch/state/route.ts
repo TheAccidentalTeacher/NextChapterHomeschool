@@ -15,7 +15,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("games")
-    .select("id, current_epoch, current_round, epoch_phase, math_gate_enabled, updated_at")
+    .select("id, current_epoch, current_round, epoch_phase, math_gate_enabled, math_gate_difficulty, updated_at")
     .eq("id", gameId)
     .single();
 

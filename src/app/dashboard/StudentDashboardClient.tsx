@@ -69,6 +69,8 @@ interface EpochState {
   current_step: EpochStep;
   is_paused: boolean;
   current_round: string;
+  math_gate_enabled: boolean;
+  math_gate_difficulty: string;
 }
 
 interface Props {
@@ -143,6 +145,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           current_step: ed.current_step ?? "login",
           is_paused: ed.is_paused ?? false,
           current_round: ed.current_round ?? "BUILD",
+          math_gate_enabled: ed.math_gate_enabled ?? false,
+          math_gate_difficulty: ed.math_gate_difficulty ?? "multiply",
         });
       }
 
@@ -509,6 +513,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
               resources={resources}
               hasBuilder={false}
               unlockedTechs={unlockedTechs}
+              mathGateEnabled={epoch?.math_gate_enabled ?? false}
+              mathGateDifficulty={epoch?.math_gate_difficulty ?? "multiply"}
               onClose={() => setSelectedSubZone(null)}
               onBuildSuccess={async () => {
                 // Re-fetch sub-zones so buildings appear immediately
@@ -569,6 +575,22 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
               }
             } catch (err) {
               debug.error("Failed to select research", err);
+            }
+          }}
+          onInvestResearch={async (amount) => {
+            try {
+              const res = await fetch(`/api/games/${team.game_id}/research`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  action: "invest",
+                  team_id: team.id,
+                  amount,
+                }),
+              });
+              if (res.ok) fetchData();
+            } catch (err) {
+              debug.error("Failed to invest in research", err);
             }
           }}
         />
