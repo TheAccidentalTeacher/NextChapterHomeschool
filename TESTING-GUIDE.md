@@ -371,3 +371,138 @@ The game ID is printed at the end of every simulation run. Simulation log files 
 ---
 
 *This guide covers Phases 0-6 + Simulation Engine of the ClassCiv build. Additional testing for Phases 7+ (purchases, d20 events, tech tree, trade, wonders, NPCs) will be added as those features are built.*
+
+---
+
+## Sprint 7–9 Feature Tests (Invest Legacy, First Settler Decay, Math Gate)
+
+> Added: commit 1663413
+
+### T-A: Tech Tree — Invest Legacy
+
+**Setup:**
+1. Sign in as student in a game
+2. Select a tech for research (POST research action:select)
+3. Navigate to the Tech tab
+
+**Test A1 — Invest input appears**
+- Click the in-progress tech node ? selection panel opens
+- Expected: Progress bar + "?? Invest Legacy" input + button visible
+- Edge: Input defaults to `1`; button disabled when input is empty/zero
+
+**Test A2 — Invest partial amount**
+- Enter `5` in the invest field ? click "?? Invest Legacy"
+- Expected: `team_resources.legacy -= 5`; `legacyInvested[techId]` in metadata += 5; progress bar advances; `fetchData` refreshes the UI
+- Verify (DB): `teams.metadata.legacy_invested[techId]` = 5
+
+**Test A3 — Invest to completion (exact)**
+- Set up tech needing exactly 10 Legacy; invest 10
+- Expected: Tech moves to `completed`; active research banner disappears; `tech_research` row inserted; `legacy_invested` key cleared from metadata; `game_events` row with `tech_completed`
+
+**Test A4 — Invest with overflow**
+- Tech needs 3 more Legacy; invest 10
+- Expected: Tech completes; team gets back 7 Legacy (net cost = 3)
+- Verify: `team_resources.legacy = original - 3`
+
+**Test A5 — Insufficient Legacy**
+- Team has 2 Legacy; invest 5
+- Expected: Server returns 400; UI refetches (no progress update)
+
+---
+
+### T-B: First Settler Decay
+
+**Setup (DB):**
+- Create a sub-zone with `founding_claim = 'first_settler'`, `founding_bonus_active = true`, `founding_epoch = 2`, `first_settler_decay_epochs = 2`, `yield_modifier = 1.20`
+
+**Test B1 — Early advance (no decay)**
+- Start at epoch 2; DM advances to epoch 3
+- Expected: `founding_bonus_active` stays `true`; `yield_modifier` stays `1.20`
+
+**Test B2 — Decay fires exactly on expiry**
+- Advance from epoch 3 to epoch 4 (epoch 2 + decay 2 = epoch 4)
+- Expected: `founding_bonus_active = false`; `yield_modifier = 1.10` (1.20 - 0.10)
+- Verify DM sees no DB error; epoch advances normally
+
+**Test B3 — Decay fires even if past expiry**
+- Set `founding_epoch = 1`, `first_settler_decay_epochs = 1`; advance to epoch 5
+- Expected: Decay runs on the epoch-increment call; `founding_bonus_active = false`
+
+**Test B4 — Resource Hub / Natural Landmark unaffected**
+- Sub-zone with `founding_claim = 'resource_hub'` and `founding_bonus_active = true`
+- Advance epoch past founding_epoch + 4
+- Expected: No changes (decay query filters `founding_claim = 'first_settler'` only)
+
+**Test B5 — No sub-zones (zero rows)**
+- Game with no settled sub-zones ? advance epoch
+- Expected: Route completes without error; no DB updates attempted
+
+---
+
+### T-C: Math Gate — Building Purchases
+
+**Setup:** Set `math_gate_enabled = true` on the game row (PATCH `/api/games/[id]`)
+
+**Test C1 — Modal appears**
+- Student tries to buy a building
+- Expected: MathGateModal renders with a math problem, answer input, Submit button
+
+**Test C2 — Correct answer (multiply)**
+- Set `math_gate_difficulty = 'multiply'`; solve problem correctly
+- Expected: "? Correct!" shown; building purchased; `sub_zone.yield_modifier` unchanged
+
+**Test C3 — Wrong answer (penalty)**
+- Enter wrong answer
+- Expected: "? Incorrect. 25% yield penalty applied."; building still purchased; `sub_zone.yield_modifier -= 0.25`
+- Verify: If `yield_modifier` was 1.10, it becomes 0.85; floor is 0.50
+
+**Test C4 — Yield floor enforced**
+- Zone at `yield_modifier = 0.60`; wrong answer twice
+- Expected: First penalty ? 0.35 ? clamped to 0.50; second wrong answer ? stays at 0.50
+
+**Test C5 — Cancel action**
+- Open modal ? click "Cancel action"
+- Expected: Modal closes; no building purchased; resources unchanged
+
+**Test C6 — Founding flow + math gate**
+- First build in unfounded zone ? founding form ? fill name + claim ? "Found & Build"
+- Expected: Math gate fires AFTER founding form submission, BEFORE API call
+- Wrong answer: City still founded; `math_penalty: true` sent to assets route; yield penalty applied to new zone
+
+**Test C7 — Math gate disabled**
+- Set `math_gate_enabled = false`
+- Expected: No modal; builds proceed directly
+
+**Test C8 — Difficulty: divide**
+- Set `math_gate_difficulty = 'divide'`
+- Expected: Problem format is `A ÷ B = ?`
+
+**Test C9 — Difficulty: ratio**
+- Set `math_gate_difficulty = 'ratio'`
+- Expected: Problem format is `A : B = ? : C`; hint shown
+
+**Test C10 — Difficulty: percent**
+- Set `math_gate_difficulty = 'percent'`
+- Expected: Problem format is `What is X% of Y?` with friendly percentages (10/20/25/50%)
+
+---
+
+## Full Integration Smoke Test (30-minute run-through)
+
+Run this before a live classroom session to confirm everything works end-to-end.
+
+1. **Teacher:** Create game + assign teams to regions
+2. **Students (3 windows):** Log in, confirm dashboard loads with team name
+3. **DM:** Advance to BUILD step
+4. **Student (Architect):** Open map ? click own zone ? buy a building (math gate if enabled)
+5. **Student (Architect):** Found first city (founding modal + claim)
+6. **Student:** Open Tech tab ? select tier-1 research ? invest Legacy
+7. **DM:** Advance to DEFINE step ? routing step
+8. **Student:** Submit Legacy routing
+9. **DM:** Advance to RESOLVE ? click Next Epoch
+10. **Verify:** Leaderboard on projector updates; First Settler check ran if any zones were founded
+11. **DM:** Toggle math gate on/off from PATCH request
+12. **Student:** Repeat building purchase with math gate enabled; answer wrong ? verify yield penalty in DB
+13. **All:** Confirm no console errors in any browser
+
+---
