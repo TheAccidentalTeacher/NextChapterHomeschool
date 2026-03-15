@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync } from "fs";
 import { join } from "path";
 import { createDirectClient } from "@/lib/supabase/admin";
+import { getClerkUserId } from "@/lib/auth/roles";
 
 interface StaticSubZone {
   id: string;           // "region-zone" e.g. "1-1"
@@ -54,6 +55,11 @@ type RouteParams = { params: Promise<{ id: string }> };
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const userId = await getClerkUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const regionId = searchParams.get("region_id");

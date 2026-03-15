@@ -166,7 +166,7 @@ export default function CityPanel({
   const isUnclaimed = !subZone.controlled_by_team_id;
   const hint = ROLE_HINTS[role];
   // True when this is the first buildable action in a zone — triggers founding
-  const isFirstBuild = buildings.length === 0 && !subZone.settlement_name && isOwnTeam;
+  const isFirstBuild = buildings.length === 0 && !subZone.settlement_name && isOwnTeam && isInOwnRegion;
 
   const yieldPct = Math.round((subZone.yield_modifier - 1) * 100);
   const yieldLabel =

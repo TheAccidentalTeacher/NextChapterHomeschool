@@ -15,7 +15,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("games")
-    .select("id, current_epoch, current_round, epoch_phase, math_gate_enabled, math_gate_difficulty, updated_at")
+    .select("id, current_epoch, current_round, epoch_phase, math_gate_enabled, math_gate_difficulty, class_period, round_timer_minutes, updated_at")
     .eq("id", gameId)
     .single();
 
@@ -23,5 +23,11 @@ export async function GET(
     return NextResponse.json({ error: "Game not found" }, { status: 404 });
   }
 
-  return NextResponse.json(data);
+  // Alias current_round as current_step so clients can read it consistently.
+  // is_paused is derived from epoch_phase so clients don't need to know the enum.
+  return NextResponse.json({
+    ...data,
+    current_step: data.current_round,
+    is_paused: data.epoch_phase === "resolving",
+  });
 }

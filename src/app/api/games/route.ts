@@ -15,6 +15,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("games")
       .select("*")
+      .eq("teacher_id", teacherId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -52,11 +53,13 @@ export async function POST(request: NextRequest) {
       .insert({
         name: name.trim(),
         teacher_id: teacherId,
-        current_epoch: 0,
-        current_round: "EXPAND",
+        current_epoch: 1,
+        current_round: "login",
         epoch_phase: "active",
         math_gate_enabled: false,
         math_gate_difficulty: "multiply",
+        class_period,
+        round_timer_minutes,
       })
       .select()
       .single();
@@ -65,13 +68,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Store class_period and round_timer in game metadata
-    // These aren't in the games table schema, so we store as a related config
-    // For now they're part of the response but the core game row is created
-    return NextResponse.json({
-      game: data,
-      config: { class_period, round_timer_minutes },
-    }, { status: 201 });
+    return NextResponse.json({ game: data }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unauthorized";
     return NextResponse.json({ error: message }, { status: 401 });

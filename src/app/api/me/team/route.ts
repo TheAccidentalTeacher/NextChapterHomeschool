@@ -30,6 +30,7 @@ export async function GET() {
         )
       `)
       .eq("clerk_user_id", userId)
+      .order("joined_at", { ascending: false })
       .limit(1)
       .single();
 

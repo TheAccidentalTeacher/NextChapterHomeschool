@@ -23,6 +23,17 @@ export async function GET(
 
   const supabase = await createClient();
 
+  // Validate that team_id belongs to this game (prevents IDOR)
+  const { data: teamCheck } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("id", teamId)
+    .eq("game_id", gameId)
+    .single();
+  if (!teamCheck) {
+    return NextResponse.json({ error: "Team not found in this game" }, { status: 403 });
+  }
+
   const { data: rows, error } = await supabase
     .from("team_resources")
     .select("resource_type, amount")

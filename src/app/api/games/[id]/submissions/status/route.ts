@@ -41,22 +41,23 @@ export async function GET(
     .eq("game_id", gameId)
     .eq("epoch", game.current_epoch);
 
-  // Get active role assignments (for absence handling)
-  const { data: assignments } = await supabase
-    .from("epoch_role_assignments")
-    .select("team_id, role")
-    .eq("epoch", game.current_epoch);
+  // Get active role assignments from team_members (not the non-existent epoch_role_assignments table)
+  const { data: members } = await supabase
+    .from("team_members")
+    .select("team_id, assigned_role")
+    .in("team_id", teams.map((t) => t.id))
+    .eq("is_absent", false);
 
   // All roles
   const ALL_ROLES = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
 
   const statusByTeam = teams.map((team) => {
-    // Determine active roles for this team
-    const teamAssignments = assignments?.filter((a) => a.team_id === team.id);
+    // Determine active roles for this team from actual team members
+    const teamMembers = members?.filter((m) => m.team_id === team.id);
     const activeRoles =
-      teamAssignments && teamAssignments.length > 0
-        ? teamAssignments.map((a) => a.role)
-        : ALL_ROLES; // default: all roles active
+      teamMembers && teamMembers.length > 0
+        ? teamMembers.map((m) => m.assigned_role).filter(Boolean) as string[]
+        : ALL_ROLES;
 
     // Get submitted roles for current round
     const teamSubs = (submissions ?? []).filter(
@@ -76,5 +77,5 @@ export async function GET(
     };
   });
 
-  return NextResponse.json(statusByTeam);
+  return NextResponse.json({ teams: statusByTeam });
 }

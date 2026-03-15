@@ -71,6 +71,7 @@ interface EpochState {
   current_round: string;
   math_gate_enabled: boolean;
   math_gate_difficulty: string;
+  class_period: string;
 }
 
 interface Props {
@@ -147,6 +148,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           current_round: ed.current_round ?? "BUILD",
           math_gate_enabled: ed.math_gate_enabled ?? false,
           math_gate_difficulty: ed.math_gate_difficulty ?? "multiply",
+          class_period: ed.class_period ?? "6th",
         });
       }
 
@@ -281,12 +283,31 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
       <ArchitectPanel
-        teamBuildings={[]}
+        teamBuildings={subZones
+          .filter((z) => z.controlled_by_team_id === team.id)
+          .flatMap((z) =>
+            (z.buildings ?? []).map((b) => ({
+              key: b,
+              subZone: z.id,
+              subZoneName: z.settlement_name ?? z.name,
+              isActive: true,
+            }))
+          )}
         resources={resources}
-        ownedSubZones={[]}
+        ownedSubZones={subZones
+          .filter((z) => z.controlled_by_team_id === team.id)
+          .map((z) => ({
+            id: z.db_id ?? z.id,
+            name: z.name,
+            settlementName: z.settlement_name ?? null,
+          }))}
         unlockedTechs={unlockedTechs}
-        hasBuilder={false}
-        ownedAssetKeys={[]}
+        hasBuilder={mapMarkers.some(
+          (m) => m.teamId === team.id && m.type === "builder"
+        )}
+        ownedAssetKeys={subZones
+          .filter((z) => z.controlled_by_team_id === team.id)
+          .flatMap((z) => z.buildings ?? [])}
       />
     ),
     merchant: (
@@ -319,8 +340,17 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     ),
     warlord: (
       <WarlordPanel
-        units={[]}
-        armyStrength={0}
+        units={mapMarkers
+          .filter((m) => m.teamId === team.id && ["scout","soldier","merchant","builder"].includes(m.type))
+          .map((m) => ({
+            type: m.type as "scout" | "soldier" | "merchant" | "builder",
+            count: m.count,
+            subZone: m.subZoneId,
+            health: 100,
+          }))}
+        armyStrength={mapMarkers
+          .filter((m) => m.teamId === team.id && m.type === "soldier")
+          .reduce((sum, m) => sum + m.count, 0)}
         resilienceAvailable={resources.resilience}
         warExhaustion={team.war_exhaustion_level}
         defenseStatus={[]}
@@ -434,7 +464,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                     "Your civilization faces a pivotal moment."
                   }
                   allowFreeText={currentQuestion?.allowFreeText ?? true}
-                  grade="7_8th"
+                  grade={(epoch?.class_period === "6th" ? "6th" : "7_8th") as "6th" | "7_8th"}
                 />
               </div>
               <div>
@@ -452,7 +482,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
               gameId={team.game_id}
               teamId={team.id}
               roundType={currentRound}
-              totalEarned={10}
+              totalEarned={resources[resourceType] ?? 0}
               resourceType={resourceType}
               onComplete={fetchData}
             />

@@ -30,6 +30,7 @@ import AutoplayPanel from "./AutoplayPanel";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
 import { debug } from "@/lib/debug";
+import type { SubZoneData, TeamColor } from "@/components/map/GameMap";
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -56,6 +57,8 @@ export default function DMGamePage({
   const [gameId, setGameId] = useState<string>("");
   const [game, setGame] = useState<GameState | null>(null);
   const [teams, setTeams] = useState<Team[]>([]);
+  const [subZones, setSubZones] = useState<SubZoneData[]>([]);
+  const [teamColors, setTeamColors] = useState<TeamColor[]>([]);
   const [loading, setLoading] = useState(true);
   const [overrideTarget, setOverrideTarget] = useState<{
     teamId: string;
@@ -76,10 +79,11 @@ export default function DMGamePage({
     if (!gameId) return;
     debug.render("DM fetchState called", { gameId });
     try {
-      const [gameRes, teamsRes, epochRes] = await Promise.all([
+      const [gameRes, teamsRes, epochRes, szRes] = await Promise.all([
         fetch(`/api/games/${gameId}`),
         fetch(`/api/games/${gameId}/teams`),
         fetch(`/api/games/${gameId}/epoch/state`),
+        fetch(`/api/games/${gameId}/sub-zones`),
       ]);
       if (gameRes.ok) {
         const gd = await gameRes.json();
@@ -88,13 +92,21 @@ export default function DMGamePage({
           current_epoch: gd.game?.current_epoch ?? epochData.current_epoch ?? 1,
           epoch_phase: gd.game?.epoch_phase ?? epochData.epoch_phase ?? "active",
           current_round: gd.game?.current_round ?? epochData.current_round ?? "BUILD",
-          current_step: epochData.current_step ?? "login",
-          is_paused: epochData.is_paused ?? false,
+          current_step: (epochData.current_step ?? epochData.current_round ?? "login") as EpochStep,
+          is_paused: epochData.is_paused ?? (epochData.epoch_phase === "resolving") ?? false,
         });
       }
       if (teamsRes.ok) {
         const td = await teamsRes.json();
-        setTeams(td.teams ?? []);
+        const loadedTeams: Team[] = td.teams ?? [];
+        setTeams(loadedTeams);
+        // Build teamColors from team list
+        const PALETTE = ["#ef4444","#3b82f6","#22c55e","#f59e0b","#8b5cf6","#06b6d4","#f97316","#ec4899"];
+        setTeamColors(loadedTeams.map((t, i) => ({ teamId: t.id, color: PALETTE[i % PALETTE.length], regionId: t.region_id })));
+      }
+      if (szRes.ok) {
+        const szd = await szRes.json();
+        setSubZones(szd.subZones ?? []);
       }
     } catch {
       // ignore
@@ -148,8 +160,8 @@ export default function DMGamePage({
           <div className="overflow-hidden rounded-xl border border-stone-800">
             <div className="h-[500px]">
               <GameMap
-                subZones={[]}
-                teamColors={[]}
+                subZones={subZones}
+                teamColors={teamColors}
                 fogState={[]}
                 markers={[]}
                 showFog={false}

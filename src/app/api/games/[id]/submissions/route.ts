@@ -46,6 +46,17 @@ export async function POST(
 
   const supabase = await createClient();
 
+  // Validate that team_id belongs to this game (prevents IDOR)
+  const { data: teamCheck } = await supabase
+    .from("teams")
+    .select("id")
+    .eq("id", team_id)
+    .eq("game_id", gameId)
+    .single();
+  if (!teamCheck) {
+    return NextResponse.json({ error: "Team not found in this game" }, { status: 403 });
+  }
+
   // Get current game state
   const { data: game } = await supabase
     .from("games")
