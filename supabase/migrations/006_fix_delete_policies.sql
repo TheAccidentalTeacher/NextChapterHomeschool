@@ -73,9 +73,10 @@ create policy "submissions_delete"
 create policy "civnames_delete"
   on civilization_names for delete
   using (
-    game_id in (
-      select id from games
-      where teacher_id = (current_setting('request.jwt.claims', true)::json->>'sub')
+    team_id in (
+      select t.id from teams t
+      join games g on g.id = t.game_id
+      where g.teacher_id = (current_setting('request.jwt.claims', true)::json->>'sub')
     )
   );
 
@@ -101,9 +102,10 @@ create policy "fog_delete"
 create policy "tech_delete"
   on tech_research for delete
   using (
-    game_id in (
-      select id from games
-      where teacher_id = (current_setting('request.jwt.claims', true)::json->>'sub')
+    team_id in (
+      select t.id from teams t
+      join games g on g.id = t.game_id
+      where g.teacher_id = (current_setting('request.jwt.claims', true)::json->>'sub')
     )
   );
 
