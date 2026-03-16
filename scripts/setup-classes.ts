@@ -24,7 +24,7 @@ function loadEnv() {
     const eq = t.indexOf("=");
     if (eq === -1) continue;
     const k = t.slice(0, eq).trim();
-    const v = t.slice(eq + 1).trim();
+    const v = t.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
     if (!process.env[k]) process.env[k] = v;
   }
 }
