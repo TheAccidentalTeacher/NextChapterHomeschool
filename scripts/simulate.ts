@@ -34,7 +34,7 @@ function loadEnv() {
     const eqIdx = trimmed.indexOf("=");
     if (eqIdx === -1) continue;
     const key = trimmed.slice(0, eqIdx).trim();
-    const value = trimmed.slice(eqIdx + 1).trim();
+    const value = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, "");
     if (!process.env[key]) process.env[key] = value;
   }
 }
@@ -57,9 +57,11 @@ function getArg(flag: string, defaultVal: string): string {
   const idx = args.indexOf(flag);
   return idx !== -1 && args[idx + 1] ? args[idx + 1] : defaultVal;
 }
-const TOTAL_EPOCHS = parseInt(getArg("--epochs", "30"));
-const TEAM_COUNT = parseInt(getArg("--teams", "6"));
-const STUDENTS_PER_TEAM = parseInt(getArg("--students-per-team", "6"));
+const GRADE_MODE = getArg("--grade", ""); // "6" = 6th grade real roster
+const IS_GRADE_6 = GRADE_MODE === "6";
+const TOTAL_EPOCHS = parseInt(getArg("--epochs", IS_GRADE_6 ? "8" : "30"));
+const TEAM_COUNT = parseInt(getArg("--teams", IS_GRADE_6 ? "5" : "6"));
+const STUDENTS_PER_TEAM = parseInt(getArg("--students-per-team", IS_GRADE_6 ? "3" : "6"));
 const FAST_MODE = args.includes("--fast");
 const CINEMATIC_MODE = args.includes("--cinematic"); // Slow watchable mode for /projector view
 const DRY_RUN = args.includes("--dry-run");
@@ -165,6 +167,165 @@ const CIV_NAMES = [
   "Frostmarch Collective", "Thornwood Federation", "Starfall Sovereignty",
   "Dustwind Territories", "Moonhaven Commonwealth", "Blazecrest Union",
 ];
+
+// ── Grade 6 Real Roster ──────────────────────────────────────
+// Actual students, their assigned roles, regions, and teacher-assigned personalities.
+// Personalities are the teacher's best read on how each kid actually plays.
+const GRADE_6_ROSTER = [
+  {
+    teamIndex: 0, regionId: 1, civName: "Emberkeep",
+    students: [
+      { name: "Kalaya",  role: "architect" as RoleName, personality: "scholar"    as Personality },
+      { name: "Kisu",    role: "merchant"  as RoleName, personality: "adventurer" as Personality },
+      { name: "Sayna",   role: "diplomat"  as RoleName, personality: "cautious"   as Personality },
+    ],
+  },
+  {
+    teamIndex: 1, regionId: 3, civName: "Stonegate Republic",
+    students: [
+      { name: "Helena",  role: "architect" as RoleName, personality: "scholar"    as Personality },
+      { name: "Jack",    role: "merchant"  as RoleName, personality: "random"     as Personality },
+      { name: "Norma",   role: "diplomat"  as RoleName, personality: "cautious"   as Personality },
+    ],
+  },
+  {
+    teamIndex: 2, regionId: 4, civName: "Golden Reach",
+    students: [
+      { name: "Ashton",  role: "architect" as RoleName, personality: "adventurer" as Personality },
+      { name: "Gabriel", role: "merchant"  as RoleName, personality: "scholar"    as Personality },
+      { name: "Grace",   role: "diplomat"  as RoleName, personality: "minimalist" as Personality },
+    ],
+  },
+  {
+    teamIndex: 3, regionId: 8, civName: "Ironwall Pact",
+    students: [
+      { name: "Easton",  role: "architect" as RoleName, personality: "adventurer" as Personality },
+      { name: "Alayna",  role: "merchant"  as RoleName, personality: "cautious"   as Personality },
+      { name: "Leslie",  role: "diplomat"  as RoleName, personality: "random"     as Personality },
+    ],
+  },
+  {
+    teamIndex: 4, regionId: 10, civName: "Farwind Collective",
+    students: [
+      { name: "Sawyer",  role: "architect" as RoleName, personality: "warmonger"  as Personality },
+      { name: "Skyler",  role: "merchant"  as RoleName, personality: "adventurer" as Personality },
+      { name: "Oscar",   role: "diplomat"  as RoleName, personality: "minimalist" as Personality },
+    ],
+  },
+];
+
+// ── DM Event Engine ──────────────────────────────────────────
+// Simulates the teacher acting as Dungeon Master — dispatching
+// world events, crises, and opportunities each epoch.
+
+type DmEventEffect = {
+  type: "resource_bonus" | "resource_penalty" | "food_crisis" | "trade_fair" | "barbarian_raid" | "plague" | "golden_age";
+  targetTeamIndex?: number;  // undefined = all teams
+  resourceType?: string;
+  amount: number;
+  description: string;
+};
+
+const DM_EVENTS: Array<{ name: string; probability: number; dmReasoning: string; effect: DmEventEffect }> = [
+  {
+    name: "Regional Drought",
+    probability: 0.20,
+    dmReasoning: "The DM eyes the map. One region's food production is struggling — time to introduce scarcity.",
+    effect: { type: "food_crisis", amount: -4, description: "Drought strikes! Team loses 4 food this epoch." },
+  },
+  {
+    name: "Trade Fair Winds",
+    probability: 0.25,
+    dmReasoning: "Merchants are getting creative. The DM rewards trading initiative with a bonus resource infusion.",
+    effect: { type: "trade_fair", resourceType: "reach", amount: 5, description: "Trade winds blow — all teams gain +5 reach." },
+  },
+  {
+    name: "Barbarian Migration",
+    probability: 0.18,
+    dmReasoning: "A civilization has been too aggressive. The DM sends barbarians as natural consequences.",
+    effect: { type: "barbarian_raid", resourceType: "resilience", amount: -6, description: "Barbarian migration! Targeted civ loses 6 resilience." },
+  },
+  {
+    name: "Festival of Innovation",
+    probability: 0.22,
+    dmReasoning: "The DM notices creative justifications this round and rewards the class with a productivity bonus.",
+    effect: { type: "resource_bonus", resourceType: "production", amount: 4, description: "Festival of Innovation — all civs gain +4 production." },
+  },
+  {
+    name: "Plague Outbreak",
+    probability: 0.10,
+    dmReasoning: "Tensions are low — the DM introduces a crisis to force the class to make hard choices.",
+    effect: { type: "plague", resourceType: "food", amount: -5, description: "Plague! A random civ loses 5 food and slows production." },
+  },
+  {
+    name: "Golden Age Declaration",
+    probability: 0.12,
+    dmReasoning: "The DM celebrates a team's outstanding curriculum contribution with a Golden Age event.",
+    effect: { type: "golden_age", resourceType: "legacy", amount: 8, description: "Golden Age! The leading civ earns +8 legacy." },
+  },
+  {
+    name: "Cultural Exchange",
+    probability: 0.20,
+    dmReasoning: "Two civilizations have been trading messages. The DM formalizes it as a cultural exchange event.",
+    effect: { type: "resource_bonus", resourceType: "legacy", amount: 3, description: "Cultural Exchange — all civs gain +3 legacy." },
+  },
+];
+
+function simulateDmTurn(epoch: number, teams: SimTeam[]): string[] {
+  const lines: string[] = [];
+  const fired: typeof DM_EVENTS = [];
+
+  for (const event of DM_EVENTS) {
+    if (Math.random() < event.probability) {
+      fired.push(event);
+    }
+  }
+
+  if (fired.length === 0) {
+    lines.push(`  📋  [DM] Epoch ${epoch}: Teacher observes quietly — no global events dispatched.`);
+    return lines;
+  }
+
+  for (const event of fired) {
+    lines.push(``);
+    lines.push(`  👁️   [DM] ${event.name}`);
+    lines.push(`  💬  "${event.dmReasoning}"`);
+    lines.push(`  📣  Event: ${event.effect.description}`);
+
+    // Apply effect
+    if (event.effect.type === "trade_fair" || event.effect.type === "resource_bonus") {
+      // All-team bonus
+      for (const team of teams) {
+        const rt = event.effect.resourceType ?? "production";
+        team.resources[rt] = Math.max(0, (team.resources[rt] ?? 0) + event.effect.amount);
+      }
+      lines.push(`  ✅  Applied to all ${teams.length} civilizations.`);
+    } else if (event.effect.type === "food_crisis" || event.effect.type === "plague") {
+      // Random target
+      const target = teams[Math.floor(Math.random() * teams.length)];
+      const rt = event.effect.resourceType ?? "food";
+      target.resources[rt] = Math.max(0, (target.resources[rt] ?? 0) + event.effect.amount);
+      lines.push(`  🎯  Target: ${target.civName} — ${rt} adjusted by ${event.effect.amount}`);
+    } else if (event.effect.type === "barbarian_raid") {
+      // Target the warmonger-leaning team or random
+      const target = teams[Math.floor(Math.random() * teams.length)];
+      const rt = event.effect.resourceType ?? "resilience";
+      target.resources[rt] = Math.max(0, (target.resources[rt] ?? 0) + event.effect.amount);
+      target.warExhaustion = Math.min(100, target.warExhaustion + 15);
+      lines.push(`  ⚔️   Target: ${target.civName} — ${rt} adjusted by ${event.effect.amount}, +15 war exhaustion`);
+    } else if (event.effect.type === "golden_age") {
+      // Target the leading team by total resources
+      const leader = [...teams].sort((a, b) =>
+        Object.values(b.resources).reduce((s, v) => s + v, 0) -
+        Object.values(a.resources).reduce((s, v) => s + v, 0)
+      )[0];
+      const rt = event.effect.resourceType ?? "legacy";
+      leader.resources[rt] = (leader.resources[rt] ?? 0) + event.effect.amount;
+      lines.push(`  👑  Golden Age granted to ${leader.civName} — +${event.effect.amount} ${rt}`);
+    }
+  }
+  return lines;
+}
 
 interface SimStudent {
   id: string;            // Fake clerk user ID
@@ -552,27 +713,46 @@ async function main() {
   }
 
   // ── Step 1: Generate students ──────────────────────────────
-  subBanner("Step 1: Generating Students");
+  subBanner(IS_GRADE_6 ? "Step 1: Loading 6th Grade Roster" : "Step 1: Generating Students");
 
   const allStudents: SimStudent[] = [];
-  for (let t = 0; t < TEAM_COUNT; t++) {
-    for (let s = 0; s < STUDENTS_PER_TEAM; s++) {
-      const idx = t * STUDENTS_PER_TEAM + s;
-      const personalityIdx = idx % PERSONALITY_DISTRIBUTION.length;
-      const student: SimStudent = {
-        id: `sim_student_${idx + 1}`,
-        name: STUDENT_NAMES[idx % STUDENT_NAMES.length],
-        personality: PERSONALITY_DISTRIBUTION[personalityIdx],
-        teamIndex: t,
-        assignedRole: ROLES[s % ROLES.length],
-      };
-      allStudents.push(student);
-    }
-  }
 
-  for (let t = 0; t < TEAM_COUNT; t++) {
-    const teamStudents = allStudents.filter((s) => s.teamIndex === t);
-    log("👥", `Team ${t + 1} (${CIV_NAMES[t]}): ${teamStudents.map((s) => `${s.name}[${s.personality}/${s.assignedRole}]`).join(", ")}`);
+  if (IS_GRADE_6) {
+    log("🏫", "Mode: GRADE 6 — using real student roster");
+    for (const team of GRADE_6_ROSTER) {
+      for (const s of team.students) {
+        allStudents.push({
+          id: `grade6_${s.name.toLowerCase()}`,
+          name: s.name,
+          personality: s.personality,
+          teamIndex: team.teamIndex,
+          assignedRole: s.role,
+        });
+      }
+    }
+    for (const team of GRADE_6_ROSTER) {
+      const teamStudents = allStudents.filter((s) => s.teamIndex === team.teamIndex);
+      log("👥", `Team ${team.teamIndex + 1} (${team.civName}): ${teamStudents.map((s) => `${s.name}[${s.personality}/${s.assignedRole}]`).join(", ")}`);
+    }
+  } else {
+    for (let t = 0; t < TEAM_COUNT; t++) {
+      for (let s = 0; s < STUDENTS_PER_TEAM; s++) {
+        const idx = t * STUDENTS_PER_TEAM + s;
+        const personalityIdx = idx % PERSONALITY_DISTRIBUTION.length;
+        const student: SimStudent = {
+          id: `sim_student_${idx + 1}`,
+          name: STUDENT_NAMES[idx % STUDENT_NAMES.length],
+          personality: PERSONALITY_DISTRIBUTION[personalityIdx],
+          teamIndex: t,
+          assignedRole: ROLES[s % ROLES.length],
+        };
+        allStudents.push(student);
+      }
+    }
+    for (let t = 0; t < TEAM_COUNT; t++) {
+      const teamStudents = allStudents.filter((s) => s.teamIndex === t);
+      log("👥", `Team ${t + 1} (${CIV_NAMES[t]}): ${teamStudents.map((s) => `${s.name}[${s.personality}/${s.assignedRole}]`).join(", ")}`);
+    }
   }
 
   // ── Step 2: Create game in DB ──────────────────────────────
@@ -587,7 +767,7 @@ async function main() {
     const { data: game, error } = await supabase
       .from("games")
       .insert({
-        name: `Simulation ${new Date().toISOString().slice(0, 16)}`,
+        name: IS_GRADE_6 ? `Sim — 6th Grade ${new Date().toISOString().slice(0, 10)}` : `Simulation ${new Date().toISOString().slice(0, 16)}`,
         teacher_id: "sim_teacher",
         current_epoch: 1,
         current_round: "login",
@@ -616,9 +796,10 @@ async function main() {
   const simTeams: SimTeam[] = [];
 
   for (let t = 0; t < TEAM_COUNT; t++) {
-    const regionId = REGION_IDS[t % REGION_IDS.length];
+    const grade6Team = IS_GRADE_6 ? GRADE_6_ROSTER[t] : null;
+    const regionId = grade6Team ? grade6Team.regionId : REGION_IDS[t % REGION_IDS.length];
     const regionName = REGION_NAMES[regionId];
-    const civName = CIV_NAMES[t];
+    const civName = grade6Team ? grade6Team.civName : CIV_NAMES[t];
     const teamStudents = allStudents.filter((s) => s.teamIndex === t);
 
     if (DRY_RUN) {
@@ -806,6 +987,13 @@ async function main() {
       if (step === "login") {
         log("🔑", `Step: LOGIN — Students check in`);
         gameLog.push(`  [login] All ${TEAM_COUNT * STUDENTS_PER_TEAM} students logged in`);
+        // ── DM Turn: teacher dispatches world events at start of each epoch ──
+        subBanner(`DM TURN — Teacher reviews the board`);
+        const dmLines = simulateDmTurn(epoch, simTeams);
+        for (const line of dmLines) {
+          console.log(line);
+          gameLog.push(line);
+        }
         if (CINEMATIC_MODE) await sleep(6000);
         else if (!FAST_MODE) await sleep(200);
         continue;
