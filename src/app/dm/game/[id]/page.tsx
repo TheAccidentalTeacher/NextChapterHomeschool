@@ -93,7 +93,7 @@ export default function DMGamePage({
           epoch_phase: gd.game?.epoch_phase ?? epochData.epoch_phase ?? "active",
           current_round: gd.game?.current_round ?? epochData.current_round ?? "BUILD",
           current_step: (epochData.current_step ?? epochData.current_round ?? "login") as EpochStep,
-          is_paused: epochData.is_paused ?? (epochData.epoch_phase === "resolving") ?? false,
+          is_paused: epochData.is_paused ?? (epochData.epoch_phase === "resolving"),
         });
       }
       if (teamsRes.ok) {
