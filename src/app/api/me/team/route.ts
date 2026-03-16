@@ -1,5 +1,6 @@
 // ============================================
 // GET /api/me/team — get the current student's team + game info
+// Returns cover_info if this student is substituting for an absent teammate.
 // ============================================
 
 import { NextResponse } from "next/server";
@@ -50,6 +51,43 @@ export async function GET() {
       game_id: string;
     };
 
+    // Check for substitute assignment this epoch
+    let coverInfo: {
+      is_substitute: true;
+      covering_role: string;
+      original_role: string;
+    } | null = null;
+
+    try {
+      // Get current epoch for this game
+      const { data: gameRow } = await supabase
+        .from("games")
+        .select("current_epoch")
+        .eq("id", team.game_id)
+        .single();
+
+      if (gameRow) {
+        const { data: subAssignment } = await supabase
+          .from("epoch_role_assignments")
+          .select("role, original_role")
+          .eq("team_id", team.id)
+          .eq("epoch", gameRow.current_epoch)
+          .eq("clerk_user_id", userId)
+          .eq("is_substitute", true)
+          .maybeSingle();
+
+        if (subAssignment) {
+          coverInfo = {
+            is_substitute: true,
+            covering_role: subAssignment.role,
+            original_role: subAssignment.original_role ?? membership.assigned_role,
+          };
+        }
+      }
+    } catch {
+      // cover check is non-critical — proceed without it
+    }
+
     return NextResponse.json({
       team: {
         id: team.id,
@@ -66,6 +104,7 @@ export async function GET() {
         display_name: membership.display_name,
         assigned_role: membership.assigned_role,
         is_absent: membership.is_absent,
+        cover_info: coverInfo,
       },
     });
   } catch (err) {

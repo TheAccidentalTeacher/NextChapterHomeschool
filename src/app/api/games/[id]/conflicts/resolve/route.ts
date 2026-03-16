@@ -75,8 +75,8 @@ export async function GET(
 
   if (error) {
     // Table may not exist yet — return empty rather than 500
-    return NextResponse.json([]);
+    return NextResponse.json({ conflicts: [] });
   }
 
-  return NextResponse.json(data ?? []);
+  return NextResponse.json({ conflicts: data ?? [] });
 }

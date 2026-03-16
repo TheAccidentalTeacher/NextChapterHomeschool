@@ -75,6 +75,9 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
   // Decision 102: default to standings board; DM can press M or click to toggle map
   const [view, setView] = useState<"leaderboard" | "map">("leaderboard");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  // DailyRecapCard: shown after resolve completes
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapText, setRecapText] = useState("");
 
   // Find active game (only if no gameId passed via URL)
   useEffect(() => {
@@ -149,8 +152,30 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
   useEffect(() => {
     if (step === "resolve" && !isResolving) {
       setIsResolving(true);
+      setShowRecap(false); // clear any prior recap when a new resolve starts
     }
   }, [step, isResolving]);
+
+  // Called when ResolveSequence finishes — fetch recap then display it for 12 seconds
+  const handleResolveComplete = useCallback(async () => {
+    setIsResolving(false);
+    if (!gameId || teams.length === 0) return;
+    try {
+      const res = await fetch(`/api/games/${gameId}/recap/${teams[0].id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const text: string =
+          data.recap_text ??
+          "The epoch is complete. Civilizations grow, adapt, and endure.";
+        setRecapText(text);
+        setShowRecap(true);
+        // Auto-dismiss after 12 seconds
+        setTimeout(() => setShowRecap(false), 12000);
+      }
+    } catch {
+      // non-critical — skip recap display if fetch fails
+    }
+  }, [gameId, teams]);
 
   // Keyboard shortcut: M = toggle map/leaderboard (for teacher/DM control)
   useEffect(() => {
@@ -317,8 +342,22 @@ export default function ProjectorClient({ initialGameId }: { initialGameId?: str
           gameId={gameId}
           epoch={epoch}
           teams={teams}
-          onComplete={() => setIsResolving(false)}
+          onComplete={handleResolveComplete}
         />
+      )}
+
+      {showRecap && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/90 p-8">
+          <div className="w-full max-w-2xl">
+            <DailyRecapCard
+              recapText={recapText}
+              epoch={epoch}
+            />
+            <p className="mt-4 text-center text-xs text-stone-600">
+              Dismisses automatically in 12 seconds…
+            </p>
+          </div>
+        </div>
       )}
 
       {announcement && (

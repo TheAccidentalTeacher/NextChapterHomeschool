@@ -62,6 +62,11 @@ interface TeamInfo {
 
 interface MemberInfo {
   assigned_role: RoleName;
+  cover_info?: {
+    is_substitute: true;
+    covering_role: string;
+    original_role: string;
+  } | null;
 }
 
 interface EpochState {
@@ -83,6 +88,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   debug.render("StudentDashboardClient mounted", { userId, displayName });
   const [team, setTeam] = useState<TeamInfo | null>(null);
   const [role, setRole] = useState<RoleName | null>(null);
+  const [coverInfo, setCoverInfo] = useState<{ covering_role: string; original_role: string } | null>(null);
   const [epoch, setEpoch] = useState<EpochState | null>(null);
   const [resources, setResources] = useState<Record<ResourceType, number>>({
     production: 0,
@@ -135,6 +141,15 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       debug.auth("Student data loaded", { team: t.name, role: m?.assigned_role, gameId: t.game_id });
       setTeam(t);
       setRole(m?.assigned_role ?? null);
+      // Surface cover assignment if this student is substituting for an absent teammate
+      if (m?.cover_info?.is_substitute) {
+        setCoverInfo({
+          covering_role: m.cover_info.covering_role,
+          original_role: m.cover_info.original_role,
+        });
+      } else {
+        setCoverInfo(null);
+      }
 
       // Get epoch state
       const epochRes = await fetch(`/api/games/${t.game_id}/epoch/state`);
@@ -278,7 +293,9 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const ROLE_ICONS: Record<RoleName, string> = {
     architect: "🏛", merchant: "🪙", diplomat: "🕊", lorekeeper: "📖", warlord: "⚔",
   };
-  const effectiveRole = overrideRole ?? role;
+  // Covering students use the absent student's role so their submission counts for that role.
+  // Debug override still takes highest priority.
+  const effectiveRole = overrideRole ?? (coverInfo?.covering_role as RoleName | undefined) ?? role;
 
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
@@ -381,9 +398,24 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         ciScore={0}
       />
 
+      {/* Covering student banner — shown only when this student is substituting for an absent teammate */}
+      {coverInfo && (
+        <div className="flex items-center gap-3 rounded-lg border border-amber-700/50 bg-amber-900/20 px-4 py-2.5">
+          <span className="text-xl">🔄</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-300">
+              Covering {coverInfo.covering_role.charAt(0).toUpperCase() + coverInfo.covering_role.slice(1)} role this epoch
+            </p>
+            <p className="text-xs text-amber-500/80">
+              A teammate is absent — you&apos;re stepping in as {coverInfo.covering_role}. Your submission will count for them.
+              Your original role is {coverInfo.original_role}.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Role switcher — dev/testing only, hidden in production */}
-      {process.env.NEXT_PUBLIC_DEBUG === "true" && (
-        <div className="flex items-center gap-1 rounded-lg bg-stone-900/60 p-1">
+      {process.env.NEXT_PUBLIC_DEBUG === "true" && (        <div className="flex items-center gap-1 rounded-lg bg-stone-900/60 p-1">
           <span className="shrink-0 px-1 text-xs text-violet-500">🧪</span>
           {ROLES.map((r) => (
             <button
