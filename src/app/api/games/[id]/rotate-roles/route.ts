@@ -43,27 +43,32 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 
     const { data: members, error } = await supabase
       .from("team_members")
-      .select("id, assigned_role, is_absent")
+      .select("id, assigned_role, secondary_role, is_absent")
       .in("team_id", teamIds);
 
     if (error || !members?.length) {
       return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
     }
 
-    // Rotate each member's role forward by 1
+    // Rotate each member's primary role (and secondary role if they have one) forward by 1.
+    // Both slots shift +1 independently, maintaining the invariant that all 5 roles are
+    // covered exactly once across the team each epoch.
     const updates = members.map((m) => {
-      const idx = ROLE_ORDER.indexOf(m.assigned_role as typeof ROLE_ORDER[number]);
-      const nextRole = ROLE_ORDER[(idx + 1) % ROLE_ORDER.length];
-      return { id: m.id, assigned_role: nextRole };
+      const pIdx = ROLE_ORDER.indexOf(m.assigned_role as typeof ROLE_ORDER[number]);
+      const nextPrimary = ROLE_ORDER[(pIdx + 1) % ROLE_ORDER.length];
+      const nextSecondary = m.secondary_role
+        ? ROLE_ORDER[(ROLE_ORDER.indexOf(m.secondary_role as typeof ROLE_ORDER[number]) + 1) % ROLE_ORDER.length]
+        : null;
+      return { id: m.id, assigned_role: nextPrimary, secondary_role: nextSecondary };
     });
 
     // Batch update — Supabase doesn't support bulk update with different values per row,
     // so we build individual updates in parallel (35 students max, fine to parallelize)
     const results = await Promise.all(
-      updates.map(({ id: memberId, assigned_role }) =>
+      updates.map(({ id: memberId, assigned_role, secondary_role }) =>
         supabase
           .from("team_members")
-          .update({ assigned_role })
+          .update({ assigned_role, secondary_role })
           .eq("id", memberId)
       )
     );

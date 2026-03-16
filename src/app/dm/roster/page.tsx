@@ -22,6 +22,7 @@ interface TeamData {
     id: string;
     display_name: string;
     assigned_role: RoleName;
+    secondary_role?: RoleName | null;
     is_absent: boolean;
   }[];
 }

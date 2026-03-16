@@ -62,6 +62,7 @@ interface TeamInfo {
 
 interface MemberInfo {
   assigned_role: RoleName;
+  secondary_role?: string | null;
   cover_info?: {
     is_substitute: true;
     covering_role: string;
@@ -73,6 +74,7 @@ interface TeammateInfo {
   id: string;
   display_name: string;
   assigned_role: string;
+  secondary_role: string | null;
   is_absent: boolean;
   is_self: boolean;
 }
@@ -120,10 +122,15 @@ function TeammatesPanel({ teammates }: { teammates: TeammateInfo[] }) {
           }`}
         >
           <span>{ROLE_EMOJI[tm.assigned_role] ?? "🎭"}</span>
+          {tm.secondary_role && !tm.is_absent && (
+            <span className="opacity-70">{ROLE_EMOJI[tm.secondary_role] ?? "🎭"}</span>
+          )}
           <span>{tm.display_name}</span>
           {tm.is_self && <span className="text-stone-400 font-normal"> · you</span>}
           {!tm.is_self && !tm.is_absent && (
-            <span className="capitalize font-normal opacity-70"> · {tm.assigned_role}</span>
+            <span className="capitalize font-normal opacity-70">
+              {" · "}{tm.assigned_role}{tm.secondary_role ? ` + ${tm.secondary_role}` : ""}
+            </span>
           )}
           {tm.is_absent && !tm.is_self && (
             <span className="font-normal"> · absent</span>
@@ -138,6 +145,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   debug.render("StudentDashboardClient mounted", { userId, displayName });
   const [team, setTeam] = useState<TeamInfo | null>(null);
   const [role, setRole] = useState<RoleName | null>(null);
+  const [secondaryRole, setSecondaryRole] = useState<RoleName | null>(null);
   const [coverInfo, setCoverInfo] = useState<{ covering_role: string; original_role: string } | null>(null);
   const [epoch, setEpoch] = useState<EpochState | null>(null);
   const [resources, setResources] = useState<Record<ResourceType, number>>({
@@ -192,6 +200,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       debug.auth("Student data loaded", { team: t.name, role: m?.assigned_role, gameId: t.game_id });
       setTeam(t);
       setRole(m?.assigned_role ?? null);
+      setSecondaryRole((m?.secondary_role as RoleName | null | undefined) ?? null);
       setTeammates(meData.teammates ?? []);
       // Surface cover assignment if this student is substituting for an absent teammate
       if (m?.cover_info?.is_substitute) {
@@ -449,6 +458,21 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         population={team.population}
         ciScore={0}
       />
+
+      {/* Secondary role badge — shown when this student holds two roles */}
+      {secondaryRole && !coverInfo && (
+        <div className="flex items-center gap-3 rounded-lg border border-purple-800/50 bg-purple-900/20 px-4 py-2.5">
+          <span className="text-xl">{ROLE_EMOJI[secondaryRole] ?? "🎭"}</span>
+          <div>
+            <p className="text-sm font-semibold text-purple-300">
+              You hold two roles this epoch: {role} + {secondaryRole}
+            </p>
+            <p className="text-xs text-purple-500/80">
+              Complete both role submissions when it&apos;s your turn. Your primary submission is as {role}.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Covering student banner — shown only when this student is substituting for an absent teammate */}
       {coverInfo && (

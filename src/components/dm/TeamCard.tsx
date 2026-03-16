@@ -5,6 +5,7 @@ interface TeamMember {
   id: string;
   display_name: string;
   assigned_role: RoleName;
+  secondary_role?: RoleName | null;
   is_absent: boolean;
 }
 
@@ -78,6 +79,11 @@ export default function TeamCard({
                 }`}
               >
                 {member.display_name}
+                {member.secondary_role && !member.is_absent && (
+                  <span className="ml-1 rounded bg-purple-900/40 px-1 py-0.5 text-xs text-purple-400">
+                    +{member.secondary_role}
+                  </span>
+                )}
               </span>
 
               {/* Role Selector */}

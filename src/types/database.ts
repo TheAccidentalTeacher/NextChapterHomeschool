@@ -105,6 +105,7 @@ export interface TeamMember {
   clerk_user_id: string;
   display_name: string;
   assigned_role: RoleName;
+  secondary_role: RoleName | null;  // null for 5-student teams; set for 3/4-student teams
   is_absent: boolean;
   joined_at: string;
 }

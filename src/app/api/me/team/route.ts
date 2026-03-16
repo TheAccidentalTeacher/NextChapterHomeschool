@@ -20,6 +20,7 @@ export async function GET() {
         team_id,
         display_name,
         assigned_role,
+        secondary_role,
         is_absent,
         teams:team_id (
           id,
@@ -63,19 +64,21 @@ export async function GET() {
       id: string;
       display_name: string;
       assigned_role: string;
+      secondary_role: string | null;
       is_absent: boolean;
       is_self: boolean;
     }> = [];
     try {
       const { data: allMembers } = await supabase
         .from("team_members")
-        .select("id, clerk_user_id, display_name, assigned_role, is_absent")
+        .select("id, clerk_user_id, display_name, assigned_role, secondary_role, is_absent")
         .eq("team_id", team.id)
         .order("joined_at", { ascending: true });
       teammates = (allMembers ?? []).map((m) => ({
         id: m.id,
         display_name: m.display_name,
         assigned_role: m.assigned_role,
+        secondary_role: m.secondary_role ?? null,
         is_absent: m.is_absent ?? false,
         is_self: m.clerk_user_id === userId,
       }));
@@ -128,6 +131,7 @@ export async function GET() {
         id: membership.id,
         display_name: membership.display_name,
         assigned_role: membership.assigned_role,
+        secondary_role: (membership as unknown as { secondary_role?: string | null }).secondary_role ?? null,
         is_absent: membership.is_absent,
         cover_info: coverInfo,
       },

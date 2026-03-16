@@ -53,6 +53,27 @@ type RoleName = (typeof ROLES)[number];
 function log(icon: string, msg: string) { console.log(`${icon}  ${msg}`); }
 function dimLog(msg: string) { console.log(`     ${msg}`); }
 
+// Distributes 5 roles across N students. Students 0..(5-N-1) get a secondary role
+// so that all 5 role slots are always covered, regardless of team size.
+// 3-student team: [arch+merch, dipl+lore, war]  → 2 dual, 1 solo
+// 4-student team: [arch+merch, dipl, lore, war]  → 1 dual, 3 solo
+// 5-student team: [arch, merch, dipl, lore, war] → all solo
+function computeTeamRoles(studentCount: number): Array<{ assigned: RoleName; secondary: RoleName | null }> {
+  const numRoles = ROLES.length; // always 5
+  const dualCount = Math.max(0, numRoles - studentCount);
+  const result: Array<{ assigned: RoleName; secondary: RoleName | null }> = [];
+  let slot = 0;
+  for (let i = 0; i < studentCount; i++) {
+    const isDual = i < dualCount;
+    result.push({
+      assigned: ROLES[slot % numRoles],
+      secondary: isDual ? ROLES[(slot + 1) % numRoles] : null,
+    });
+    slot += isDual ? 2 : 1;
+  }
+  return result;
+}
+
 // Look up a Clerk user by exact username. Returns { id, displayName } or null.
 async function lookupClerkUser(username: string): Promise<{ id: string; displayName: string } | null> {
   const url = `https://api.clerk.com/v1/users?username=${encodeURIComponent(username)}&limit=1`;
@@ -319,9 +340,10 @@ async function main() {
       }
 
       // Enroll students
+      const teamRoles = computeTeamRoles(teamDef.students.length);
       for (let si = 0; si < teamDef.students.length; si++) {
         const student = teamDef.students[si];
-        const role = ROLES[si % ROLES.length];
+        const { assigned: role, secondary: secondaryRole } = teamRoles[si];
 
         const clerkUser = await lookupClerkUser(student.username);
 
@@ -336,6 +358,7 @@ async function main() {
             clerk_user_id: clerkUser.id,
             display_name: student.first,
             assigned_role: role,
+            secondary_role: secondaryRole,
             is_absent: false,
           });
 
@@ -346,11 +369,12 @@ async function main() {
               log("❌", `Failed to enroll ${student.first}: ${error.message}`);
             }
           } else {
-            dimLog(`✓ ${student.first.padEnd(10)} → ${role.padEnd(12)} (${clerkUser.id.slice(0, 10)}…)`);
+            dimLog(`✓ ${student.first.padEnd(10)} → ${(secondaryRole ? role + "+" + secondaryRole : role).padEnd(22)} (${clerkUser.id.slice(0, 10)}…)`);
           }
         } else {
           const found = clerkUser ? `✓ found ${clerkUser.id.slice(0, 10)}…` : "❌ NOT FOUND";
-          dimLog(`${student.first.padEnd(10)} → ${role.padEnd(12)} | ${student.username.padEnd(12)} ${found}`);
+          const roleLabel = secondaryRole ? `${role} + ${secondaryRole}` : role;
+          dimLog(`${student.first.padEnd(10)} → ${roleLabel.padEnd(20)} | ${student.username.padEnd(12)} ${found}`);
         }
       }
     }
