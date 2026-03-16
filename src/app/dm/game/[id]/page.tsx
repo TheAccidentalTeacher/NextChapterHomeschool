@@ -102,7 +102,7 @@ export default function DMGamePage({
         setTeams(loadedTeams);
         // Build teamColors from team list
         const PALETTE = ["#ef4444","#3b82f6","#22c55e","#f59e0b","#8b5cf6","#06b6d4","#f97316","#ec4899"];
-        setTeamColors(loadedTeams.map((t, i) => ({ teamId: t.id, color: PALETTE[i % PALETTE.length], regionId: t.region_id })));
+        setTeamColors(loadedTeams.map((t, i) => ({ teamId: t.id, color: PALETTE[i % PALETTE.length], name: t.civilization_name ?? t.name })));
       }
       if (szRes.ok) {
         const szd = await szRes.json();
