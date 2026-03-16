@@ -187,6 +187,777 @@
     "scaffolding78": "How do mythological figures reflect a civilization's values? What does your choice say about what your civilization prioritizes? How might this creature appear in future cultural artifacts?"
   },
   {
+    "id": "d-lore-2",
+    "round": "DEFINE",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 4,
+    "epochMax": 10,
+    "promptText": "Generations of your people have lived and died. How will your civilization preserve their stories?",
+    "options": [
+      { "id": "a", "label": "Create an oral tradition", "description": "Storytellers carry knowledge — +Cultural Influence" },
+      { "id": "b", "label": "Invent a writing system", "description": "Record knowledge permanently — +Legacy each epoch" },
+      { "id": "c", "label": "Build a monument", "description": "Stone record that cannot be forgotten — +CI spread" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Sumerians invented cuneiform to record trade, then discovered it also preserved stories. Ancient Griots in West Africa preserved centuries of history orally. The Egyptians carved records in stone. Each method shaped what survived to be remembered.",
+    "scaffolding6th": "As the Lorekeeper, I believe we should [choice] because [civilization] showed that [fact]. Our civilization's history will be preserved through [outcome].",
+    "scaffolding78": "What are the tradeoffs between oral, written, and monumental memory? What has been lost or preserved by each method? Which would best serve your civilization right now?"
+  },
+  {
+    "id": "d-lore-3",
+    "round": "DEFINE",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 7,
+    "epochMax": 15,
+    "civStateTags": ["contact_open"],
+    "promptText": "A neighboring civilization has very different beliefs and stories. Their culture is spreading into your territory.",
+    "options": [
+      { "id": "a", "label": "Embrace cultural exchange", "description": "Adopt some of their stories — CI from both civilizations" },
+      { "id": "b", "label": "Strengthen your own mythology", "description": "Double down on your unique identity — +CI spread" },
+      { "id": "c", "label": "Blend the cultures strategically", "description": "Create a new synthesis — +Legacy and +CI" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "When Rome conquered Greece, Rome adopted much of Greek culture — Greek gods became Roman gods. Japan blended Buddhism from China with their native Shinto beliefs. Cultural exchange can strengthen or dilute identity, depending on how it is managed.",
+    "scaffolding6th": "As the Lorekeeper, I recommend [choice] because when [civilization] met [civilization], they [action] and it led to [outcome]. Our culture will [benefit/risk].",
+    "scaffolding78": "When cultures come into contact, what determines which culture dominates, blends, or disappears? What historical examples illustrate these outcomes?"
+  },
+  {
+    "id": "b-merch-1",
+    "round": "BUILD",
+    "leadRole": "merchant",
+    "domain": "trade_infrastructure",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your civilization needs infrastructure to move goods and people. Where will the Merchant invest?",
+    "options": [
+      { "id": "a", "label": "Build a Market", "description": "Trade post in your best sub-zone — generates Reach income" },
+      { "id": "b", "label": "Construct a Road", "description": "Connect sub-zones — all movement and delivery faster" },
+      { "id": "c", "label": "Establish a Harbor", "description": "Coastal trade access — unlocks naval routes (coastal terrain only)" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Rome's roads connected 250,000 miles of empire, enabling both trade and military movement. The Grand Canal in China linked northern and southern economies. Infrastructure investments paid dividends for centuries — but required enormous upfront commitment.",
+    "scaffolding6th": "As the Merchant, I propose building [choice] because [civilization] showed that [fact]. This will strengthen our economy by [outcome].",
+    "scaffolding78": "What type of trade infrastructure produces the biggest long-term return? How did the Roman road network or Chinese canal systems transform their economies?"
+  },
+  {
+    "id": "b-merch-2",
+    "round": "BUILD",
+    "leadRole": "merchant",
+    "domain": "trade_infrastructure",
+    "epochMin": 5,
+    "epochMax": 12,
+    "civStateTags": ["contact_open"],
+    "promptText": "Contact with neighboring civilizations has opened new economic possibilities. How will you build for trade?",
+    "options": [
+      { "id": "a", "label": "Build a Trading Post at the border", "description": "Dedicated exchange point — +Reach, reduces trade friction" },
+      { "id": "b", "label": "Invest in a Caravan Route", "description": "Regular supply line — steady income over multiple epochs" },
+      { "id": "c", "label": "Construct a Lending House", "description": "Finance larger deals — once per epoch, double a trade's value" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Medieval trading cities like Venice and Genoa grew wealthy by building infrastructure specifically for international commerce. The Han Dynasty's investment in Silk Road waypoints turned a dangerous journey into a reliable trade corridor.",
+    "scaffolding6th": "As the Merchant, I choose to [choice] because traders in [civilization] discovered that [fact]. Our economy will benefit because [outcome].",
+    "scaffolding78": "How does trade infrastructure differ from military or agricultural infrastructure in its economic effects? What made the Silk Road sustainable for centuries?"
+  },
+  {
+    "id": "b-merch-3",
+    "round": "BUILD",
+    "leadRole": "merchant",
+    "domain": "trade_infrastructure",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["wealthy"],
+    "promptText": "Your treasury is full. A prosperous civilization attracts both merchants — and thieves. How do you protect your wealth?",
+    "options": [
+      { "id": "a", "label": "Build a Vault and guard system", "description": "Secure resources against raids — bank decay reduced" },
+      { "id": "b", "label": "Invest in a Trade Fleet", "description": "Diversify income across regions — three new trade routes" },
+      { "id": "c", "label": "Found a Merchant Guild", "description": "Permanent institution — Merchants generate +2 Reach each epoch" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Medici banking family in Florence created the first international banking network, protecting and multiplying their wealth across Europe. The Dutch East India Company showed how formal trade institutions could generate wealth far beyond any individual merchant.",
+    "scaffolding6th": "As the Merchant, I recommend [choice] because wealthy civilizations like [example] learned that [fact]. This will protect and grow our prosperity by [outcome].",
+    "scaffolding78": "What distinguishes individual wealth from institutional wealth? How do formal trade institutions change a civilization's economic stability?"
+  },
+  {
+    "id": "b-dipl-1",
+    "round": "BUILD",
+    "leadRole": "diplomat",
+    "domain": "governance",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your civilization has grown too large for the elders alone to govern. A new structure is needed. What will you build?",
+    "options": [
+      { "id": "a", "label": "A Council Hall", "description": "Democratic decision-making — +Reach, slower decisions" },
+      { "id": "b", "label": "A Palace District", "description": "Centralized authority — +Production efficiency, less flexibility" },
+      { "id": "c", "label": "A Court of Law", "description": "Rule of law over rule of person — stable governance, +Legacy" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Athens built the first direct democracy with its Assembly Hall. Rome's Senate balanced patrician power. The Zhou Dynasty in China built a palace-centered administration. Each structure created a different kind of civilization with different strengths.",
+    "scaffolding6th": "As the Diplomat, I propose building [choice] because in [civilization], their form of government [fact]. Our civilization will be shaped because [outcome].",
+    "scaffolding78": "How does governmental architecture reflect political values? What are the long-term tradeoffs between centralized and distributed decision-making?"
+  },
+  {
+    "id": "b-dipl-2",
+    "round": "BUILD",
+    "leadRole": "diplomat",
+    "domain": "governance",
+    "epochMin": 5,
+    "epochMax": 11,
+    "promptText": "Neighboring civilizations are watching your every move. Your infrastructure sends a message about who you are. What will you build?",
+    "options": [
+      { "id": "a", "label": "An Embassy District", "description": "Formal welcome to foreign envoys — +contact range, -hostility" },
+      { "id": "b", "label": "A Watchtower Network", "description": "Early warning of threats — intelligence on neighbor movements" },
+      { "id": "c", "label": "A Public Forum", "description": "Open gathering space — +Cultural Influence, ideas spread faster" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Persian Empire created the Royal Road network partly to host ambassadors and messengers. Constantinople's position as a crossroads made it a hub of diplomatic contacts. Infrastructure can be a diplomatic signal as much as a military one.",
+    "scaffolding6th": "As the Diplomat, I want to build [choice] because [civilization] showed that [fact]. This will affect our relationships with neighboring civilizations by [outcome].",
+    "scaffolding78": "How does infrastructure communicate political intent to other civilizations? What infrastructure choices signal strength, openness, or ambition?"
+  },
+  {
+    "id": "b-dipl-3",
+    "round": "BUILD",
+    "leadRole": "diplomat",
+    "domain": "governance",
+    "epochMin": 9,
+    "epochMax": 15,
+    "promptText": "Your civilization is older now, and cracks are forming. Some regions want more autonomy. What structure will hold you together?",
+    "options": [
+      { "id": "a", "label": "Build Regional Governors' Houses", "description": "Grant local power — loyalty increases, some autonomy granted" },
+      { "id": "b", "label": "Construct a Grand Capital District", "description": "Concentrate power — strong center, peripheral resentment risk" },
+      { "id": "c", "label": "Create a Federal Council Building", "description": "Shared governance — stable but slower to respond to threats" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Roman Empire struggled with how much autonomy to grant provincial governors. Too little autonomy and regions rebelled. Too much and they declared independence. The British Empire's transition to the Commonwealth explored the same tension centuries later.",
+    "scaffolding6th": "As the Diplomat, I propose [choice] because growing empires like [civilization] discovered that [fact]. This will help our civilization stay united because [outcome].",
+    "scaffolding78": "What are the inherent tensions between central authority and regional autonomy? How have different empires managed this tension — successfully and unsuccessfully?"
+  },
+  {
+    "id": "b-lore-1",
+    "round": "BUILD",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your people need a place to remember who they are. The Lorekeeper must decide: what do you build?",
+    "options": [
+      { "id": "a", "label": "A Sacred Grove or Temple", "description": "Spiritual center — +Cultural Influence, inspires the people" },
+      { "id": "b", "label": "A Storytelling Hall", "description": "Oral history center — permanent +Legacy per epoch" },
+      { "id": "c", "label": "A School of Arts", "description": "Train the next generation — doubles CI generation while active" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Stonehenge was both a religious site and a cultural anchor for prehistoric Britain. Ancient Greece's Academy shaped Western thought for two millennia. The Timgad library in Roman North Africa preserved knowledge through generations of political change.",
+    "scaffolding6th": "As the Lorekeeper, I choose to build [choice] because in [civilization], [fact]. Our culture will be strengthened because [outcome].",
+    "scaffolding78": "How do cultural institutions shape a civilization's identity in ways that physical walls and armies cannot? What cultural buildings have had the most lasting impact in history?"
+  },
+  {
+    "id": "b-lore-2",
+    "round": "BUILD",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 5,
+    "epochMax": 12,
+    "promptText": "Your civilization's arts and stories are flourishing. How should you build to preserve and spread them?",
+    "options": [
+      { "id": "a", "label": "Construct a Great Archive", "description": "Preserve all knowledge — permanent +Legacy, resists Dark Ages" },
+      { "id": "b", "label": "Build an Artist District", "description": "Concentrated creative output — high CI spread to nearby civilizations" },
+      { "id": "c", "label": "Establish Festival Grounds", "description": "Public cultural celebrations — +Food morale bonus, +CI each festival" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Library of Alexandria was the ancient world's greatest knowledge repository — its loss during various fires represents one of history's greatest intellectual catastrophes. The Italian Renaissance began in artists' districts concentrated in Florence and Venice.",
+    "scaffolding6th": "As the Lorekeeper, I want to [choice] because the [example] shows that when civilizations invest in [culture type], they experience [outcome]. Our civilization's culture will [effect].",
+    "scaffolding78": "What is the relationship between cultural investment and civilizational resilience? How have great archives, artist communities, or festivals shaped the civilizations that created them?"
+  },
+  {
+    "id": "b-lore-3",
+    "round": "BUILD",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["high_ci"],
+    "promptText": "Your civilization's cultural influence has spread beyond your borders. How will you build to sustain this legacy?",
+    "options": [
+      { "id": "a", "label": "Build a Grand Museum", "description": "Showcase your civilization's artifacts — massive CI cap increase" },
+      { "id": "b", "label": "Establish Cultural Missions", "description": "Send Lorekeeper units to spread your culture to other regions" },
+      { "id": "c", "label": "Fund a University", "description": "Train scholars from other civilizations — shared knowledge, diplomatic bonus" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Smithsonian Institution expanded American cultural influence globally. Al-Azhar University in Cairo, founded in 970 CE, spread Islamic scholarship across the world. Cultural institutions can project power as effectively as armies.",
+    "scaffolding6th": "As the Lorekeeper, I propose [choice] because our civilization's cultural influence should grow through [reason], just as [historical example] shows that [fact].",
+    "scaffolding78": "What is 'soft power' and how does cultural influence function as a form of power? Compare a civilization that projected power through culture vs. one that relied on military force."
+  },
+  {
+    "id": "b-war-1",
+    "round": "BUILD",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your people are safe for now — but a Warlord knows that preparation is survival. What military infrastructure will you build first?",
+    "options": [
+      { "id": "a", "label": "Build Barracks", "description": "Train soldiers faster, reduce unit cost by 25%" },
+      { "id": "b", "label": "Construct Walls", "description": "First attack each epoch absorbed — enemy damage halved" },
+      { "id": "c", "label": "Build a Watchtower", "description": "Early warning system — see enemy movements 1 epoch in advance" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Sparta maintained permanent barracks for its warrior class from childhood called the agoge. The Great Wall of China prioritized fixed defenses. The Byzantine Empire famously used watchtowers connected by signal fires to respond to threats within hours.",
+    "scaffolding6th": "As the Warlord, I recommend building [choice] because [civilization] proved that [fact]. Our military strength will improve because [outcome].",
+    "scaffolding78": "What is the difference between an offensive and a defensive military strategy? What historical civilizations best exemplify each approach — and what were the long-term results?"
+  },
+  {
+    "id": "b-war-2",
+    "round": "BUILD",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 5,
+    "epochMax": 11,
+    "civStateTags": ["war_tension"],
+    "promptText": "Tensions with neighbors are rising. As Warlord, you must build the infrastructure that will determine the outcome.",
+    "options": [
+      { "id": "a", "label": "Build a War Arsenal", "description": "Weapon production facility — unit upgrades cost 30% less" },
+      { "id": "b", "label": "Establish a Military Academy", "description": "Train elite soldiers — experienced units deal +25% damage" },
+      { "id": "c", "label": "Build a Naval Yard", "description": "Sea power — blockade capabilities, +Reach in coastal regions" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Athens' Piraeus naval yard made it the dominant sea power in Greece. Sparta's military academies produced the ancient world's most feared infantry. Song Dynasty China developed advanced arsenals that pioneered gunpowder weapons centuries before Europe.",
+    "scaffolding6th": "As the Warlord, I choose to build [choice] because when [civilization] invested in this type of military infrastructure, [fact]. Our forces will benefit by [outcome].",
+    "scaffolding78": "How does military infrastructure investment affect deterrence vs. escalation? What historical examples show military build-ups that prevented war vs. those that accelerated it?"
+  },
+  {
+    "id": "b-war-3",
+    "round": "BUILD",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 9,
+    "epochMax": 15,
+    "promptText": "Your civilization is powerful, but power must be projected. The Warlord must decide: build for dominance or for control.",
+    "options": [
+      { "id": "a", "label": "Build a Citadel", "description": "Fortress capital — virtually impossible to conquer your core region" },
+      { "id": "b", "label": "Construct Border Forts", "description": "Distributed defense at every border sub-zone" },
+      { "id": "c", "label": "Build a Monument of Victory", "description": "+Cultural Influence among conquered/allied territories — intimidation factor" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Crusader castles in the Holy Land are engineering marvels that controlled critical passages for centuries. Rome's triumphal arches celebrated military victories in ways that projected power through culture. The choice between fortification and intimidation is as old as civilization.",
+    "scaffolding6th": "As the Warlord, I believe [choice] is the right investment because powerful civilizations like [example] learned that [fact]. This will secure our military position because [outcome].",
+    "scaffolding78": "What is the purpose of military architecture beyond practical defense? How do fortifications and monuments serve both tactical and psychological roles? Give historical examples of each."
+  },
+  {
+    "id": "e-arch-1",
+    "round": "EXPAND",
+    "leadRole": "architect",
+    "domain": "expansion",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your civilization has secured its heartland. As Architect, you must decide how to build into new territory.",
+    "options": [
+      { "id": "a", "label": "Build a Frontier Settlement", "description": "Establish a new outpost in an unclaimed sub-zone" },
+      { "id": "b", "label": "Extend your road network", "description": "Connect distant sub-zones — faster expansion in future epochs" },
+      { "id": "c", "label": "Reinforce borders first", "description": "Strengthen what you have before expanding" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "American western expansion used railroad infrastructure to make settlement viable. Roman roads preceded permanent settlement of conquered territories. The Vikings established temporary camps that became permanent settlements as infrastructure followed.",
+    "scaffolding6th": "As the Architect, I think we should [choice] because civilization expansion history shows that [fact]. This will affect our territory growth by [outcome].",
+    "scaffolding78": "What makes territorial expansion sustainable vs. overextended? What infrastructure is necessary before a civilization can hold new territory?"
+  },
+  {
+    "id": "e-arch-2",
+    "round": "EXPAND",
+    "leadRole": "architect",
+    "domain": "expansion",
+    "epochMin": 5,
+    "epochMax": 11,
+    "promptText": "You've claimed new land, but settling it is harder than taking it. As Architect, what do you build first in new territory?",
+    "options": [
+      { "id": "a", "label": "A Supply Depot", "description": "New territory generates resources immediately — no lag period" },
+      { "id": "b", "label": "A Defensive Wall around the new zone", "description": "New territory has same defense as your heartland" },
+      { "id": "c", "label": "A Farm or Granary", "description": "Feed the settlers first — new territory grows population faster" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Roman coloniae were built to a standard template: roads, forum, walls, and supply depot in a fixed order. The success of the colonial template meant new territory became productive Roman land faster than enemies could reclaim it.",
+    "scaffolding6th": "As the Architect, I propose building [choice] in our new territory first because [civilization] showed that new settlers need [fact]. Our expansion will succeed because [outcome].",
+    "scaffolding78": "What is the infrastructure sequence that makes colonization sustainable? Why do some civilizations succeed at integrating new territory while others see their expansions collapse?"
+  },
+  {
+    "id": "e-arch-3",
+    "round": "EXPAND",
+    "leadRole": "architect",
+    "domain": "expansion",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["large_territory"],
+    "promptText": "Your empire spans many sub-zones. Managing this territory is becoming a challenge the Architect must solve.",
+    "options": [
+      { "id": "a", "label": "Build an Imperial Relay Station network", "description": "Fast communication across all territory — response time halved" },
+      { "id": "b", "label": "Construct Regional Storehouses", "description": "Distribute resource storage — bank decay reduced in all sub-zones" },
+      { "id": "c", "label": "Build a Grand Canal or Aqueduct system", "description": "Connect water and food across your empire — famine prevention" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Persian Royal Road, stretching 1,600 miles, used relay stations to move messages across the empire in a week. The Roman aqueduct system fed distant cities from mountain sources. Empire-scale infrastructure enabled civilizations to function as a unified whole rather than a patchwork.",
+    "scaffolding6th": "As the Architect, I recommend [choice] because large empires like [example] discovered that without [infrastructure type], [consequence]. This will help our empire function by [outcome].",
+    "scaffolding78": "What are the infrastructure challenges unique to large empires that smaller civilizations don't face? How did the Roman or Persian empires engineer solutions to this problem?"
+  },
+  {
+    "id": "e-dipl-1",
+    "round": "EXPAND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 1,
+    "epochMax": 6,
+    "promptText": "Your explorers have encountered the edges of another civilization's territory. The Diplomat must decide: how do you make first contact?",
+    "options": [
+      { "id": "a", "label": "Send a peaceful envoy with gifts", "description": "Friendly first contact — opens trade and dialogue options" },
+      { "id": "b", "label": "Plant your flag and claim the border", "description": "Assert your territory — may cause tension but secures your claim" },
+      { "id": "c", "label": "Watch and learn before approaching", "description": "Gather intelligence first — better informed when you do make contact" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "When Columbus arrived in the Caribbean, his approach was aggressive and coercive. The Chinese explorer Zheng He, just decades earlier, made first contact with dozens of civilizations using gifts, trade, and respect — creating diplomatic relationships that lasted for generations.",
+    "scaffolding6th": "As the Diplomat, I believe we should approach our neighbors by [choice] because [historical example] showed that first contact done through [method] leads to [outcome].",
+    "scaffolding78": "How does the method of first contact between civilizations shape their long-term relationship? Compare Zheng He's diplomatic approach to European colonial approaches. Why the different strategies?"
+  },
+  {
+    "id": "e-dipl-2",
+    "round": "EXPAND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 5,
+    "epochMax": 12,
+    "civStateTags": ["contact_open"],
+    "promptText": "Your civilization and a neighbor both want the same unclaimed territory. War could break out. The Diplomat must find another way.",
+    "options": [
+      { "id": "a", "label": "Propose a shared border treaty", "description": "Divide the disputed zone by agreement — lose half but avoid war" },
+      { "id": "b", "label": "Request international arbitration", "description": "Bring in a third civilization to decide — lose some pride, gain legitimacy" },
+      { "id": "c", "label": "Race to settle it first", "description": "Build in it this epoch — finders keepers, but expect resentment" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The 1494 Treaty of Tordesillas split the undiscovered world between Spain and Portugal with a line on a map — one of history's first territorial arbitration agreements. The Berlin Conference of 1884 'divided' Africa between European powers, with catastrophic long-term consequences.",
+    "scaffolding6th": "As the Diplomat, I propose [choice] because disputed territories like [historical example] were handled through [method], leading to [outcome]. Our situation requires [reason].",
+    "scaffolding78": "What makes a negotiated solution to territorial disputes stable versus unstable over time? Compare successful and unsuccessful territorial treaties in history. What made the difference?"
+  },
+  {
+    "id": "e-dipl-3",
+    "round": "EXPAND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 8,
+    "epochMax": 15,
+    "promptText": "You have the power to expand — but a smaller civilization sits in your path. Using force would be easy. The Diplomat argues there's a better way.",
+    "options": [
+      { "id": "a", "label": "Offer a vassal arrangement", "description": "They keep their culture; you get their resources and loyalty" },
+      { "id": "b", "label": "Propose a union by treaty", "description": "Full integration — their territory becomes yours legally, not by force" },
+      { "id": "c", "label": "Leave them independent and trade only", "description": "Economic influence without political control" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Roman strategy of offering citizenship to conquered peoples transformed enemies into loyal Roman citizens. The British Empire's system of protectorates maintained some local governance while extracting resources. Some modern states have voluntarily merged with larger neighbors through democratic processes.",
+    "scaffolding6th": "As the Diplomat, I recommend [choice] because powerful civilizations like [example] discovered that [method of expansion] resulted in [outcome]. This approach is better because [reason].",
+    "scaffolding78": "What distinguishes conquest, vassalage, union, and economic dominance? What are the long-term costs and benefits of each approach to expansion? Which has historically produced more stable outcomes?"
+  },
+  {
+    "id": "e-lore-1",
+    "round": "EXPAND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 1,
+    "epochMax": 7,
+    "promptText": "Your culture remains strong at home — but new lands mean new peoples with their own beliefs. What does the Lorekeeper do?",
+    "options": [
+      { "id": "a", "label": "Send cultural missionaries", "description": "Spread your stories and beliefs into new territories — +CI spread" },
+      { "id": "b", "label": "Document the new culture you find", "description": "Record and preserve what you discover — +Legacy, +Reach" },
+      { "id": "c", "label": "Create a cultural exchange center", "description": "Create a place where cultures blend — shared CI benefits both civs" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Spanish missionaries followed conquistadors into the Americas, aggressively converting indigenous populations. Muslim scholars along the Silk Road documented the cultures they encountered. The exchanges at the Tang Dynasty court in Chang'an gave China access to music, art, and ideas from across Eurasia.",
+    "scaffolding6th": "As the Lorekeeper, I think we should [choice] because when cultures expand, [historical example] shows that [fact]. Our civilization's cultural identity will be [outcome].",
+    "scaffolding78": "What is cultural imperialism, and how does it differ from cultural exchange? Give historical examples of each. What responsibilities do more powerful civilizations have when they encounter smaller ones?"
+  },
+  {
+    "id": "e-lore-2",
+    "round": "EXPAND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 5,
+    "epochMax": 12,
+    "promptText": "As your territory grows, your mythology needs to grow with it. New lands come with new stories. How does the Lorekeeper handle this?",
+    "options": [
+      { "id": "a", "label": "Create a founding myth for the new land", "description": "New territory gets its own cultural origin story — +CI in new zones" },
+      { "id": "b", "label": "Incorporate local legends into your mythology", "description": "Blend new stories with yours — +Cultural Influence with former locals" },
+      { "id": "c", "label": "Commission a Grand Epic poem or saga", "description": "Epic story that unites all territories under one cultural identity — huge +CI" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Aeneid was commissioned by Augustus Caesar to tie Roman identity to the Trojan War, legitimizing Rome's expansion across the Mediterranean. Indigenous myths were often incorporated into colonial religious systems to ease cultural conversion across history.",
+    "scaffolding6th": "As the Lorekeeper, I propose [choice] because when [civilization] expanded, their cultural strategy was to [fact], which led to [outcome]. Our stories should [approach].",
+    "scaffolding78": "How do civilizations use narrative and mythology to consolidate control over new territories? Is cultural expansion more or less effective than military expansion in the long run?"
+  },
+  {
+    "id": "e-lore-3",
+    "round": "EXPAND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["large_territory"],
+    "promptText": "Your civilization's culture spans many territories. But distance strains cultural unity. The Lorekeeper must act to hold it together.",
+    "options": [
+      { "id": "a", "label": "Establish a central cultural calendar", "description": "Shared festivals across all territories — CI unity bonus, population morale" },
+      { "id": "b", "label": "Create regional cultural traditions", "description": "Each territory gets its own variation — less CI but more local loyalty" },
+      { "id": "c", "label": "Fund traveling cultural troupes", "description": "Live performance spreads culture person-to-person — slow but deep CI penetration" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Rome created shared holidays (like Saturnalia) that were celebrated from Britain to Mesopotamia. The Islamic Hajj pilgrimage unified Muslims across continents around a shared cultural moment. Medieval European carnival traditions adapted locally while maintaining recognizable shared elements.",
+    "scaffolding6th": "As the Lorekeeper, I recommend [choice] because large empires like [example] kept their cultures unified through [fact]. Our civilization will stay culturally connected because [outcome].",
+    "scaffolding78": "What holds a geographically dispersed civilization's culture together? What evidence do we have for how Roman, Islamic, or Chinese cultures maintained cohesion across vast distances?"
+  },
+  {
+    "id": "e-war-1",
+    "round": "EXPAND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 1,
+    "epochMax": 7,
+    "promptText": "Your scouts have found valuable land. Some of it is unclaimed. Some is contested. The Warlord must advise: how far do we push?",
+    "options": [
+      { "id": "a", "label": "Take only clearly unclaimed territory", "description": "Cautious expansion — no conflict risk, fewer zones" },
+      { "id": "b", "label": "Push to the most defensible natural border", "description": "Strategic depth — secure the best terrain, expect contestation" },
+      { "id": "c", "label": "Maximum expansion now while we're strong", "description": "Aggressive claim — maximum territory but high war risk" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Alexander the Great's expansions outpaced his supply lines, leading to overextension. Augustus Caesar halted Roman expansion at the Rhine and Danube, declaring these natural borders sufficient — and Rome was stronger for it. The decision of when to stop expanding is often the most important military decision a civilization makes.",
+    "scaffolding6th": "As the Warlord, I advise [choice] because military history shows that [civilization] learned the hard way that [fact]. Expanding [how far] will lead to [outcome].",
+    "scaffolding78": "What is military overextension? What historical examples show civilizations that recognized their limits vs. those that exceeded them? What made the difference?"
+  },
+  {
+    "id": "e-war-2",
+    "round": "EXPAND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 5,
+    "epochMax": 12,
+    "civStateTags": ["contact_open"],
+    "promptText": "A neighbor's territory sits between yours and a rich resource zone. The Warlord sees an opportunity. But the Diplomat urges caution.",
+    "options": [
+      { "id": "a", "label": "Negotiate a military corridor", "description": "Ask permission to move troops through — diplomatic, slower" },
+      { "id": "b", "label": "Take a flanking route through difficult terrain", "description": "Avoid the conflict — costs extra Resilience but preserves peace" },
+      { "id": "c", "label": "Demand the right of passage", "description": "Show of force — may work if they fear you, may trigger war" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Belgium's neutrality in 1914 was violated when Germany demanded a military corridor through it — triggering Britain's entry into WWI. The right of passage and freedom of movement has been one of history's most contentious territorial issues.",
+    "scaffolding6th": "As the Warlord, I recommend [choice] because when [civilization] needed to move through [territory], they [action] and the result was [outcome]. Our best option is [reason].",
+    "scaffolding78": "What international norms govern military movement through sovereign territory? How does the violation of these norms historically escalate or de-escalate conflicts?"
+  },
+  {
+    "id": "e-war-3",
+    "round": "EXPAND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 9,
+    "epochMax": 15,
+    "promptText": "You have pushed your borders to their current limits. Now the question is: hold them or continue?",
+    "options": [
+      { "id": "a", "label": "Establish a permanent garrison at each border", "description": "Locked borders — expensive but secure against all threats" },
+      { "id": "b", "label": "Create mobile strike forces instead", "description": "Flexible defense — respond quickly anywhere, fewer fixed costs" },
+      { "id": "c", "label": "Build a buffer zone of allied territories", "description": "Push threats further away through diplomacy and trade" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Hadrian's Wall was Rome's garrison-based border strategy in Britain. The Mongol Empire preferred mobile strike forces that could respond anywhere within days. The Cold War's NATO alliance system created a different kind of buffer zone using allied nations' armies.",
+    "scaffolding6th": "As the Warlord, I advise [choice] because powerful empires like [example] found that defending their territory through [strategy] was effective because [fact].",
+    "scaffolding78": "What are the tradeoffs between static defense, mobile defense, and diplomatic security arrangements? Which is most sustainable for a civilization at your stage of development?"
+  },
+  {
+    "id": "d-dipl-3",
+    "round": "DEFINE",
+    "leadRole": "diplomat",
+    "domain": "governance",
+    "epochMin": 8,
+    "epochMax": 15,
+    "promptText": "Your civilization's original laws no longer fit the complex society you've built. The Diplomat must shepherd a constitutional moment.",
+    "options": [
+      { "id": "a", "label": "Expand the law to protect more rights", "description": "Social contract — +Population happiness and stability" },
+      { "id": "b", "label": "Strengthen the ruler's emergency powers", "description": "Respond faster to threats — risk of permanent authoritarianism" },
+      { "id": "c", "label": "Create a legal tradition of review", "description": "Laws can adapt over time — slower, but self-correcting governance" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Magna Carta (1215) was a forced constitutional moment where English barons constrained the king. The Roman Republic's expansion of citizenship was a gradual legal evolution. France's multiple constitutional revolutions show both the potential and danger of radical legal reform.",
+    "scaffolding6th": "As the Diplomat, I propose [choice] because civilizations that [action with laws] showed that [fact]. Our civilization needs this change because [reason].",
+    "scaffolding78": "What triggers constitutional change in civilizations? Is gradual legal evolution or sudden constitutional reform historically more stable? What examples support your argument?"
+  },
+  {
+    "id": "d-arch-1",
+    "round": "DEFINE",
+    "leadRole": "architect",
+    "domain": "culture",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "The way your city looks tells the world who you are. As Architect in the DEFINE round, what cultural statement will you make in stone?",
+    "options": [
+      { "id": "a", "label": "Build a monument visible from all territory", "description": "Civilization landmark — +CI, inspires all teams who see it" },
+      { "id": "b", "label": "Create a distinctive architectural style", "description": "Unique visual identity — all future buildings +10% Production efficiency" },
+      { "id": "c", "label": "Design a city grid for order and function", "description": "Ordered city plan — +Population capacity, +governance efficiency" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Washington D.C. was designed to project democratic values through neoclassical architecture. Islamic geometric architecture in mosques transmitted cultural and mathematical values. Hausmann's redesign of Paris created both beauty and social control at the same time.",
+    "scaffolding6th": "As the Architect, I propose [choice] because the way we build reflects our values, just as [civilization]'s [structure] showed [fact]. Our choice will define our civilization as [identity].",
+    "scaffolding78": "How does architecture function as cultural communication? What do the architectural choices of historical civilizations tell us about their values, politics, and social structures?"
+  },
+  {
+    "id": "d-arch-2",
+    "round": "DEFINE",
+    "leadRole": "architect",
+    "domain": "culture",
+    "epochMin": 6,
+    "epochMax": 15,
+    "promptText": "Your civilization's cultural achievements should be commemorated. As Architect, you must build the monument that defines your legacy.",
+    "options": [
+      { "id": "a", "label": "A triumphal arch or victory monument", "description": "Celebrate your greatest achievement — +CI, war exhaustion reduced" },
+      { "id": "b", "label": "A grand civic plaza or agora", "description": "Public gathering space — democracy boost, +Population morale" },
+      { "id": "c", "label": "An eternal flame or eternal garden", "description": "Symbol of continuity — immunity to cultural decay for 3 epochs" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Acropolis and Parthenon were civic monuments that projected Athenian values of beauty, wisdom, and democracy. Trajan's Column in Rome told the story of military conquest in visual narrative. The eternal flames at many national monuments show how symbols of continuity serve real political purposes.",
+    "scaffolding6th": "As the Architect, I chose to build [choice] because great civilizations like [example] commemorated their identity through [type of monument], which [outcome]. Our monument will represent [civilization's values].",
+    "scaffolding78": "What makes a monument culturally enduring? Why do some civilizations' monuments survive and shape identity for millennia, while others are forgotten? What does it take to build something truly lasting?"
+  },
+  {
+    "id": "d-merch-1",
+    "round": "DEFINE",
+    "leadRole": "merchant",
+    "domain": "governance",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "Your civilization needs economic laws. As Merchant in the DEFINE round, you have the floor. What economic system will you enshrine?",
+    "options": [
+      { "id": "a", "label": "Free market law — trade without restriction", "description": "+Reach each epoch, some inequality risk" },
+      { "id": "b", "label": "Regulated trade law — fair prices enforced", "description": "Stable prices, +Food morale, slightly lower Reach gains" },
+      { "id": "c", "label": "State monopoly on key goods", "description": "Control strategic resources — high Production, resentment risk" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Medieval European guilds created regulated trade that protected quality but also created monopolies. The East India Company was essentially a state-backed monopoly that became more powerful than governments. Ancient Rome tried both — markets for grain, state control for salt. Each system produced different social effects.",
+    "scaffolding6th": "As the Merchant, I propose [choice] as our economic law because [civilization]'s economic system showed that [fact]. Our economy will be defined by [outcome].",
+    "scaffolding78": "What are the tradeoffs between free markets, regulated trade, and state control of the economy? What historical examples best illustrate the benefits and costs of each approach?"
+  },
+  {
+    "id": "d-merch-2",
+    "round": "DEFINE",
+    "leadRole": "merchant",
+    "domain": "governance",
+    "epochMin": 6,
+    "epochMax": 15,
+    "civStateTags": ["contact_open"],
+    "promptText": "Trade between your civilization and others has grown complex. The Merchant must define the rules of international commerce.",
+    "options": [
+      { "id": "a", "label": "Create a trade treaty framework", "description": "Bind all trade agreements under one set of rules — disputes handled legally" },
+      { "id": "b", "label": "Establish a currency union with allies", "description": "Shared currency — massive trade efficiency, loss of economic sovereignty" },
+      { "id": "c", "label": "Impose tariffs to protect local producers", "description": "Protect your economy — higher production at home, possible retaliation" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Hanseatic League created one of history's first international trade law frameworks, governing commerce across northern Europe for 300 years. The European Union's common currency shows both the benefits and political costs of economic integration.",
+    "scaffolding6th": "As the Merchant, I recommend [choice] because international trade systems like [example] showed that [fact]. Our civilization's relationship with trade partners will be shaped by [outcome].",
+    "scaffolding78": "What are the prerequisites for a stable international trading system? How do power dynamics between civilizations affect what trade arrangements are possible?"
+  },
+  {
+    "id": "d-war-1",
+    "round": "DEFINE",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "Peacetime requires military law. As Warlord in the DEFINE round, you must define the rules that govern your warriors.",
+    "options": [
+      { "id": "a", "label": "Code of Warriors — honor in combat", "description": "Disciplined army — +Resilience, enemy surrender more likely" },
+      { "id": "b", "label": "Mandatory military service for all citizens", "description": "Mass mobilization possible — larger army, civilian resentment risk" },
+      { "id": "c", "label": "Professional standing army only", "description": "Small but elite force — high cost but maximum effectiveness" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Sparta's agoge system created lifelong professional warriors but left no one for farming or trade. Rome's legions were professional soldiers supported by citizen-farmer reserves — a balance that lasted centuries. Japan's samurai code (Bushido) created highly effective warriors constrained by honor rules.",
+    "scaffolding6th": "As the Warlord, I propose [choice] as our military law because [civilization] taught us that [fact]. Our army will be shaped by [outcome].",
+    "scaffolding78": "How do military laws and traditions shape a civilization's social structure, not just its fighting capacity? What does a civilization's approach to military service say about its values?"
+  },
+  {
+    "id": "d-war-2",
+    "round": "DEFINE",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 7,
+    "epochMax": 15,
+    "civStateTags": ["war_tension"],
+    "promptText": "After recent conflict, your civilization must decide: what are the laws of war? The Warlord has the floor.",
+    "options": [
+      { "id": "a", "label": "No-quarter law — enemies are enemies", "description": "Maximum military effectiveness — high war exhaustion, enemies fight harder" },
+      { "id": "b", "label": "Prisoner exchange law — captured soldiers returned", "description": "Reduce war exhaustion — enemies more willing to negotiate" },
+      { "id": "c", "label": "Protected zones law — civilians are off-limits", "description": "+Cultural Influence globally — enemies less likely to destroy your civilians" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Geneva Convention (1864) codified the legal protection of wounded soldiers and civilians, fundamentally changing modern warfare. Sun Tzu wrote that treating captured soldiers well and releasing them converted them into assets. The laws of war have consistently proven that restraint, paradoxically, is often strategically effective.",
+    "scaffolding6th": "As the Warlord, I believe our law should be [choice] because military history shows that civilizations that [action toward enemies] experienced [outcome]. This rule will define how we fight.",
+    "scaffolding78": "Why do laws of war exist, and do they actually work? What historical evidence suggests that constraints on military behavior can improve, rather than reduce, a civilization's strategic position?"
+  },
+  {
+    "id": "def-arch-1",
+    "round": "DEFEND",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "A threat has emerged. As Architect in the DEFEND round, your job is to build fast — before the danger arrives.",
+    "options": [
+      { "id": "a", "label": "Emergency walls around vulnerable sub-zones", "description": "Fast fortification — reduces incoming damage this epoch" },
+      { "id": "b", "label": "Reinforce the granaries and food storage", "description": "Siege defense — can survive 3 epochs without food resupply" },
+      { "id": "c", "label": "Build emergency escape tunnels", "description": "Population protection — if sub-zone falls, some population escapes" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "During the Mongol invasions, some cities fell in days when unprepared. Others, like Kaifeng, held for months behind walls. The siege of Masada shows how food storage could extend a fortress's lifespan. Many medieval cities had escape tunnels as a last resort — some still undiscovered.",
+    "scaffolding6th": "As the Architect, I recommend building [choice] because when [civilization] faced [threat], constructing [structure] [outcome]. Our people will be safer because [reason].",
+    "scaffolding78": "What makes a city defensible vs. vulnerable? How has the relationship between offensive and defensive technology changed throughout history? What examples best illustrate this arms race?"
+  },
+  {
+    "id": "def-arch-2",
+    "round": "DEFEND",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 7,
+    "epochMax": 15,
+    "promptText": "A long-term threat has emerged. The Architect must design infrastructure that will defend your civilization for generations.",
+    "options": [
+      { "id": "a", "label": "Commission a full defensive wall system", "description": "Strategic border defense — all border sub-zones fortified simultaneously" },
+      { "id": "b", "label": "Build a distributed fortress network", "description": "Resilient defense — even if one fortress falls, others hold" },
+      { "id": "c", "label": "Invest in advanced defensive technology", "description": "Requires tech unlock — but obsoletes enemy siege capabilities" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Maginot Line was the world's most sophisticated fixed defense — but France's enemies simply went around it. The Byzantine Empire's Theodosian Walls surrounding Constantinople withstood 23 sieges over a thousand years until artillery made them obsolete. Good defensive design accounts for the technology of future threats, not just current ones.",
+    "scaffolding6th": "As the Architect, I propose [choice] because defenses like [example] [succeeded/failed] because [fact]. I want our defenses to be different because [reason] and [outcome].",
+    "scaffolding78": "How does defensive architecture become obsolete? What is the relationship between offensive technology development and defensive infrastructure? What examples from history best illustrate this dynamic?"
+  },
+  {
+    "id": "def-merch-1",
+    "round": "DEFEND",
+    "leadRole": "merchant",
+    "domain": "trade",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "A threat has emerged — and it hits the economy first. As Merchant in the DEFEND round, how do you protect your civilization's trade?",
+    "options": [
+      { "id": "a", "label": "Stockpile strategic resources", "description": "Emergency reserves — 3 epochs of buffer against trade disruption" },
+      { "id": "b", "label": "Diversify trade partners immediately", "description": "No single point of failure — trade income stable even if one partner threatens" },
+      { "id": "c", "label": "Impose emergency trade controls", "description": "Government takes over resource distribution — efficient but unpopular" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Venice maintained strategic grain reserves that let it withstand sieges for years. Britain's naval blockade of Germany in WWI was an economic defense weapon as much as a military one. The OPEC oil embargo of 1973 showed how economic vulnerability could destabilize even powerful nations.",
+    "scaffolding6th": "As the Merchant, I recommend [choice] because [civilization] showed that economic threats are best defended by [fact]. This will protect our trade by [outcome].",
+    "scaffolding78": "How is economic vulnerability a national security issue? What historical examples show civilizations that successfully defended against economic threats, and what strategies did they use?"
+  },
+  {
+    "id": "def-merch-2",
+    "round": "DEFEND",
+    "leadRole": "merchant",
+    "domain": "trade",
+    "epochMin": 7,
+    "epochMax": 15,
+    "civStateTags": ["war_tension"],
+    "promptText": "War looks likely. As Merchant, you have one job in the DEFEND round: fund it without destroying the economy.",
+    "options": [
+      { "id": "a", "label": "Issue war bonds to the public", "description": "Borrow from citizens — fund war without taxation, pay back later" },
+      { "id": "b", "label": "Demand emergency tribute from trade partners", "description": "Quick resources — may damage long-term relationships" },
+      { "id": "c", "label": "Impose a war tax on luxuries", "description": "Stable funding — economy hurts but war is funded sustainably" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Britain financed its wars through the Bank of England, pioneering war bonds in the 18th century. Athens drained the Delian League treasury for its Peloponnesian War, destroying its alliances. Medieval Italian city-states taxed only luxury goods during conflict to protect basic commerce.",
+    "scaffolding6th": "As the Merchant, I propose [choice] to fund our defense because [civilization] showed that financing war through [method] resulted in [outcome]. Our economy will survive because [reason].",
+    "scaffolding78": "How do war financing decisions affect both the war effort and the post-war economy? What patterns do you see in how civilizations have funded military conflicts throughout history?"
+  },
+  {
+    "id": "def-dipl-1",
+    "round": "DEFEND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "A threat emerges. Before a single soldier moves, the Diplomat has a job to do in the DEFEND round. What's your move?",
+    "options": [
+      { "id": "a", "label": "Emergency message to all allied civilizations", "description": "Rally support — allies send resources or troops if treaty allows" },
+      { "id": "b", "label": "Negotiate directly with the threat", "description": "De-escalation attempt — may delay or prevent attack entirely" },
+      { "id": "c", "label": "Warn neutral civilizations to stay out", "description": "Isolate the conflict — prevents third parties from joining the threat" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "On the eve of WWI, a flurry of telegrams between European monarchs (who were all cousins) tried to prevent the war — and failed. In the Cuban Missile Crisis, diplomatic back-channels ultimately prevented nuclear war. Diplomacy in crisis moments has both succeeded and failed spectacularly.",
+    "scaffolding6th": "As the Diplomat, I recommend [choice] because in-crisis diplomacy like [example] showed that [fact]. My action will [outcome] for our civilization.",
+    "scaffolding78": "What conditions make crisis diplomacy succeed or fail? Compare cases where diplomatic intervention prevented conflict with cases where it failed. What variables made the difference?"
+  },
+  {
+    "id": "def-dipl-2",
+    "round": "DEFEND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 7,
+    "epochMax": 15,
+    "civStateTags": ["war_exhausted"],
+    "promptText": "War has been costly. Your people are exhausted. The Diplomat has the DEFEND round floor: find a way out.",
+    "options": [
+      { "id": "a", "label": "Propose a ceasefire with all parties", "description": "Pause fighting — reduce war exhaustion this epoch and next" },
+      { "id": "b", "label": "Negotiate through a neutral mediator", "description": "Third party helps find face-saving terms for both sides" },
+      { "id": "c", "label": "Make a unilateral peace gesture", "description": "Show goodwill — risky if enemy exploits it, but opens dialogue" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Peace of Westphalia ended the Thirty Years War through a congress that took four years of negotiation. Sadat's surprise visit to Israel in 1977 was a unilateral peace gesture that shocked the world but eventually led to a real peace treaty. The strategies for ending wars are as varied as the strategies for winning them.",
+    "scaffolding6th": "As the Diplomat, I believe [choice] is the right path because exhausted civilizations like [example] found that [fact]. This will help our civilization recover because [outcome].",
+    "scaffolding78": "What makes a peace agreement durable vs. temporary? Compare peace settlements that held for generations with those that collapsed. What variables determined the difference?"
+  },
+  {
+    "id": "def-lore-1",
+    "round": "DEFEND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 1,
+    "epochMax": 8,
+    "promptText": "A threat looms. The Lorekeeper's job in the DEFEND round isn't weapons — it's the will to fight. How do you inspire your people?",
+    "options": [
+      { "id": "a", "label": "Create rallying songs and stories of ancestors", "description": "Morale boost — +Resilience this epoch, war exhaustion slows" },
+      { "id": "b", "label": "Tell the story of a historic resistance", "description": "Invoke a historical victory — population fights harder, -war exhaustion gain" },
+      { "id": "c", "label": "Commission a prophecy of victory", "description": "Religious/mythological motivation — maximum morale, high CI cost if you lose" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Churchill's WWII speeches used historical narrative and language to transform British morale during the darkest days of the war. The Norse sagas were often performed before battle to inspire warriors. The Vietnamese 'Declaration of Independence' in 1945 strategically echoed the American Declaration to inspire resistance and gain allies.",
+    "scaffolding6th": "As the Lorekeeper, I propose [choice] because stories and culture are essential to defense, just as [example] showed that [fact]. Our people will be inspired by [outcome].",
+    "scaffolding78": "How does cultural narrative function as a military resource? What historical examples show culture being used to motivate resistance, shape identity during conflict, or sustain morale through adversity?"
+  },
+  {
+    "id": "def-lore-2",
+    "round": "DEFEND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 7,
+    "epochMax": 15,
+    "civStateTags": ["war_tension"],
+    "promptText": "War threatens to destroy what your civilization has built — including its culture. The Lorekeeper must protect the knowledge.",
+    "options": [
+      { "id": "a", "label": "Bury or hide the cultural archives", "description": "Protect knowledge from conquest — Legacy survives even if territory falls" },
+      { "id": "b", "label": "Scatter copies of knowledge to allied civilizations", "description": "Distributed backup — knowledge preserved even if your civilization falls" },
+      { "id": "c", "label": "Put culture on display as defiance", "description": "Show the enemy that your culture cannot be destroyed — +CI, inspires resistance" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The monks of Skellig Michael preserved European knowledge while the continent descended into the Dark Ages. The Malians smuggled 300,000 manuscripts out of Timbuktu in 2012-13 to protect them from ISIS. Ukrainian museums moved artifacts underground in 2022. The idea that culture must be defended like a military position is ancient.",
+    "scaffolding6th": "As the Lorekeeper, I recommend [choice] because civilizations that faced threats to their culture, like [example], preserved their knowledge by [action], resulting in [outcome].",
+    "scaffolding78": "Why do conquering civilizations often target cultural and religious sites? How does cultural destruction function as a military strategy? What historical examples show both cultural destruction and cultural survival?"
+  },
+  {
+    "id": "def-war-3",
+    "round": "DEFEND",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 8,
+    "epochMax": 15,
+    "civStateTags": ["contact_open", "war_tension"],
+    "promptText": "Multiple civilizations are mobilizing against you. The Warlord must decide: how do you fight on multiple fronts?",
+    "options": [
+      { "id": "a", "label": "Concentrate forces against the strongest foe first", "description": "Defeat enemies in detail — risk leaving other fronts exposed" },
+      { "id": "b", "label": "Strategic defense — hold all borders, counterattack later", "description": "Maintain position — exhausting but no new territory lost" },
+      { "id": "c", "label": "Negotiate with the weakest aggressor to split the coalition", "description": "Break the alliance — fights one enemy at a time" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Napoleon's genius was defeating enemies in detail — concentrating his forces to shatter one opponent before turning to the next. Germany in WWI fought a two-front war to exhaustion. Frederick the Great fought seven major powers simultaneously through a combination of speed, interior lines, and diplomatic maneuvering.",
+    "scaffolding6th": "As the Warlord, I advise [choice] because fighting multiple opponents like [civilization] in [conflict] showed that [fact]. This strategy will [outcome] for our people.",
+    "scaffolding78": "What military principles apply to multi-front conflicts? When is concentration of force the right answer vs. strategic defense? What historical multi-front conflicts best illustrate these principles?"
+  },
+  {
     "id": "b-arch-4",
     "round": "BUILD",
     "leadRole": "architect",
@@ -196,14 +967,14 @@
     "civStateTags": ["wealthy", "high_population"],
     "promptText": "Your civilization is prosperous. The people demand a monument worthy of their achievements.",
     "options": [
-      { "id": "a", "label": "Begin a Wonder", "description": "Invest production toward a world marvel" },
-      { "id": "b", "label": "Build a Library", "description": "Permanent +25% Legacy — invest in knowledge" },
-      { "id": "c", "label": "Upgrade infrastructure", "description": "Improve existing buildings for efficiency" }
+      { "id": "a", "label": "Begin a Wonder", "description": "Invest production toward a world marvel — permanent +CI and +Legacy" },
+      { "id": "b", "label": "Build a Library", "description": "Permanent +25% Legacy per epoch — invest in knowledge" },
+      { "id": "c", "label": "Upgrade all existing infrastructure", "description": "Improve every existing building — compound efficiency gains" }
     ],
     "allowFreeText": true,
     "historicalContext": "The Pyramids of Giza, the Colosseum, the Great Library of Alexandria — Wonders defined civilizations. But they were enormously expensive. Some historians argue the Pyramids' cost weakened Egypt's military, while the Library's knowledge preserved Greek thought for millennia.",
-    "scaffolding6th": "As the Architect, I propose [choice] because wonders like [example] showed that [fact]. This will shape our legacy by [outcome].",
-    "scaffolding78": "Is investing in monuments or practical infrastructure more valuable for a prosperous civilization? What does history tell us about the ROI of Wonders vs. military/economic investment?"
+    "scaffolding6th": "As the Architect, I propose [choice] because Wonders like [example] showed that [fact]. This will shape our legacy by [outcome].",
+    "scaffolding78": "Is investing in monuments or practical infrastructure more valuable for a prosperous civilization? What does history tell us about the long-term return on investment of Wonders vs. military or economic infrastructure?"
   },
   {
     "id": "e-merch-3",
@@ -215,13 +986,142 @@
     "civStateTags": ["small_territory"],
     "promptText": "Your civilization controls only its starting territory. The fog of war hides riches — and dangers — beyond.",
     "options": [
-      { "id": "a", "label": "Deploy scouts aggressively", "description": "Reveal as much territory as possible" },
-      { "id": "b", "label": "Expand cautiously", "description": "Claim one adjacent sub-zone and fortify" },
-      { "id": "c", "label": "Focus inward", "description": "Build up home territory before looking outward" }
+      { "id": "a", "label": "Deploy scouts aggressively", "description": "Reveal as much territory as possible this epoch" },
+      { "id": "b", "label": "Expand cautiously", "description": "Claim one adjacent sub-zone and fortify before moving on" },
+      { "id": "c", "label": "Focus inward first", "description": "Build up home territory before looking outward" }
     ],
     "allowFreeText": true,
     "historicalContext": "The Portuguese Age of Exploration sent ships into unknown waters, discovering new trade routes but at great risk. Meanwhile, China under the Ming Dynasty chose to focus inward, dismantling their exploration fleet. Both decisions shaped centuries of history.",
     "scaffolding6th": "As the Merchant, I recommend [choice] because when [civilization] chose to [explore/stay], they [outcome]. Our territory will [benefit/risk].",
-    "scaffolding78": "What factors should determine how aggressively a civilization expands? How did the pace of expansion affect civilizations like Portugal, Spain, or Ming China?"
+    "scaffolding78": "What factors should determine how aggressively a civilization expands early on? How did the pace of expansion affect civilizations like Portugal, Spain, or Ming China?"
+  },
+  {
+    "id": "def-arch-3",
+    "round": "DEFEND",
+    "leadRole": "architect",
+    "domain": "infrastructure",
+    "epochMin": 4,
+    "epochMax": 12,
+    "promptText": "Enemy forces have breached your outer borders. As Architect in the DEFEND round, you must make emergency decisions.",
+    "options": [
+      { "id": "a", "label": "Burn infrastructure to deny its use", "description": "Scorched earth — enemy gains no Production from captured zone" },
+      { "id": "b", "label": "Rapid repair and refortify damaged walls", "description": "Hold what you have — reduce ongoing damage by 50%" },
+      { "id": "c", "label": "Build a secondary defensive line in your interior", "description": "Defense in depth — even if the outer zone falls, you have a fallback" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Moscow's deliberate burning in 1812 denied Napoleon a winter base and forced his catastrophic retreat. The Soviet defense in depth at the Battle of Kursk (1943) was a masterclass in strategic defense — absorbing the German assault and counterattacking. Not every defensive decision is about holding the line.",
+    "scaffolding6th": "As the Architect, I recommend [choice] because [civilization] facing invasion made a similar choice and [outcome]. Our best defense right now is [reasoning].",
+    "scaffolding78": "What is defense in depth, and how does it differ from a static defensive line? What historical examples show this strategy working — or failing — under pressure?"
+  },
+  {
+    "id": "def-dipl-3",
+    "round": "DEFEND",
+    "leadRole": "diplomat",
+    "domain": "diplomacy",
+    "epochMin": 5,
+    "epochMax": 12,
+    "promptText": "An aggressor is threatening your civilization. Other civilizations are watching. The Diplomat must work the room.",
+    "options": [
+      { "id": "a", "label": "Bring the dispute to a multi-civilization congress", "description": "International pressure — costly in favors, but may deter aggression" },
+      { "id": "b", "label": "Form a defensive alliance with your nearest neighbor", "description": "Bilateral pact — mutual defense, mutual commitment" },
+      { "id": "c", "label": "Appeal to the aggressor's self-interest", "description": "Show them what they gain by NOT attacking — economic offer" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Concert of Europe after Napoleon used multi-power congresses to prevent any one nation from dominating through force for nearly a century. NATO's collective security pact made attacking any member a declaration of war on all. Both approaches show how diplomatic structures can substitute for fighting.",
+    "scaffolding6th": "As the Diplomat, I recommend [choice] because [example] showed that facing a potential aggressor through [diplomatic strategy] resulted in [outcome]. My approach will [reason].",
+    "scaffolding78": "What makes collective security work, and when does it fail? Compare the Concert of Europe, the League of Nations, and NATO as collective security mechanisms. Why did some succeed while others failed?"
+  },
+  {
+    "id": "def-lore-3",
+    "round": "DEFEND",
+    "leadRole": "lorekeeper",
+    "domain": "culture",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["war_exhausted"],
+    "promptText": "War has worn your people down. As Lorekeeper, how do you rebuild the spirit of a civilization on the edge?",
+    "options": [
+      { "id": "a", "label": "Retell the founding story of your civilization", "description": "Origins revival — reconnect people to what you're defending. +Morale" },
+      { "id": "b", "label": "Celebrate the survivors as heroes", "description": "Honor the living and the fallen — war exhaustion reduced by 2 steps" },
+      { "id": "c", "label": "Imagine a vision of the future worth fighting for", "description": "Prophetic hope — inspire with what you will build after the war ends" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Lincoln's Gettysburg Address reframed the Civil War from a fight about law to a fight about whether democracy itself could survive — transforming how an exhausted nation understood its sacrifices. The liberation struggles of colonized peoples often drew on pre-colonial cultural identity to inspire resistance.",
+    "scaffolding6th": "As the Lorekeeper, I believe [choice] will help our exhausted people because [fact from history about culture and war recovery]. Our civilization's spirit will recover because [outcome].",
+    "scaffolding78": "How do cultures reconstruct identity and purpose during or after devastating conflict? What makes some civilizations resilient through prolonged hardship when others collapse?"
+  },
+  {
+    "id": "def-merch-3",
+    "round": "DEFEND",
+    "leadRole": "merchant",
+    "domain": "trade",
+    "epochMin": 9,
+    "epochMax": 15,
+    "civStateTags": ["war_exhausted"],
+    "promptText": "The war has damaged your economy. As Merchant, you must rebuild and stabilize — fast.",
+    "options": [
+      { "id": "a", "label": "Seek emergency loans from neutral civilizations", "description": "Immediate resources — debts to be repaid later; strings attached" },
+      { "id": "b", "label": "Redirect military production to economic recovery", "description": "Rapid rebuilding — vulnerable militarily this epoch" },
+      { "id": "c", "label": "Open trade with former enemies", "description": "Normalize relations — both economies recover faster, pride costs" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The Marshall Plan (1948) showed that economic recovery investments in former enemies (and allies) could stabilize an entire region. Germany's post-WWI reparations burden, in contrast, created the economic misery that enabled fascism. How a civilization recovers economically after war shapes the next generation of peace or conflict.",
+    "scaffolding6th": "As the Merchant, I recommend [choice] for our economic recovery because [example] showed that post-war economies that [action] experienced [outcome]. Our economy will recover by [reason].",
+    "scaffolding78": "What determines whether post-war economic recovery leads to lasting stability or to renewed conflict? Compare the Marshall Plan with the Treaty of Versailles as economic recovery strategies."
+  },
+  {
+    "id": "d-arch-3",
+    "round": "DEFINE",
+    "leadRole": "architect",
+    "domain": "culture",
+    "epochMin": 4,
+    "epochMax": 11,
+    "promptText": "Your civilization must define itself through law as well as stone. As Architect, you are asked: what should be mandatory to build?",
+    "options": [
+      { "id": "a", "label": "Public wells and sanitation in every settlement", "description": "Public health mandate — +Population stability, fewer famines" },
+      { "id": "b", "label": "A main road connecting all settlements to the capital", "description": "Connectivity law — integration bonus, faster economic growth" },
+      { "id": "c", "label": "A public space (square, market, or forum) in every city", "description": "Civic law — +Cultural Influence and +Population morale everywhere" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Roman law required all cities to maintain roads, aqueducts, and public spaces — this standardization made Roman civilization recognizable across three continents. Greek polis laws required public agoras. Inca law mandated road construction throughout the empire, which moved information and goods faster than any contemporary civilization.",
+    "scaffolding6th": "As the Architect, I propose making [choice] the law because [civilization] showed that requiring all cities to build [structure] resulted in [fact]. Our civilization will be unified because [outcome].",
+    "scaffolding78": "How do building codes and infrastructure laws shape a civilization's identity and economic integration? What examples show standardized infrastructure creating measurable civilizational advantages?"
+  },
+  {
+    "id": "d-merch-3",
+    "round": "DEFINE",
+    "leadRole": "merchant",
+    "domain": "governance",
+    "epochMin": 8,
+    "epochMax": 15,
+    "civStateTags": ["wealthy"],
+    "promptText": "Your civilization is rich. Now comes the hard part: defining who benefits. The Merchant must propose an economic law for prosperity.",
+    "options": [
+      { "id": "a", "label": "Establish a public wealth fund — share the surplus", "description": "+Population morale, slower individual accumulation" },
+      { "id": "b", "label": "Create a merchant class with special legal status", "description": "Incentivize trade — faster Reach growth, wealth concentrates at top" },
+      { "id": "c", "label": "Fund public works from trade revenues", "description": "Reinvest in the civilization — +Production in all zones, slower trade" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "Norway's sovereign wealth fund invests the country's oil revenues for future generations. The Roman grain dole fed the poor from trade surplus. Venetian merchant families reinvested in the city's infrastructure, creating a virtuous cycle. The question of who owns prosperity has defined political disputes across all civilizations.",
+    "scaffolding6th": "As the Merchant, I propose [choice] because prosperity in [civilization] was distributed through [method], which led to [outcome]. Our law will define how wealth is shared because [reason].",
+    "scaffolding78": "What are the long-term social effects of different wealth distribution models? Compare civilizations that shared wealth broadly vs. those where wealth concentrated. Which shows greater long-term stability?"
+  },
+  {
+    "id": "d-war-3",
+    "round": "DEFINE",
+    "leadRole": "warlord",
+    "domain": "military",
+    "epochMin": 8,
+    "epochMax": 15,
+    "promptText": "After a period of conflict, your civilization must define who has the power to start a war. The Warlord addresses the DEFINE round.",
+    "options": [
+      { "id": "a", "label": "Only the ruler can declare war", "description": "Fast decisions — centralized authority, risk of one person's error" },
+      { "id": "b", "label": "War requires approval from the council", "description": "Democratic check — slower, but broader legitimacy for all conflicts" },
+      { "id": "c", "label": "War may be declared only in response to attacks", "description": "Defensive doctrine — limits aggressive war, +CI globally, -flexibility" }
+    ],
+    "allowFreeText": true,
+    "historicalContext": "The United States Constitution gave Congress — not the President — the power to declare war, a deliberate check on executive power. Many modern nations have similar legislative requirements. The UN Charter's Article 51 creates an international norm that only defensive wars are legal — though this is frequently reinterpreted.",
+    "scaffolding6th": "As the Warlord, I propose [choice] as our war declaration law because [civilization]'s experience with [method of declaring war] showed that [fact]. This rule will [outcome] for future conflicts.",
+    "scaffolding78": "How does political control over the decision to go to war affect whether wars happen and how they are conducted? What constitutional arrangements have historically been most effective at preventing unnecessary wars?"
   }
 ]
