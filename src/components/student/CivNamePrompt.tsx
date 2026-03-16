@@ -68,8 +68,8 @@ export default function CivNamePrompt() {
       );
 
       if (res.ok) {
-        setPendingName(name.trim());
-        setStatus("pending");
+        setApprovedName(name.trim());
+        setStatus("approved");
         setName("");
       }
     } finally {
@@ -93,9 +93,9 @@ export default function CivNamePrompt() {
 
   if (status === "pending") {
     return (
-      <div className="rounded-xl border border-blue-800/50 bg-blue-950/20 px-4 py-3">
-        <p className="text-sm text-blue-400">
-          ⏳ &quot;{pendingName}&quot; is awaiting DM approval
+      <div className="rounded-xl border border-amber-800/50 bg-amber-950/20 px-4 py-3">
+        <p className="text-sm text-amber-400">
+          🏛️ Your civilization: <strong>{pendingName}</strong>
         </p>
       </div>
     );
@@ -107,7 +107,7 @@ export default function CivNamePrompt() {
         🏛️ Name Your Civilization
       </h3>
       <p className="mt-1 text-xs text-stone-400">
-        Choose a name for your civilization. Your DM will approve it.
+        Choose a name for your civilization.
       </p>
       <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
         <input

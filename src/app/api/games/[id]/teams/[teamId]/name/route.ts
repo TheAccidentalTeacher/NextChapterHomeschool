@@ -80,26 +80,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Insert or update pending name
-    const { data, error } = await supabase
+    // Write name immediately — no approval step needed
+    // Also log to civilization_names for teacher audit trail
+    const trimmed = name.trim();
+
+    const { error: teamError } = await supabase
+      .from("teams")
+      .update({ civilization_name: trimmed })
+      .eq("id", teamId);
+
+    if (teamError) {
+      return NextResponse.json({ error: teamError.message }, { status: 500 });
+    }
+
+    // Log submission (best-effort — don't fail if table doesn't exist)
+    await supabase
       .from("civilization_names")
       .upsert(
         {
           team_id: teamId,
-          name: name.trim(),
-          approved_by_teacher: false,
+          name: trimmed,
+          approved_by_teacher: true,
           submitted_by: userId,
         },
         { onConflict: "team_id" }
-      )
-      .select()
-      .single();
+      );
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    return NextResponse.json({ submission: data }, { status: 201 });
+    return NextResponse.json({ approved_name: trimmed }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unauthorized";
     return NextResponse.json({ error: message }, { status: 401 });
