@@ -1,5 +1,7 @@
 # BUILD-PLAN.md — ClassCiv Master Build Plan
 ### The Step-by-Step Guide From Scaffold to Playable Classroom Game
+
+> **GitHub Repo:** https://github.com/TheAccidentalTeacher/NextChapterHomeschool
 > **Source of truth:** BRAINSTORM.md (93 locked decisions + D62 UI addendum)
 > **Builder:** Scott Somers + Claude Opus 4.6
 > **Created:** March 5, 2026
@@ -39,28 +41,77 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
+## BUILD STATUS — MARCH 15, 2026
+> **Auditor:** GitHub Copilot (Claude Sonnet 4.6)
+> **Methodology:** Full code vs. documentation comparison — 54 API routes, 60+ components, 23 engine files, 5 Supabase migrations, 30-epoch simulation run.
+
+### What's Operational (tested in 30-epoch simulation with 6 teams, 36 students)
+- ✅ Auth — Clerk, username-only, 35 student accounts created
+- ✅ Game + team setup, DM setup page, roster management, role rotation
+- ✅ Submission system — question delivery, form UI, justification, Realtime status tracking
+- ✅ 11-phase epoch state machine — 4 rounds, configurable timers per class (6th vs 7/8)
+- ✅ DM panel — submission queue, pause/resolve/override, intel drop, global events, role rotation button
+- ✅ Resource engine — yield formula, routing, bank decay, food/pop, depletion, war exhaustion, dark ages
+- ✅ 23 game engine files in `src/lib/game/` — tech tree logic, battle resolver, NPC engine, vassal engine, victory engine, wonder logic, kaiju, population, research, contact, etc.
+- ✅ All 12 wonders fully defined in `wonders.ts` — exact roster matches BRAINSTORM GP1-W
+- ✅ All 7 kaiju fully defined in `kaiju.ts` — exact roster matches BRAINSTORM K-NEW1
+- ✅ Projector map — full Leaflet, Realtime subscriptions, team colors, paused overlay
+- ✅ Solo adventure mode — CPU players, no auth required, fully complete
+- ✅ Simulation engine — 30-epoch verified, replay viewer complete
+
+### Critical Path to Classroom Alpha (priority order)
+1. **Vercel deployment** — not yet connected (Phase 1 gap — #1 blocker)
+2. **Sub-zones not seeded in Supabase** — GeoJSON files exist in `public/data/`, seed script pending (Phase 2 gap)
+3. **Question bank not generated** — `public/data/question-bank.json` is a stub; Sonnet generation script pending (Phase 3 gap)
+4. **Projector resolution animation** — `ResolveSequence.tsx` exists but not fully wired (Phase 6 gap)
+5. **Haiku recap + exit hook wiring** — `DailyRecapCard.tsx` and `ExitHookCard.tsx` exist; not connected to RESOLVE trigger (Phases 4/6 gap)
+6. **Covering student dual panel on dashboard** — cover assignment stored in DB, not yet surfaced on `/dashboard` (Phase 4 gap)
+7. **Conflict flag detection UI** — `ConflictFlagBanner.tsx` exists; detection logic not wired to submission close (Phase 4 gap)
+
+### Engine-Built / UI-Missing (Phases 7–14)
+These systems have working backend logic and API routes but no student-facing UI yet:
+- Phase 7: Building/unit placement on map — `purchase-catalog.ts` + `degradation-engine.ts` done
+- Phase 8: d20 event fire control + animation — `event-deck.ts` + `event-resolver.ts` + `D20EventPopup.tsx` done
+- Phase 9: Tech tree student selector — `tech-tree.ts` (all 5 tiers, ~30 techs) done
+- Phase 10: Wonder contribution routing — `wonders.ts` (all 12) + `wonder_progress` schema done
+- Phase 11: Trade board interface — `trade_offers` + `trade_agreements` + embargo schema and logic done
+- Phase 12: Kaiju animations + HeyGen — `kaiju.ts` (all 7 with CSS classes) done; animation playback pending
+- Phase 13: NPC interaction interface — `npc-engine.ts` + `reputation-engine.ts` done
+- Phase 14: Portfolio PDF export — epilogue results API + CI leaderboard + artifact endpoints done; PDF generation pending
+
+### Schema Notes
+- `001_initial_schema.sql` — 29 tables, 13 enums, RLS, Realtime deployed ✅
+- `002_fix_current_round.sql` — changed `current_round` from `round_type` enum to `text`; the original enum `('EXPAND', 'BUILD', 'RESOLVE', 'DEFINE')` was missing `DEFEND` and routing step values ✅
+- **Migration 003 is missing** — folder jumps from 002 → 004. No confirmed functionality gap but the sequence is non-contiguous. Document what 003 contained before closing this gap.
+- `004_add_delete_policies.sql` — RLS cascade protection for team data deletion ✅
+- `005_add_game_config.sql` — added `class_period` + `round_timer_minutes` columns to `games` table (required by Decision 44/79 but absent from initial schema) ✅
+- `006_fix_delete_policies.sql` — RLS refinement ✅
+- `007_reset_game_data.sql` — destructive nuke script; manual use only ✅
+
+---
+
 ## TABLE OF CONTENTS
 
-| Phase | Name | Priority | Decisions Covered |
-|-------|------|----------|-------------------|
-| 0 | Foundation (DONE) | ✅ Complete | 84 |
-| 1 | Auth + Game/Team Setup | ✅ Complete | 83, 76, 13, 4-6, 8, 29 |
-| 2 | Map Layer (Leaflet + GeoJSON) | ✅ Complete | 1, 60, 61, 81 |
-| 3 | Submission System | ✅ Complete | 19-25, 27, 32, 78, 80 |
-| 4 | DM Panel | ✅ Complete | 47-52, 66, 71-72 |
-| 5 | Resource Engine | ✅ Complete | 37-39, 41, 43, 45, 87 |
-| 6 | Projector Display | ✅ Complete | 76, 79, 4 (P1-P4) |
-| 7 | Purchase Menu + Buildings on Map | 🟡 Day 2+ | 39, 90, 91 |
-| 8 | d20 Event System + Math Gate | 🟡 Day 2+ | 33, 88, 92 |
-| 9 | Tech Tree UI + Research | 🟡 Day 2+ | 62 |
-| 10 | Wonder System | 🟡 Week 2 | 36, 37, 38, 40 |
-| 11 | Trade System | 🟡 Week 2 | 69 |
-| 12 | HeyGen Clips + Kaiju Animations | 🟠 Week 2-3 | 34, 55 |
-| 13 | NPC System | 🟠 Week 3 | 64 |
-| 14 | Portfolio Export + Epilogue | 🟠 Week 3 | 68, 74, 82, 89 |
-| 15 | Simulation Engine + Replay Viewer | ✅ Complete | — (out-of-sequence, built for debrief) |
-| 16 | Solo Adventure Mode | ✅ Complete | — (teacher/student practice mode, no auth required) |
-| 17 | City Founding — Settler Map | 🔵 Next | — (map-based founding step before Epoch 1) |
+| Phase | Name | Status (March 15, 2026) | Decisions Covered |
+|-------|------|-------------------------|-------------------|
+| 0 | Foundation | ✅ 100% | 84 |
+| 1 | Auth + Game/Team Setup | ⚠️ ~90% — Vercel undeployed | 83, 76, 13, 4-6, 8, 29 |
+| 2 | Map Layer (Leaflet + GeoJSON) | ⚠️ ~85% — Sub-zones not seeded in Supabase | 1, 60, 61, 81 |
+| 3 | Submission System | ⚠️ ~75% — Question bank not generated | 19-25, 27, 32, 78, 80 |
+| 4 | DM Panel | ⚠️ ~80% — Conflict detection + cross-class grace mode pending | 47-52, 66, 71-72 |
+| 5 | Resource Engine | ✅ ~90% — All engines built; untested in live game | 37-39, 41, 43, 45, 87 |
+| 6 | Projector Display | ⚠️ ~85% — Resolution animation + Haiku recap wiring pending | 76, 79, 4 (P1-P4) |
+| 7 | Purchase Menu + Buildings on Map | 🔨 ~30% — Engines built, map placement UI missing | 39, 90, 91 |
+| 8 | d20 Event System + Math Gate | 🔨 ~40% — Event deck + resolver built, fire UI + animations pending | 33, 88, 92 |
+| 9 | Tech Tree UI + Research | 🔨 ~50% — Tech tree data + logic built, student UI missing | 62 |
+| 10 | Wonder System | 🔨 ~30% — wonders.ts (all 12) + schema built, contribution UI missing | 36, 37, 38, 40 |
+| 11 | Trade System | 🔨 ~20% — Agreement/embargo logic built, trade board UI missing | 69 |
+| 12 | HeyGen Clips + Kaiju Animations | 🔨 ~15% — kaiju.ts (all 7) built, animations + HeyGen pending | 34, 55 |
+| 13 | NPC System | 🔨 ~15% — npc-engine.ts + reputation built, interaction UI missing | 64 |
+| 14 | Portfolio Export + Epilogue | 🔨 ~20% — Schema + results API built, PDF export pending | 68, 74, 82, 89 |
+| 15 | Simulation Engine + Replay Viewer | ✅ 100% — Built out-of-sequence, 30-epoch verified | — |
+| 16 | Solo Adventure Mode | ✅ 100% — Built out-of-sequence, no auth required | — |
+| 17 | City Founding — Settler Map | 🔴 0% — Not started | — |
 
 ---
 
@@ -81,17 +132,17 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 - [x] GitHub repo: `TheAccidentalTeacher/NextChapterHomeschool` — 2 commits on main
 - [x] Dev server running on localhost:3001
 
-### What's NOT Built Yet
-- [ ] No functional features — all pages are placeholder UI
-- [ ] Vercel deployment not connected
-- [ ] Clerk username-only auth not configured (email/phone still enabled in Clerk dashboard)
-- [ ] No GeoJSON sub-zone data
-- [ ] No question bank
-- [ ] No game logic, no yield calculations, no resolution engine
+### What Was NOT Built in Phase 0 (updated March 15, 2026)
+- [x] No functional features — all pages now built (Phases 1-6)
+- [ ] **Vercel deployment not connected** — still pending; #1 blocker for classroom alpha
+- [x] Clerk username-only auth — configured; 35 student accounts created via `scripts/create-student-accounts.ts`
+- [x] GeoJSON sub-zone data — files exist in `public/data/sub-zones.json` and `regions.json` — **not yet seeded into Supabase (Phase 2 outstanding gap)**
+- [ ] **Question bank not generated** — `public/data/question-bank.json` is a stub; `scripts/generate-question-bank.ts` not yet run
+- [x] Game logic, yield calculations, resolution engine — all built across 23 engine files in `src/lib/game/`
 
 ---
 
-## PHASE 1 — AUTH + GAME/TEAM SETUP ✅ COMPLETE
+## PHASE 1 — AUTH + GAME/TEAM SETUP ⚠️ ~90% COMPLETE
 **Decisions:** 83 (Auth/Privacy), 76 (Three Roles), 13 (Team Formation), 4-6 (Player/Team Count), 8 (Persistence), 29 (5 Roles), 14-16 (Draft System), 4 (P4 — Civ Names)
 **Goal:** Scott can create a game, set up teams, assign students to roles, and everyone can log in to the correct view.
 
@@ -177,7 +228,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 2 — MAP LAYER (LEAFLET + GEOJSON) ✅ COMPLETE
+## PHASE 2 — MAP LAYER (LEAFLET + GEOJSON) ⚠️ ~85% COMPLETE
 **Decisions:** 1 (Real Earth), 60 (Regional Bonuses), 61 (Sub-Zones), 81 (Fog/Occupation), 53 (Both Classes Global)
 **Goal:** A real-Earth Leaflet map with 12 colored regions, ~60-80 named sub-zones, fog of war per team, and team territory overlays.
 
@@ -276,7 +327,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 3 — SUBMISSION SYSTEM ✅ COMPLETE
+## PHASE 3 — SUBMISSION SYSTEM ⚠️ ~75% COMPLETE
 **Decisions:** 19-25 (Decision System), 27 (Question Generation), 32 (Independent Submissions), 78 (Round Outcome), 80 (Written Component), 44 (7/8 Pacing), 79 (Epoch Clock)
 **Goal:** Students can submit role-specific decisions with written justifications each round. Scott sees all submissions before resolving.
 
@@ -425,7 +476,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 4 — DM PANEL (TEACHER GOD VIEW) ✅ COMPLETE
+## PHASE 4 — DM PANEL (TEACHER GOD VIEW) ⚠️ ~80% COMPLETE
 **Decisions:** 47-52 (DM Controls), 66 (Cross-Class Timing), 71-72 (Absent Handling + Conflict Flags), 17 (Teacher = DM)
 **Goal:** Scott's full command center — submission queue, map, DM controls bar, pause, override, event fire, RESOLVE.
 
@@ -569,7 +620,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 5 — RESOURCE ENGINE ✅ COMPLETE
+## PHASE 5 — RESOURCE ENGINE ✅ ~90% COMPLETE
 **Decisions:** 37-39 (4 Resources, Routing, Purchase Menu), 41 (Food + Population), 43 (Food Generation), 45 (Population Mechanics), 87 (Sub-Zone Depletion), 65 (War Exhaustion)
 **Goal:** The full economy — yield formula, routing panel, bank decay, food/population survival layer, sub-zone depletion.
 
@@ -702,7 +753,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 6 — PROJECTOR DISPLAY ✅ COMPLETE
+## PHASE 6 — PROJECTOR DISPLAY ⚠️ ~85% COMPLETE
 **Decisions:** 76 (Projector Architecture), 79 (E2-E4 — Resolution Sequence), P1-P4 (Category 9)
 **Goal:** Full-screen server-driven projector display that auto-refreshes via Supabase Realtime. The world map, animated resolution sequences, announcement overlays.
 
@@ -805,7 +856,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 7 — PURCHASE MENU + BUILDINGS ON MAP
+## PHASE 7 — PURCHASE MENU + BUILDINGS ON MAP 🔨 ~30% BUILT
 **Decisions:** 39 (Purchase Menu + Degradation), 90 (Landmark Founding Bonus), 91 (Civilization Codex)
 **Goal:** Students can spend resources on buildings, units, and supplies. Buildings appear on the map. Founding bonuses trigger on first placement.
 
@@ -909,7 +960,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 8 — d20 EVENT SYSTEM + MATH GATE
+## PHASE 8 — d20 EVENT SYSTEM + MATH GATE 🔨 ~40% BUILT
 **Decisions:** 33 (d20 Events), 88 (Math Gate), 92 (Piracy Events)
 **Goal:** One random event fires per class day with a student-facing d20 popup. Math Gate optionally fires before transactions.
 
@@ -1020,7 +1071,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 9 — TECH TREE UI + RESEARCH
+## PHASE 9 — TECH TREE UI + RESEARCH 🔨 ~50% BUILT
 **Decision:** 62 (Full 5-Tier Tech Tree)
 **Goal:** Interactive tech tree visualization. Teams research one tech per epoch using Legacy. Hard prerequisites. Progressive UI complexity unlocks.
 
@@ -1106,7 +1157,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 10 — WONDER SYSTEM
+## PHASE 10 — WONDER SYSTEM 🔨 ~30% BUILT
 **Decisions:** 36 (12 Wonders), 37 (4-Track Economy), 38 (Routing → Wonder), 40 (Completion Model + Milestones)
 **Goal:** Teams contribute resources to wonders via the routing panel. 4-track progress bar. Tiered milestones. Completion event fires on projector.
 
@@ -1184,7 +1235,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 11 — TRADE SYSTEM
+## PHASE 11 — TRADE SYSTEM 🔨 ~20% BUILT
 **Decisions:** 69 (Two-Tier Trade), 57 (Contact Interaction), 59 (Conflict/Battle Round), 63 (Vassal States)
 **Goal:** Spot Trade Board for open-market trading. Trade Agreements for multi-epoch contracts. Embargo mechanic. Conflict/Battle Round system.
 
@@ -1285,7 +1336,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 12 — HEYGEN CLIPS + KAIJU ANIMATIONS
+## PHASE 12 — HEYGEN CLIPS + KAIJU ANIMATIONS 🔨 ~15% BUILT
 **Decisions:** 55 (HeyGen Architecture), 34 (Kaiju Attack), 46 (Exit Ritual TTS)
 **Goal:** Pre-rendered HeyGen historian video clips fire on projector for wonder completions, global events, and contact. Kaiju animations fire as full-screen cosmetic chaos. Exit hook audio via Starfish TTS.
 
@@ -1377,7 +1428,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 13 — NPC SYSTEM
+## PHASE 13 — NPC SYSTEM 🔨 ~15% BUILT
 **Decisions:** 64 (5 NPC Archetypes + Reputation + Lifecycle)
 **Goal:** Non-player civilizations with distinct behaviors, real reputation tracking, tech-tier lifecycle triggers, and DM controls.
 
@@ -1438,7 +1489,7 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ---
 
-## PHASE 14 — PORTFOLIO EXPORT + EPILOGUE EPOCH
+## PHASE 14 — PORTFOLIO EXPORT + EPILOGUE EPOCH 🔨 ~20% BUILT
 **Decisions:** 68 (Epilogue Epoch), 74 (Victory Conditions + Portfolio = Grade), 82 (Assessment), 89 (Civilization Flag)
 **Goal:** The game's final act — Haiku-generated civilization histories, victory reveals, class superlative vote, portfolio PDF export, HeyGen historian closing narration. Portfolio PDF is the primary grade artifact.
 
