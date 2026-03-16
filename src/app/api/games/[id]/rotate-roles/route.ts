@@ -41,13 +41,32 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
 
     const teamIds = teams.map((t) => t.id);
 
-    const { data: members, error } = await supabase
-      .from("team_members")
-      .select("id, assigned_role, secondary_role, is_absent")
-      .in("team_id", teamIds);
+    // Fetch members — try with secondary_role; fall back without it if column doesn't exist yet
+    type MemberRow = { id: string; assigned_role: string; secondary_role: string | null; is_absent: boolean };
+    let members: MemberRow[] | null = null;
+    {
+      const { data, error } = await supabase
+        .from("team_members")
+        .select("id, assigned_role, secondary_role, is_absent")
+        .in("team_id", teamIds);
 
-    if (error || !members?.length) {
-      return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
+      if (!error && data) {
+        members = data.map((m) => ({ ...m, secondary_role: (m as unknown as { secondary_role?: string | null }).secondary_role ?? null }));
+      } else {
+        // secondary_role column may not exist yet (migration 008) — rotate primary roles only
+        const { data: fallback, error: fallbackErr } = await supabase
+          .from("team_members")
+          .select("id, assigned_role, is_absent")
+          .in("team_id", teamIds);
+        if (fallbackErr || !fallback?.length) {
+          return NextResponse.json({ error: "Failed to fetch members" }, { status: 500 });
+        }
+        members = fallback.map((m) => ({ ...m, secondary_role: null }));
+      }
+    }
+
+    if (!members?.length) {
+      return NextResponse.json({ rotated: 0 });
     }
 
     // Rotate each member's primary role (and secondary role if they have one) forward by 1.

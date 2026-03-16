@@ -20,7 +20,6 @@ export async function GET() {
         team_id,
         display_name,
         assigned_role,
-        secondary_role,
         is_absent,
         teams:team_id (
           id,
@@ -59,6 +58,19 @@ export async function GET() {
       original_role: string;
     } | null = null;
 
+    // Fetch secondary_role separately (fault-tolerant: column may not exist until migration 008 runs)
+    let selfSecondaryRole: string | null = null;
+    try {
+      const { data: extra } = await supabase
+        .from("team_members")
+        .select("id, secondary_role")
+        .eq("id", membership.id)
+        .single();
+      selfSecondaryRole = (extra as unknown as { secondary_role?: string | null })?.secondary_role ?? null;
+    } catch {
+      // migration 008 not yet applied — gracefully continue without secondary_role
+    }
+
     // Fetch all teammates on this team (for the student to see who's who)
     let teammates: Array<{
       id: string;
@@ -69,11 +81,24 @@ export async function GET() {
       is_self: boolean;
     }> = [];
     try {
-      const { data: allMembers } = await supabase
-        .from("team_members")
-        .select("id, clerk_user_id, display_name, assigned_role, secondary_role, is_absent")
-        .eq("team_id", team.id)
-        .order("joined_at", { ascending: true });
+      // Try with secondary_role first; fall back without it if the column doesn't exist yet
+      let allMembers: Array<{ id: string; clerk_user_id: string; display_name: string; assigned_role: string; secondary_role?: string | null; is_absent: boolean | null }> | null = null;
+      try {
+        const { data } = await supabase
+          .from("team_members")
+          .select("id, clerk_user_id, display_name, assigned_role, secondary_role, is_absent")
+          .eq("team_id", team.id)
+          .order("joined_at", { ascending: true });
+        allMembers = data ?? [];
+      } catch {
+        // secondary_role column may not exist yet — try without it
+        const { data } = await supabase
+          .from("team_members")
+          .select("id, clerk_user_id, display_name, assigned_role, is_absent")
+          .eq("team_id", team.id)
+          .order("joined_at", { ascending: true });
+        allMembers = (data ?? []).map((m) => ({ ...m, secondary_role: null }));
+      }
       teammates = (allMembers ?? []).map((m) => ({
         id: m.id,
         display_name: m.display_name,
@@ -131,7 +156,7 @@ export async function GET() {
         id: membership.id,
         display_name: membership.display_name,
         assigned_role: membership.assigned_role,
-        secondary_role: (membership as unknown as { secondary_role?: string | null }).secondary_role ?? null,
+        secondary_role: selfSecondaryRole,
         is_absent: membership.is_absent,
         cover_info: coverInfo,
       },
