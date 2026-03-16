@@ -513,12 +513,21 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 
 ### Step 4.6 — Absent Student Handling (DM Roster Controls)
 **Decision 71:** Present teammates absorb absent role. DM assigns if no consensus.
-- [ ] On `/dm/roster`, at epoch start, show roster card per team:
+- [x] On `/dm/roster`, at epoch start, show roster card per team:
   - Absent student's role slot highlighted orange
   - REASSIGN dropdown — select which present teammate absorbs the role
-  - On reassign: write to `epoch_role_assignments` with `covering_for_student_id`
+  - On reassign: write to `epoch_role_assignments` with `is_substitute: true`, `original_role = covering student's own role`
   - Covering student now sees dual panel view on their dashboard
-- [ ] Covering student's dashboard shows both role panels for that epoch
+- [ ] Covering student's dashboard shows both role panels for that epoch *(pending)*
+
+> **Implementation note:** `/api/games/[id]/covers` (GET/POST/DELETE) handles cover assignments. `RosterManager.tsx` shows the REASSIGN dropdown under each absent student row. When marking a student present, the cover clears automatically via DELETE /covers. `CoverAssignment` interface exported from RosterManager.
+
+### Step 4.9 — Daily Role Rotation (DM Roster Controls)
+**Decision 18:** Roles rotate every epoch — every student plays every role across the project.
+- [x] `POST /api/games/[id]/rotate-roles` — cycles every team member's role forward one position: `architect → merchant → diplomat → lorekeeper → warlord → architect`
+- [x] `🔄 Rotate Roles` button (amber) added to `/dm/roster` page — calls POST, shows 5s confirmation banner
+- [x] Rotation fires for ALL teams in the game simultaneously via `Promise.all`
+- [x] Absent students still rotate — their role shifts even if they missed that epoch (calendar holds — R-NEW1)
 
 ### Step 4.7 — Conflict Flag Detection
 **Decision 72 (A4):** War beats trade. Scott sees conflict flag with override.
@@ -553,7 +562,8 @@ This is your guiding document. Every phase is ordered by dependency — you cann
 - [ ] PAUSE freezes all timers and submission queue across all devices
 - [ ] Private intel drops appear only on targeted team's screens
 - [ ] Global events broadcast to projector + all devices simultaneously
-- [ ] Absent students can be reassigned to present teammates
+- [x] Absent students can be reassigned to present teammates (REASSIGN dropdown + /api/games/[id]/covers)
+- [x] Role rotation fires daily via 🔄 Rotate Roles button → POST /api/games/[id]/rotate-roles
 - [ ] Conflict flags appear with auto-resolution + override options
 - [ ] RESOLVE processes both classes' submissions when both are ready
 
@@ -1945,3 +1955,53 @@ Students engage with **Decision 60 (Regional Bonuses)** and the **5 Themes of Ge
 > Every phase is a checkpoint. Every Definition of Done is a gate.
 > When in doubt, check BUILD-PLAN.md. When BUILD-PLAN.md is unclear, check BRAINSTORM.md.
 > Ship it for one classroom. Make it real.
+
+---
+
+## PRODUCTION CLASS SETUP ✅ COMPLETE (Decision 95 + 96 — March 15, 2026)
+**Status:** 35 students live in Supabase + Clerk. Two production games running with new 11-team global structure.
+
+### What Was Built (Original v1 Seed — Superseded)
+
+#### `scripts/create-student-accounts.ts`
+- Creates all 35 Clerk student accounts (username = password = first name lowercase)
+- `skip_password_checks: true` — no complexity requirements, designed for classroom use
+- Sets `publicMetadata: { role: "student" }` on all accounts
+- Idempotent — will not error on re-run if usernames already exist (checks for `unique_violation`)
+
+#### `scripts/setup-classes.ts` — **UPDATED March 15, 2026**
+- Creates 2 games, **11 teams**, team_resources rows, and enrolls all 35 students with initial roles
+- CLASSES array structure (Decisions 95 + 96):
+  - **Game 1:** "Classroom Civ — 6th Grade 2025-26", period "6th", 12:25–1:25, **5 teams × 3 students**, regionIds 1/3/4/8/10
+  - **Game 2:** "Classroom Civ — 7th & 8th Grade 2025-26", period "7_8th", 2:20–3:05, **6 teams (4×3 + 2×4)**, regionIds 2/5/6/7/9/12
+- Starting resource per team: `{ food: 10, production: 0, reach: 0, legacy: 0, resilience: 0 }`
+- Initial role assignment cycles: architect → merchant → diplomat → lorekeeper → warlord (first student = architect)
+
+#### Production DB — Live Games
+| Game ID | Name | Teams | Region IDs | Period |
+|---------|------|-------|------------|--------|
+| `9680f304` | Classroom Civ — 6th Grade 2025-26 | 5 × 3 | 1, 3, 4, 8, 10 | 12:25–1:25 |
+| `04ce6869` | Classroom Civ — 7th & 8th Grade 2025-26 | 6 (4×3 + 2×4) | 2, 5, 6, 7, 9, 12 | 2:20–3:05 |
+
+#### New Roster (post-re-seed)
+
+**6th Grade — 5 teams of 3 students (global spread):**
+- **Team 1 (Region 1 — Alaska + W. Canada):** Kalaya(arch), Kisu(merch), Sayna(dipl)
+- **Team 2 (Region 3 — Mexico + C. America + Caribbean):** Helena(arch), Jack(merch), Norma(dipl)
+- **Team 3 (Region 4 — South America):** Ashton(arch), Gabriel(merch), Grace(dipl)
+- **Team 4 (Region 8 — Sub-Saharan Africa):** Easton(arch), Alayna(merch), Leslie(dipl)
+- **Team 5 (Region 10 — East Asia):** Sawyer(arch), Skyler(merch), Oscar(dipl)
+
+**7th & 8th Grade — 6 teams (global spread):**
+- **Team 1 (Region 2 — E. Canada + E. US, 4 students):** Alvaro(arch), John(merch), Joslynn(dipl), Casey(lore)
+- **Team 2 (Region 5 — W. Europe + N. Africa):** Adam(arch), Hadassah(merch), Naomi(dipl)
+- **Team 3 (Region 6 — E. Europe + Russia):** Tianna(arch), Brooke(merch), Tovey(dipl)
+- **Team 4 (Region 7 — Middle East + C. Asia, 4 students):** Wyatt(arch), Abigail(merch), Autumn(dipl), Raylee(lore)
+- **Team 5 (Region 9 — South Asia):** Maison(arch), E.Jay(merch), Lucius(dipl)
+- **Team 6 (Region 12 — Pacific + Japan + Korea + Australia):** Alayah(arch), Hunter(merch), Floyd(dipl)
+
+### Definition of Done — Production Re-Seed ✅
+- [x] Migration 007 applied in Supabase (old 6-team data cleared)
+- [x] setup-classes.ts re-run → 2 games, 11 teams, 35 students enrolled
+- [x] New game IDs: `9680f304` (6th), `04ce6869` (7/8)
+- [x] 35 Clerk accounts confirmed live (unchanged)

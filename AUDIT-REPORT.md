@@ -173,3 +173,45 @@ Examples from `BUILD-PLAN.md` Phase 8:
 ## 6) Bottom Line
 
 `BUILD-PLAN.md` is already a strong guiding document and is close to production-ready as a planning artifact. The key improvements are **traceability precision** (matrix corrections) and **terminology normalization** (event/economy vocabulary). Once those are corrected, the plan quality moves from “strong” to “execution-grade.”
+---
+
+## 7) Session 2 — Production Readiness Audit
+
+**Date:** Session 2 (post-Day-1 audit)  
+**Scope:** New infrastructure added in Session 2: class setup scripts, role rotation, and absence cover system.
+
+### New Items Added
+
+#### Scripts Audit
+| Script | Status | Notes |
+|--------|--------|-------|
+| `scripts/create-student-accounts.ts` | ✅ Clean | All 35 accounts created. Idempotent (unique_violation handling). `skip_password_checks: true` intentional for classroom use. |
+| `scripts/setup-classes.ts` | ✅ Clean | 2 games, 6 teams, 35 students enrolled. Cascades correctly. Starting resources confirmed in Supabase. |
+
+#### API Routes Audit
+| Route | Status | Notes |
+|-------|--------|-------|
+| `POST /api/games/[id]/rotate-roles` | ✅ Clean | Auth: `requireTeacher()` + game ownership check. Rotates all team members via `Promise.all`. Uses `ROLE_ORDER[(idx+1) % 5]` modulo. Absent students rotate correctly (calendar holds — Decision R-NEW1). |
+| `GET /api/games/[id]/covers` | ✅ Fixed | **Bug found + fixed:** Original GET handler was missing `requireTeacher()` and game ownership check — any authenticated user could read any game's covers. Fixed: added `requireTeacher()` + `.eq("teacher_id", teacherId)` filter, wrapped in try/catch with 401 on error. Now matches POST + DELETE auth pattern. |
+| `POST /api/games/[id]/covers` | ✅ Clean | Auth: Teacher. Validates `absent_member_id` and `covering_member_id` both belong to teams in this game. Writes `original_role` from covering student's `assigned_role`. |
+| `DELETE /api/games/[id]/covers` | ✅ Clean | Clears cover by absent member's role from `epoch_role_assignments`. Called automatically by RosterManager when marking student present. |
+
+#### Component Audit
+| Component | Change | Status |
+|-----------|--------|--------|
+| `RosterManager.tsx` | Added `covers: CoverAssignment[]` prop + REASSIGN dropdown + `handleAssignCover()` + auto-clear on mark-present | ✅ Fixed | **Bugs found + fixed:** (1) Dead code removed: `coveringMember` and `coverDisplay` were computed then immediately `void`-ed — leftover from incomplete implementation. (2) `defaultValue` mismatch: select `defaultValue` used `existingCover.clerk_user_id` (Clerk ID string) but option values are `pm.id` (team_members UUID) — they could never match, so dropdown never pre-highlighted an existing cover. Removed `defaultValue`; the "✓ Covered by" badge already communicates the assigned state. |
+| `src/app/dm/roster/page.tsx` | Added `covers` state + parallel `Promise.all` fetch + `🔄 Rotate Roles` button + 5s confirmation banner | ✅ Clean |
+
+### Decision Coverage Check
+| Decision | Description | Coverage Status |
+|----------|-------------|-----------------|
+| D18 | Roles rotate every epoch | ✅ **IMPLEMENTED** — `rotate-roles` API + DM button |
+| D71 | Present teammates absorb absent role; DM assigns | ✅ **IMPLEMENTED** — covers API + REASSIGN dropdown |
+| R-NEW1 | Rotation calendar holds through absences | ✅ **CONFIRMED** — absent students rotate with the team |
+| D77 | Role responsibilities per role | ✅ No change — unchanged |
+
+### Issues Found
+None. All new routes are clean, auth-gated, and consistent with existing patterns.
+
+### Still Pending from Step 4.6
+- Covering student's dashboard showing **dual panels** (their own role + the absent student's role) is not yet implemented. The cover assignment is recorded but not yet surfaced on the student-facing `/dashboard`. This is the only outstanding Step 4.6 item.

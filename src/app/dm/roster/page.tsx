@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import RosterManager from "@/components/dm/RosterManager";
+import type { CoverAssignment } from "@/components/dm/RosterManager";
 import type { RoleName } from "@/types/database";
+
+const ROLE_ORDER = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
 
 interface GameOption {
   id: string;
@@ -28,6 +31,9 @@ export default function RosterPage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [teams, setTeams] = useState<TeamData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rotating, setRotating] = useState(false);
+  const [rotateMsg, setRotateMsg] = useState<string | null>(null);
+  const [covers, setCovers] = useState<CoverAssignment[]>([]);
 
   // Load games list
   useEffect(() => {
@@ -48,17 +54,41 @@ export default function RosterPage() {
   const loadTeams = useCallback(async () => {
     if (!selectedGameId) return;
     try {
-      const res = await fetch(`/api/games/${selectedGameId}/teams`);
-      const data = await res.json();
-      setTeams(data.teams ?? []);
+      const [teamsRes, coversRes] = await Promise.all([
+        fetch(`/api/games/${selectedGameId}/teams`),
+        fetch(`/api/games/${selectedGameId}/covers`),
+      ]);
+      const teamsData = await teamsRes.json();
+      const coversData = await coversRes.json();
+      setTeams(teamsData.teams ?? []);
+      setCovers(coversData.covers ?? []);
     } catch {
       setTeams([]);
+      setCovers([]);
     }
   }, [selectedGameId]);
 
   useEffect(() => {
     loadTeams();
   }, [loadTeams]);
+
+  const handleRotateRoles = async () => {
+    if (!selectedGameId) return;
+    setRotating(true);
+    setRotateMsg(null);
+    try {
+      const res = await fetch(`/api/games/${selectedGameId}/rotate-roles`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setRotateMsg(`✓ ${data.rotated} roles rotated — ${ROLE_ORDER.join(" → ")} → …`);
+      await loadTeams();
+    } catch (err) {
+      setRotateMsg(`✗ ${err instanceof Error ? err.message : "Error rotating roles"}`);
+    } finally {
+      setRotating(false);
+      setTimeout(() => setRotateMsg(null), 5000);
+    }
+  };
 
   if (loading) {
     return (
@@ -91,24 +121,50 @@ export default function RosterPage() {
           </p>
         </div>
 
-        {/* Game Selector */}
-        <select
-          value={selectedGameId ?? ""}
-          onChange={(e) => setSelectedGameId(e.target.value)}
-          className="rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-300 focus:border-red-500 focus:outline-none"
-        >
-          {games.map((g) => (
-            <option key={g.id} value={g.id}>
-              {g.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-3">
+          {/* Rotate Roles button */}
+          {selectedGameId && (
+            <button
+              onClick={handleRotateRoles}
+              disabled={rotating}
+              className="rounded-lg border border-amber-700 bg-amber-950 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Advance every student to their next role (run once at the start of each class day)"
+            >
+              {rotating ? "Rotating…" : "🔄 Rotate Roles"}
+            </button>
+          )}
+
+          {/* Game Selector */}
+          <select
+            value={selectedGameId ?? ""}
+            onChange={(e) => setSelectedGameId(e.target.value)}
+            className="rounded-lg border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-300 focus:border-red-500 focus:outline-none"
+          >
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
+
+      {/* Rotation confirmation banner */}
+      {rotateMsg && (
+        <div className={`rounded-lg px-4 py-2 text-sm font-medium ${
+          rotateMsg.startsWith("✓")
+            ? "bg-green-950 border border-green-700 text-green-300"
+            : "bg-red-950 border border-red-700 text-red-300"
+        }`}>
+          {rotateMsg}
+        </div>
+      )}
 
       {selectedGameId && (
         <RosterManager
           gameId={selectedGameId}
           teams={teams}
+          covers={covers}
           onRefresh={loadTeams}
         />
       )}

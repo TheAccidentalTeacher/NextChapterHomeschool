@@ -270,15 +270,23 @@ interface TeamData {
   }[];
 }
 
+export interface CoverAssignment {
+  clerk_user_id: string; // the covering student
+  role: RoleName;        // the absent student's role being covered
+  team_id: string;
+}
+
 interface RosterManagerProps {
   gameId: string;
   teams: TeamData[];
+  covers: CoverAssignment[];
   onRefresh: () => void;
 }
 
 export default function RosterManager({
   gameId,
   teams,
+  covers,
   onRefresh,
 }: RosterManagerProps) {
   const handleDeleteTeam = async (teamId: string, teamName: string) => {
@@ -316,6 +324,26 @@ export default function RosterManager({
         body: JSON.stringify({ is_absent: absent }),
       }
     );
+    // If marking present, also clear any cover assignment
+    if (!absent) {
+      await fetch(`/api/games/${gameId}/covers`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ absent_member_id: memberId }),
+      });
+    }
+    onRefresh();
+  };
+
+  const handleAssignCover = async (absentMemberId: string, coveringMemberId: string) => {
+    await fetch(`/api/games/${gameId}/covers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        absent_member_id: absentMemberId,
+        covering_member_id: coveringMemberId,
+      }),
+    });
     onRefresh();
   };
 
@@ -384,69 +412,114 @@ export default function RosterManager({
 
                 {/* Members */}
                 <div className="mt-4 space-y-2">
-                  {members.map((member) => (
-                    <div
-                      key={member.id}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
-                        member.is_absent
-                          ? "border-orange-800 bg-orange-950/30"
-                          : "border-stone-800 bg-stone-900/30"
-                      }`}
-                    >
-                      <span
-                        className={`flex-1 text-sm ${
-                          member.is_absent
-                            ? "text-orange-400 line-through"
-                            : "text-stone-300"
-                        }`}
-                      >
-                        {member.display_name}
-                      </span>
-                      <select
-                        value={member.assigned_role}
-                        onChange={(e) =>
-                          handleRoleChange(
-                            team.id,
-                            member.id,
-                            e.target.value as RoleName
-                          )
-                        }
-                        className="rounded border border-stone-700 bg-stone-800 px-2 py-1 text-xs text-stone-300 focus:border-red-500 focus:outline-none"
-                      >
-                        {Object.entries(ROLES).map(([key, r]) => (
-                          <option key={key} value={key}>
-                            {r.emoji} {r.label}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleAbsenceToggle(
-                            team.id,
-                            member.id,
-                            !member.is_absent
-                          )
-                        }
-                        className={`rounded px-2 py-1 text-xs transition ${
-                          member.is_absent
-                            ? "bg-orange-800 text-orange-200"
-                            : "bg-stone-800 text-stone-500 hover:bg-stone-700"
-                        }`}
-                      >
-                        {member.is_absent ? "Absent" : "Present"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          handleRemoveStudent(team.id, member.id)
-                        }
-                        className="rounded px-1.5 py-1 text-xs text-stone-600 transition hover:bg-red-900/30 hover:text-red-400"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+                  {members.map((member) => {
+                    const presentMembers = members.filter(
+                      (m) => !m.is_absent && m.id !== member.id
+                    );
+                    const existingCover = covers.find(
+                      (c) =>
+                        c.team_id === team.id &&
+                        c.role === member.assigned_role
+                    );
+
+                    return (
+                      <div key={member.id}>
+                        <div
+                          className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${
+                            member.is_absent
+                              ? "border-orange-800 bg-orange-950/30"
+                              : "border-stone-800 bg-stone-900/30"
+                          }`}
+                        >
+                          <span
+                            className={`flex-1 text-sm ${
+                              member.is_absent
+                                ? "text-orange-400 line-through"
+                                : "text-stone-300"
+                            }`}
+                          >
+                            {member.display_name}
+                          </span>
+                          <select
+                            value={member.assigned_role}
+                            onChange={(e) =>
+                              handleRoleChange(
+                                team.id,
+                                member.id,
+                                e.target.value as RoleName
+                              )
+                            }
+                            className="rounded border border-stone-700 bg-stone-800 px-2 py-1 text-xs text-stone-300 focus:border-red-500 focus:outline-none"
+                          >
+                            {Object.entries(ROLES).map(([key, r]) => (
+                              <option key={key} value={key}>
+                                {r.emoji} {r.label}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleAbsenceToggle(
+                                team.id,
+                                member.id,
+                                !member.is_absent
+                              )
+                            }
+                            className={`rounded px-2 py-1 text-xs transition ${
+                              member.is_absent
+                                ? "bg-orange-800 text-orange-200"
+                                : "bg-stone-800 text-stone-500 hover:bg-stone-700"
+                            }`}
+                          >
+                            {member.is_absent ? "Absent" : "Present"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleRemoveStudent(team.id, member.id)
+                            }
+                            className="rounded px-1.5 py-1 text-xs text-stone-600 transition hover:bg-red-900/30 hover:text-red-400"
+                          >
+                            ✕
+                          </button>
+                        </div>
+
+                        {/* REASSIGN row — only shown when student is absent */}
+                        {member.is_absent && (
+                          <div className="ml-3 mt-1 flex items-center gap-2 rounded-b-lg border-x border-b border-orange-800/50 bg-orange-950/20 px-3 py-2">
+                            <span className="text-xs text-orange-400 shrink-0">
+                              {existingCover ? "✓ Covered by" : "↳ Who covers?"}
+                            </span>
+                            {presentMembers.length === 0 ? (
+                              <span className="text-xs text-stone-600 italic">No present teammates</span>
+                            ) : (
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handleAssignCover(member.id, e.target.value);
+                                  }
+                                }}
+                                className="flex-1 rounded border border-orange-700 bg-stone-900 px-2 py-1 text-xs text-orange-200 focus:border-orange-500 focus:outline-none"
+                              >
+                                <option value="">— pick a teammate —</option>
+                                {presentMembers.map((pm) => (
+                                  <option key={pm.id} value={pm.id}>
+                                    {pm.display_name} ({pm.assigned_role})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                            {existingCover && (
+                              <span className="rounded bg-orange-900/50 px-2 py-0.5 text-xs text-orange-300">
+                                +{member.assigned_role}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Add Student */}

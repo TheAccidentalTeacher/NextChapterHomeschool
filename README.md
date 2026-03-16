@@ -181,6 +181,45 @@ curl -X POST https://api.clerk.com/v1/users \
 
 You can also create users in the [Clerk Dashboard](https://dashboard.clerk.com) → Users → Create User. Set `publicMetadata` to `{ "role": "teacher" }` or `{ "role": "student" }`.
 
+---
+
+## Class Setup Scripts
+
+Two scripts handle all production classroom setup — run once per school year from the `classroom-civ/` directory.
+
+### `scripts/create-student-accounts.ts`
+
+Creates all 35 Clerk student accounts. Username = password = first name lowercase (e.g., `kalaya`/`kalaya`).
+
+```bash
+npx tsx scripts/create-student-accounts.ts
+```
+
+- POSTs to `https://api.clerk.com/v1/users` with `skip_password_checks: true`
+- Sets `publicMetadata: { role: "student" }`
+- Idempotent: skips if username already exists
+
+### `scripts/setup-classes.ts`
+
+Creates 2 games, 11 teams, starting resources, and enrolls all 35 students with initial role assignments.
+
+**Decision 95 + 96 (March 15, 2026):** Teams restructured from 3×5 / 3×(7+7+6) to 5×3 / 6×(3–4). Each class now plays the full global Risk-style map across distinct continents.
+
+```bash
+npx tsx scripts/setup-classes.ts
+```
+
+**Production game structure:**
+
+| Game | Period | Teams | Regions |
+|------|--------|-------|---------|
+| Classroom Civ — 6th Grade 2025-26 | 12:25–1:25 | 5 × 3 students | 1, 3, 4, 8, 10 |
+| Classroom Civ — 7th & 8th Grade 2025-26 | 2:20–3:05 | 6 teams (4×3 + 2×4) | 2, 5, 6, 7, 9, 12 |
+
+**Starting resources per team:** Food: 10, Production/Reach/Legacy/Resilience: 0
+
+> **Note:** If re-running setup after a structure change, apply `007_reset_game_data.sql` in Supabase first (deletes all game/team/member records for the teacher, then re-run this script to seed the new structure).
+
 ### Route Protection (Middleware)
 
 | Route Pattern | Access |
@@ -207,6 +246,8 @@ classroom-civ/
 │       └── countries.geojson     # 14 MB world country borders (ISO 3166-1 Alpha-2 keys)
 ├── scripts/
 │   ├── simulate.ts               # Game simulation engine (36 students, 6 teams, up to 30 epochs; cinematic/fast/dry-run modes; saves regionId per team)
+│   ├── create-student-accounts.ts # Bulk-creates 35 real Clerk student accounts (username = password = first name lowercase)
+│   ├── setup-classes.ts          # Creates 2 production games, 6 teams, starting resources, and enrolls all 35 students with initial roles
 │   └── run-migration.ts          # Utility to run SQL migrations against Supabase
 ├── src/
 │   ├── app/
@@ -244,9 +285,13 @@ classroom-civ/
 │       └── database.ts           # Full TypeScript types for all 29 DB tables
 ├── supabase/
 │   └── migrations/
-│       ├── 001_initial_schema.sql # 29 tables, 13 enums, RLS policies
-│       └── 002_fix_current_round.sql # Add DEFEND enum + change current_round to text
-├── BRAINSTORM.md                  # 93 locked design decisions (1,518 lines)
+│       ├── 001_initial_schema.sql       # 29 tables, 13 enums, RLS policies
+│       ├── 002_fix_current_round.sql    # Add DEFEND enum + change current_round to text
+│       ├── 004_add_delete_policies.sql  # Add DELETE RLS policies (using true) for simulation scripts
+│       ├── 005_add_game_config.sql      # Add class_period + round_timer_minutes to games table
+│       ├── 006_fix_delete_policies.sql  # Restrict DELETE policies from using(true) to teacher-scoped only
+│       └── 007_reset_game_data.sql      # Clears v1 3-team game data; run before re-seeding 11-team structure
+├── BRAINSTORM.md                  # 96 locked design decisions — D95/D96 added March 15, 2026
 ├── BUILD-PLAN.md                  # 15-phase build plan (1,701 lines)
 ├── AUDIT-REPORT.md                # Decision consistency audit
 ├── student-ideas-analysis.md      # 86 student brainstorm submissions analyzed
@@ -311,6 +356,15 @@ All API routes are under `/api/`. Teacher-only routes enforce role via `requireT
 | POST | `/api/games/[id]/teams/[teamId]/students` | Teacher | Add student to team |
 | PUT | `/api/games/[id]/teams/[teamId]/students/[studentId]` | Teacher | Update student role or mark absent |
 | DELETE | `/api/games/[id]/teams/[teamId]/students/[studentId]` | Teacher | Remove student from team |
+
+### Roster Management
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/games/[id]/rotate-roles` | Teacher | Cycle every team member's role forward one position (architect→merchant→diplomat→lorekeeper→warlord→architect). Rotates all teams in the game simultaneously. |
+| GET | `/api/games/[id]/covers` | Teacher | List all substitute (cover) assignments for the current epoch |
+| POST | `/api/games/[id]/covers` | Teacher | Assign a present student to cover an absent teammate's role. Body: `{ absent_member_id, covering_member_id }` (both are `team_members.id`). Writes to `epoch_role_assignments` with `is_substitute: true`. |
+| DELETE | `/api/games/[id]/covers` | Teacher | Clear a cover assignment (fires automatically when DM marks a student present). |
 
 ### Civilization Names
 
@@ -483,7 +537,7 @@ npx tsx scripts/simulate.ts --cleanup GAME_ID
 | `ConflictFlagBanner` | gameId | Red banner for unresolved conflicts |
 | `PushToProjector` | gameId | Push view or announcement to the projector display |
 | `TeamCard` | team | Card showing team members, roles, region |
-| `RosterManager` | game, team | Full CRUD for team roster (add students, assign roles, mark absent) |
+| `RosterManager` | gameId, teams, covers, onRefresh | Full CRUD for team roster (add students, assign roles, mark absent, REASSIGN cover for absent students). Exports `CoverAssignment` interface. |
 
 ### Map — `src/components/map/`
 
@@ -548,6 +602,7 @@ The full schema is in `supabase/migrations/001_initial_schema.sql` (29 tables wi
 | `buildings` | Constructed buildings per sub-zone |
 | `tech_tree_progress` | Per-team tech research state |
 | `epoch_logs` | Historical log per epoch/team (resources, population, events) |
+| `epoch_role_assignments` | Per-epoch role overrides — substitute assignments (`is_substitute: true`, `original_role` tracking). Written by the covers API when a teammate covers an absent student. |
 | `events` | Global and team-specific event log |
 | `trade_agreements` | Active trade deals between teams |
 | `wars` | Active wars between teams |
@@ -575,9 +630,14 @@ The app deploys automatically from the `main` branch via Vercel:
 ### Supabase
 
 - Project: `dyifhrodlkqjdlzbwckg` (us-west-2)
-- Schema deployed via `supabase/migrations/001_initial_schema.sql` + `002_fix_current_round.sql`
+- Schema deployed via sequential migrations 001 → 006 (no migration 003 — number intentionally skipped)
 - Migration 002 applied March 6, 2026 (DEFEND enum + current_round→text)
+- Migration 004: Add DELETE RLS policies (broad) for simulation cleanup scripts
+- Migration 005: Add `class_period` + `round_timer_minutes` columns to `games` table (Day-1 audit fix H1/H5)
+- Migration 006: Restrict DELETE RLS to teacher-scoped `teacher_id` checks (Day-1 audit fix L7)
+- `epoch_role_assignments` table in use for absence cover assignments (`is_substitute: true`, `original_role` tracking)
 - Realtime enabled for epoch state + submission channels
+- **Live production games:** 6th Grade (3 teams, 12:25–1:25) + 7th & 8th Grade (3 mixed teams, 2:20–3:05)
 
 ---
 
@@ -593,6 +653,10 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | `student1` | `ClassCiv2026!` | Student | `/dashboard` |
 | `student2` | `ClassCiv2026!` | Student | `/dashboard` |
 | `student3` | `ClassCiv2026!` | Student | `/dashboard` |
+
+> **Production student accounts:** 35 real student accounts are live, using first name as both username and password (e.g., `kalaya`/`kalaya`). Created via `scripts/create-student-accounts.ts`. See `scripts/setup-classes.ts` for full team/role enrollment.
+
+> **Production games:** Two live games in Supabase — `Classroom Civ — 6th Grade 2025-26` (12:25–1:25, 3 teams) and `Classroom Civ — 7th & 8th Grade 2025-26` (2:20–3:05, 3 mixed teams). 35 students enrolled across 6 teams.
 
 1. Sign in as **scott** → creates a game at `/dm/setup`
 2. Add teams and assign students at `/dm/roster`
@@ -619,6 +683,9 @@ See [TESTING-GUIDE.md](TESTING-GUIDE.md) for step-by-step instructions on runnin
 | — | ✅ Complete | DB Migration 002 — DEFEND enum + current_round→text |
 | — | ✅ Complete | Production fix — epilogue Suspense boundary for `useSearchParams()` |
 | — | ✅ Complete | Vercel deploy — all routes clean at `next-chapter-homeschool.vercel.app` |
+| — | ✅ Complete | Class setup scripts — 35 Clerk accounts, 2 games, 6 teams, all 35 students enrolled |
+| — | ✅ Complete | Role Rotation — `POST /api/games/[id]/rotate-roles` + `🔄 Rotate Roles` button on DM Roster page |
+| — | ✅ Complete | Absence Cover System — `GET/POST/DELETE /api/games/[id]/covers` + REASSIGN dropdown UI on DM Roster page |
 | Phase 7 | 🔲 Planned | Purchase Menu + Buildings on Map |
 | Phase 8 | 🔲 Planned | d20 Event System + Math Gate |
 | Phase 9 | 🔲 Planned | Tech Tree UI + Research |

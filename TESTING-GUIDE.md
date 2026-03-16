@@ -29,6 +29,8 @@ These accounts have been created via the Clerk Backend API:
 
 > **To create more users:** Use the Clerk Backend API or [dashboard.clerk.com](https://dashboard.clerk.com). Set `publicMetadata` to `{ "role": "student" }`.
 
+> **Production student accounts (35 real students):** Username = password = first name lowercase (e.g., `kalaya`/`kalaya`). All 35 accounts are live. Two live games â€” 6th Grade (12:25â€“1:25) and 7th & 8th (2:20â€“3:05). Sign in as `scott` to see both games at `/dm`.
+
 ---
 
 ## Test Flow â€” Full Game Loop
@@ -255,6 +257,77 @@ Test each DM tool on the game management page:
 
 ---
 
+### Phase 11: Role Rotation
+
+1. **Sign in as scott** â†’ Go to `/dm/roster`
+2. **Select a game** from the dropdown
+3. **Note the current roles** for each team member (e.g., Team 1: Kalaya=architect, Kisu=merchant, ...)
+4. **Click `ðŸ”„ Rotate Roles`** (amber button, top-right of the roster page)
+5. **Expected:**
+   - Amber confirmation banner appears: "âœ… Roles rotated successfully" (auto-dismisses after 5s)
+   - All team members' roles shift forward by one position:
+     - architect â†’ merchant
+     - merchant â†’ diplomat
+     - diplomat â†’ lorekeeper
+     - lorekeeper â†’ warlord
+     - warlord â†’ architect
+6. **Refresh the roster** â€” verify the new roles are persisted in the database
+7. **Rotate again** to verify idempotency â€” each click advances by one more position
+
+**API spot-check:**
+```bash
+# Direct API test (replace GAME_ID and CLERK_TOKEN)
+curl -X POST http://localhost:3000/api/games/GAME_ID/rotate-roles \
+  -H "Authorization: Bearer CLERK_TOKEN"
+# Returns: { "rotated": 35 }   (or however many members)
+```
+
+**Verification:**
+- [ ] `ðŸ”„ Rotate Roles` button appears on the roster page
+- [ ] Confirmation banner appears and auto-dismisses
+- [ ] All team members' roles advance by exactly one position
+- [ ] Absent students also rotate (their role in DB shifts â€” calendar holds)
+- [ ] Multiple consecutive rotations cycle correctly (5 rotations = back to start)
+
+---
+
+### Phase 12: Absence Cover Assignment (REASSIGN)
+
+1. **Sign in as scott** â†’ Go to `/dm/roster`
+2. **Find a student** (e.g., Kalaya on 6th Grade Team 1)
+3. **Mark them absent** â€” toggle their absent checkbox
+4. **Expected:**
+   - Kalaya's row turns orange/highlighted
+   - A **REASSIGN dropdown** appears below her row
+   - The dropdown lists present teammates with their current roles in parentheses: "Kisu (merchant)", "Sayna (diplomat)", etc.
+5. **Select a covering student** from the dropdown (e.g., "Kisu (merchant)")
+6. **Expected:**
+   - Dropdown confirms: âœ“ Covered by Kisu +[absent role]
+   - The cover is recorded in `epoch_role_assignments` with `is_substitute: true`
+7. **Test marking absent student present again:**
+   - Toggle Kalaya back to present
+   - Expected: cover assignment clears automatically (DELETE /covers fires)
+   - REASSIGN dropdown disappears
+
+**API spot-check:**
+```bash
+# GET covers for a game
+curl http://localhost:3000/api/games/GAME_ID/covers \
+  -H "Authorization: Bearer CLERK_TOKEN"
+# Returns: { "epoch": 1, "covers": [{ clerk_user_id, role, team_id, is_substitute, original_role }] }
+```
+
+**Verification:**
+- [ ] Absent students show orange/highlighted row
+- [ ] REASSIGN dropdown appears under absent student
+- [ ] Dropdown shows only *present* teammates (not other absent students)
+- [ ] Selecting a teammate records the cover in DB (`epoch_role_assignments`)
+- [ ] Cover confirmation badge shows "âœ“ Covered by [name]"
+- [ ] Marking student present clears the cover automatically
+- [ ] GET /covers returns the correct active covers for current epoch
+
+---
+
 ## Troubleshooting
 
 ### "Already signed in" loop
@@ -374,37 +447,37 @@ The game ID is printed at the end of every simulation run. Simulation log files 
 
 ---
 
-## Sprint 7–9 Feature Tests (Invest Legacy, First Settler Decay, Math Gate)
+## Sprint 7ï¿½9 Feature Tests (Invest Legacy, First Settler Decay, Math Gate)
 
 > Added: commit 1663413
 
-### T-A: Tech Tree — Invest Legacy
+### T-A: Tech Tree ï¿½ Invest Legacy
 
 **Setup:**
 1. Sign in as student in a game
 2. Select a tech for research (POST research action:select)
 3. Navigate to the Tech tab
 
-**Test A1 — Invest input appears**
+**Test A1 ï¿½ Invest input appears**
 - Click the in-progress tech node ? selection panel opens
 - Expected: Progress bar + "?? Invest Legacy" input + button visible
 - Edge: Input defaults to `1`; button disabled when input is empty/zero
 
-**Test A2 — Invest partial amount**
+**Test A2 ï¿½ Invest partial amount**
 - Enter `5` in the invest field ? click "?? Invest Legacy"
 - Expected: `team_resources.legacy -= 5`; `legacyInvested[techId]` in metadata += 5; progress bar advances; `fetchData` refreshes the UI
 - Verify (DB): `teams.metadata.legacy_invested[techId]` = 5
 
-**Test A3 — Invest to completion (exact)**
+**Test A3 ï¿½ Invest to completion (exact)**
 - Set up tech needing exactly 10 Legacy; invest 10
 - Expected: Tech moves to `completed`; active research banner disappears; `tech_research` row inserted; `legacy_invested` key cleared from metadata; `game_events` row with `tech_completed`
 
-**Test A4 — Invest with overflow**
+**Test A4 ï¿½ Invest with overflow**
 - Tech needs 3 more Legacy; invest 10
 - Expected: Tech completes; team gets back 7 Legacy (net cost = 3)
 - Verify: `team_resources.legacy = original - 3`
 
-**Test A5 — Insufficient Legacy**
+**Test A5 ï¿½ Insufficient Legacy**
 - Team has 2 Legacy; invest 5
 - Expected: Server returns 400; UI refetches (no progress update)
 
@@ -415,73 +488,73 @@ The game ID is printed at the end of every simulation run. Simulation log files 
 **Setup (DB):**
 - Create a sub-zone with `founding_claim = 'first_settler'`, `founding_bonus_active = true`, `founding_epoch = 2`, `first_settler_decay_epochs = 2`, `yield_modifier = 1.20`
 
-**Test B1 — Early advance (no decay)**
+**Test B1 ï¿½ Early advance (no decay)**
 - Start at epoch 2; DM advances to epoch 3
 - Expected: `founding_bonus_active` stays `true`; `yield_modifier` stays `1.20`
 
-**Test B2 — Decay fires exactly on expiry**
+**Test B2 ï¿½ Decay fires exactly on expiry**
 - Advance from epoch 3 to epoch 4 (epoch 2 + decay 2 = epoch 4)
 - Expected: `founding_bonus_active = false`; `yield_modifier = 1.10` (1.20 - 0.10)
 - Verify DM sees no DB error; epoch advances normally
 
-**Test B3 — Decay fires even if past expiry**
+**Test B3 ï¿½ Decay fires even if past expiry**
 - Set `founding_epoch = 1`, `first_settler_decay_epochs = 1`; advance to epoch 5
 - Expected: Decay runs on the epoch-increment call; `founding_bonus_active = false`
 
-**Test B4 — Resource Hub / Natural Landmark unaffected**
+**Test B4 ï¿½ Resource Hub / Natural Landmark unaffected**
 - Sub-zone with `founding_claim = 'resource_hub'` and `founding_bonus_active = true`
 - Advance epoch past founding_epoch + 4
 - Expected: No changes (decay query filters `founding_claim = 'first_settler'` only)
 
-**Test B5 — No sub-zones (zero rows)**
+**Test B5 ï¿½ No sub-zones (zero rows)**
 - Game with no settled sub-zones ? advance epoch
 - Expected: Route completes without error; no DB updates attempted
 
 ---
 
-### T-C: Math Gate — Building Purchases
+### T-C: Math Gate ï¿½ Building Purchases
 
 **Setup:** Set `math_gate_enabled = true` on the game row (PATCH `/api/games/[id]`)
 
-**Test C1 — Modal appears**
+**Test C1 ï¿½ Modal appears**
 - Student tries to buy a building
 - Expected: MathGateModal renders with a math problem, answer input, Submit button
 
-**Test C2 — Correct answer (multiply)**
+**Test C2 ï¿½ Correct answer (multiply)**
 - Set `math_gate_difficulty = 'multiply'`; solve problem correctly
 - Expected: "? Correct!" shown; building purchased; `sub_zone.yield_modifier` unchanged
 
-**Test C3 — Wrong answer (penalty)**
+**Test C3 ï¿½ Wrong answer (penalty)**
 - Enter wrong answer
 - Expected: "? Incorrect. 25% yield penalty applied."; building still purchased; `sub_zone.yield_modifier -= 0.25`
 - Verify: If `yield_modifier` was 1.10, it becomes 0.85; floor is 0.50
 
-**Test C4 — Yield floor enforced**
+**Test C4 ï¿½ Yield floor enforced**
 - Zone at `yield_modifier = 0.60`; wrong answer twice
 - Expected: First penalty ? 0.35 ? clamped to 0.50; second wrong answer ? stays at 0.50
 
-**Test C5 — Cancel action**
+**Test C5 ï¿½ Cancel action**
 - Open modal ? click "Cancel action"
 - Expected: Modal closes; no building purchased; resources unchanged
 
-**Test C6 — Founding flow + math gate**
+**Test C6 ï¿½ Founding flow + math gate**
 - First build in unfounded zone ? founding form ? fill name + claim ? "Found & Build"
 - Expected: Math gate fires AFTER founding form submission, BEFORE API call
 - Wrong answer: City still founded; `math_penalty: true` sent to assets route; yield penalty applied to new zone
 
-**Test C7 — Math gate disabled**
+**Test C7 ï¿½ Math gate disabled**
 - Set `math_gate_enabled = false`
 - Expected: No modal; builds proceed directly
 
-**Test C8 — Difficulty: divide**
+**Test C8 ï¿½ Difficulty: divide**
 - Set `math_gate_difficulty = 'divide'`
-- Expected: Problem format is `A ÷ B = ?`
+- Expected: Problem format is `A ï¿½ B = ?`
 
-**Test C9 — Difficulty: ratio**
+**Test C9 ï¿½ Difficulty: ratio**
 - Set `math_gate_difficulty = 'ratio'`
 - Expected: Problem format is `A : B = ? : C`; hint shown
 
-**Test C10 — Difficulty: percent**
+**Test C10 ï¿½ Difficulty: percent**
 - Set `math_gate_difficulty = 'percent'`
 - Expected: Problem format is `What is X% of Y?` with friendly percentages (10/20/25/50%)
 
