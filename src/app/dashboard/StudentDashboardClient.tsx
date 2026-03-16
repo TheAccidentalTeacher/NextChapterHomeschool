@@ -69,6 +69,14 @@ interface MemberInfo {
   } | null;
 }
 
+interface TeammateInfo {
+  id: string;
+  display_name: string;
+  assigned_role: string;
+  is_absent: boolean;
+  is_self: boolean;
+}
+
 interface EpochState {
   current_epoch: number;
   current_step: EpochStep;
@@ -82,6 +90,48 @@ interface EpochState {
 interface Props {
   userId: string;
   displayName: string;
+}
+
+const ROLE_BADGE: Record<string, string> = {
+  architect: "border-amber-700 bg-amber-950/60 text-amber-200",
+  merchant:  "border-emerald-700 bg-emerald-950/60 text-emerald-200",
+  diplomat:  "border-sky-700 bg-sky-950/60 text-sky-200",
+  lorekeeper:"border-purple-700 bg-purple-950/60 text-purple-200",
+  warlord:   "border-red-700 bg-red-950/60 text-red-200",
+};
+const ROLE_EMOJI: Record<string, string> = {
+  architect: "🏗️", merchant: "🪙", diplomat: "🕊️", lorekeeper: "📜", warlord: "⚔️",
+};
+
+function TeammatesPanel({ teammates }: { teammates: TeammateInfo[] }) {
+  if (teammates.length === 0) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-stone-800 bg-stone-900/40 px-4 py-3">
+      <span className="text-xs text-stone-500 shrink-0">Team:</span>
+      {teammates.map((tm) => (
+        <div
+          key={tm.id}
+          className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+            tm.is_self
+              ? "border-stone-500 bg-stone-700/60 text-white"
+              : tm.is_absent
+              ? "border-stone-700 bg-stone-900 text-stone-500 opacity-50"
+              : (ROLE_BADGE[tm.assigned_role] ?? "border-stone-700 text-stone-300")
+          }`}
+        >
+          <span>{ROLE_EMOJI[tm.assigned_role] ?? "🎭"}</span>
+          <span>{tm.display_name}</span>
+          {tm.is_self && <span className="text-stone-400 font-normal"> · you</span>}
+          {!tm.is_self && !tm.is_absent && (
+            <span className="capitalize font-normal opacity-70"> · {tm.assigned_role}</span>
+          )}
+          {tm.is_absent && !tm.is_self && (
+            <span className="font-normal"> · absent</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function StudentDashboardClient({ userId, displayName }: Props) {
@@ -104,6 +154,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [legacyInvested, setLegacyInvested] = useState<Record<string, number>>({});
   // Role-switcher: lets one student submit for any role during testing
   const [overrideRole, setOverrideRole] = useState<RoleName | null>(null);
+  const [teammates, setTeammates] = useState<TeammateInfo[]>([]);
   const [allTeamRegions, setAllTeamRegions] = useState<TeamRegion[]>([]);
   const [subZones, setSubZones] = useState<SubZoneData[]>([]);
   const [selectedSubZone, setSelectedSubZone] = useState<SubZoneData | null>(null);
@@ -141,6 +192,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       debug.auth("Student data loaded", { team: t.name, role: m?.assigned_role, gameId: t.game_id });
       setTeam(t);
       setRole(m?.assigned_role ?? null);
+      setTeammates(meData.teammates ?? []);
       // Surface cover assignment if this student is substituting for an absent teammate
       if (m?.cover_info?.is_substitute) {
         setCoverInfo({
@@ -461,6 +513,9 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       {/* Tab Content */}
       {tab === "action" && (
         <div className="space-y-4">
+          {/* Teammates Panel — always visible */}
+          <TeammatesPanel teammates={teammates} />
+
           {/* Login Recap */}
           {currentStep === "login" && (
             <LoginRecapCard

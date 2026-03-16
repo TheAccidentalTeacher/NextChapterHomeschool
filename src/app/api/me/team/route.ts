@@ -58,6 +58,31 @@ export async function GET() {
       original_role: string;
     } | null = null;
 
+    // Fetch all teammates on this team (for the student to see who's who)
+    let teammates: Array<{
+      id: string;
+      display_name: string;
+      assigned_role: string;
+      is_absent: boolean;
+      is_self: boolean;
+    }> = [];
+    try {
+      const { data: allMembers } = await supabase
+        .from("team_members")
+        .select("id, clerk_user_id, display_name, assigned_role, is_absent")
+        .eq("team_id", team.id)
+        .order("joined_at", { ascending: true });
+      teammates = (allMembers ?? []).map((m) => ({
+        id: m.id,
+        display_name: m.display_name,
+        assigned_role: m.assigned_role,
+        is_absent: m.is_absent ?? false,
+        is_self: m.clerk_user_id === userId,
+      }));
+    } catch {
+      // non-critical
+    }
+
     try {
       // Get current epoch for this game
       const { data: gameRow } = await supabase
@@ -106,6 +131,7 @@ export async function GET() {
         is_absent: membership.is_absent,
         cover_info: coverInfo,
       },
+      teammates,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unauthorized";
