@@ -274,6 +274,7 @@ export interface CoverAssignment {
   clerk_user_id: string; // the covering student
   role: RoleName;        // the absent student's role being covered
   team_id: string;
+  covering_name?: string | null; // display name of the covering student
 }
 
 interface RosterManagerProps {
@@ -324,8 +325,11 @@ export default function RosterManager({
         body: JSON.stringify({ is_absent: absent }),
       }
     );
-    // If marking present, also clear any cover assignment
-    if (!absent) {
+    if (absent) {
+      // Auto-distribute this student's role to the least-loaded present teammate
+      await fetch(`/api/games/${gameId}/auto-covers`, { method: "POST" });
+    } else {
+      // Student is back — clear their cover assignment
       await fetch(`/api/games/${gameId}/covers`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -489,7 +493,9 @@ export default function RosterManager({
                         {member.is_absent && (
                           <div className="ml-3 mt-1 flex items-center gap-2 rounded-b-lg border-x border-b border-orange-800/50 bg-orange-950/20 px-3 py-2">
                             <span className="text-xs text-orange-400 shrink-0">
-                              {existingCover ? "✓ Covered by" : "↳ Who covers?"}
+                              {existingCover
+                                ? `✓ ${existingCover.covering_name ?? "Teammate"} covers`
+                                : "↳ Who covers?"}
                             </span>
                             {presentMembers.length === 0 ? (
                               <span className="text-xs text-stone-600 italic">No present teammates</span>
@@ -502,7 +508,7 @@ export default function RosterManager({
                                 }}
                                 className="flex-1 rounded border border-orange-700 bg-stone-900 px-2 py-1 text-xs text-orange-200 focus:border-orange-500 focus:outline-none"
                               >
-                                <option value="">— pick a teammate —</option>
+                                <option value="">— override —</option>
                                 {presentMembers.map((pm) => (
                                   <option key={pm.id} value={pm.id}>
                                     {pm.display_name} ({pm.assigned_role})

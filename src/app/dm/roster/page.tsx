@@ -33,6 +33,7 @@ export default function RosterPage() {
   const [loading, setLoading] = useState(true);
   const [rotating, setRotating] = useState(false);
   const [rotateMsg, setRotateMsg] = useState<string | null>(null);
+  const [autoingCovers, setAutoingCovers] = useState(false);
   const [covers, setCovers] = useState<CoverAssignment[]>([]);
 
   // Load games list
@@ -90,6 +91,47 @@ export default function RosterPage() {
     }
   };
 
+  const handleAutoCovers = async () => {
+    if (!selectedGameId) return;
+    setAutoingCovers(true);
+    try {
+      const res = await fetch(`/api/games/${selectedGameId}/auto-covers`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed");
+      setRotateMsg(`✓ ${data.message}`);
+      await loadTeams();
+    } catch (err) {
+      setRotateMsg(`✗ ${err instanceof Error ? err.message : "Error auto-covering"}`);
+    } finally {
+      setAutoingCovers(false);
+      setTimeout(() => setRotateMsg(null), 5000);
+    }
+  };
+
+  /** 🌅 New Epoch: rotate all roles, then auto-cover any absences */
+  const handleNewEpoch = async () => {
+    if (!selectedGameId) return;
+    setRotating(true);
+    setRotateMsg(null);
+    try {
+      const rotRes = await fetch(`/api/games/${selectedGameId}/rotate-roles`, { method: "POST" });
+      const rotData = await rotRes.json();
+      if (!rotRes.ok) throw new Error(rotData.error ?? "Rotate failed");
+
+      const covRes = await fetch(`/api/games/${selectedGameId}/auto-covers`, { method: "POST" });
+      const covData = await covRes.json();
+
+      const coverNote = covData.assigned > 0 ? ` • ${covData.message}` : "";
+      setRotateMsg(`✓ ${rotData.rotated} roles rotated${coverNote}`);
+      await loadTeams();
+    } catch (err) {
+      setRotateMsg(`✗ ${err instanceof Error ? err.message : "Error"}`);
+    } finally {
+      setRotating(false);
+      setTimeout(() => setRotateMsg(null), 6000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -122,16 +164,38 @@ export default function RosterPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Rotate Roles button */}
           {selectedGameId && (
-            <button
-              onClick={handleRotateRoles}
-              disabled={rotating}
-              className="rounded-lg border border-amber-700 bg-amber-950 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Advance every student to their next role (run once at the start of each class day)"
-            >
-              {rotating ? "Rotating…" : "🔄 Rotate Roles"}
-            </button>
+            <>
+              {/* 🌅 New Epoch — rotate + auto-cover in one click */}
+              <button
+                onClick={handleNewEpoch}
+                disabled={rotating || autoingCovers}
+                className="rounded-lg border border-emerald-700 bg-emerald-950 px-3 py-2 text-sm font-medium text-emerald-300 hover:bg-emerald-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Rotate all roles forward one step, then auto-cover any absent students"
+              >
+                {rotating ? "Working…" : "🌅 New Epoch"}
+              </button>
+
+              {/* ⚡ Auto-Cover only — re-distribute absences without rotating */}
+              <button
+                onClick={handleAutoCovers}
+                disabled={autoingCovers || rotating}
+                className="rounded-lg border border-sky-700 bg-sky-950 px-3 py-2 text-sm font-medium text-sky-300 hover:bg-sky-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Re-distribute absent students' roles to present teammates (no rotation)"
+              >
+                {autoingCovers ? "Covering…" : "⚡ Auto-Cover Absences"}
+              </button>
+
+              {/* 🔄 Rotate only */}
+              <button
+                onClick={handleRotateRoles}
+                disabled={rotating || autoingCovers}
+                className="rounded-lg border border-amber-700 bg-amber-950 px-3 py-2 text-sm font-medium text-amber-300 hover:bg-amber-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Advance every student to their next role only (no auto-cover)"
+              >
+                {rotating ? "Rotating…" : "🔄 Rotate Roles"}
+              </button>
+            </>
           )}
 
           {/* Game Selector */}

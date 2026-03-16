@@ -50,7 +50,24 @@ export async function GET(
       .eq("epoch", game.current_epoch)
       .eq("is_substitute", true);
 
-    return NextResponse.json({ epoch: game.current_epoch, covers: covers ?? [] });
+    // Resolve covering student display names from team_members
+    const coveringIds = (covers ?? []).map((c) => c.clerk_user_id);
+    let nameMap: Record<string, string> = {};
+    if (coveringIds.length > 0) {
+      const { data: coveringMembers } = await supabase
+        .from("team_members")
+        .select("clerk_user_id, display_name")
+        .in("clerk_user_id", coveringIds)
+        .in("team_id", teams.map((t) => t.id));
+      for (const cm of coveringMembers ?? []) {
+        nameMap[cm.clerk_user_id] = cm.display_name;
+      }
+    }
+
+    return NextResponse.json({
+      epoch: game.current_epoch,
+      covers: (covers ?? []).map((c) => ({ ...c, covering_name: nameMap[c.clerk_user_id] ?? null })),
+    });
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Unauthorized" },
