@@ -36,6 +36,7 @@ import CityPanel from "@/components/game/CityPanel";
 import IntelDropModal from "@/components/modals/IntelDropModal";
 import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
+import ClientErrorBoundary from "@/components/ClientErrorBoundary";
 import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -354,9 +355,10 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const ROLE_ICONS: Record<RoleName, string> = {
     architect: "🏛", merchant: "🪙", diplomat: "🕊", lorekeeper: "📖", warlord: "⚔",
   };
+  const safeRole: RoleName = role && ROLES.includes(role) ? role : "architect";
   // Covering students use the absent student's role so their submission counts for that role.
   // Debug override still takes highest priority.
-  const effectiveRole = overrideRole ?? (coverInfo?.covering_role as RoleName | undefined) ?? role;
+  const effectiveRole = overrideRole ?? (coverInfo?.covering_role as RoleName | undefined) ?? safeRole;
 
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
@@ -440,24 +442,32 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   return (
     <div className="space-y-4">
       {/* Top Bar */}
-      <TopBar
-        teamName={team.name}
-        civName={team.civilization_name}
-        role={role ?? "architect"}
-        epoch={currentEpoch}
-        step={currentStep}
-        isPaused={epoch?.is_paused ?? false}
-        timerRemaining={0}
-        resources={[
-          { type: "production" as ResourceType, amount: resources.production },
-          { type: "reach" as ResourceType, amount: resources.reach },
-          { type: "legacy" as ResourceType, amount: resources.legacy },
-          { type: "resilience" as ResourceType, amount: resources.resilience },
-          { type: "food" as ResourceType, amount: resources.food },
-        ]}
-        population={team.population}
-        ciScore={0}
-      />
+      <ClientErrorBoundary
+        fallback={
+          <div className="rounded-lg border border-stone-800 bg-stone-900/50 px-4 py-3 text-sm text-stone-300">
+            {team.civilization_name ?? team.name} · {safeRole} · Epoch {currentEpoch}
+          </div>
+        }
+      >
+        <TopBar
+          teamName={team.name}
+          civName={team.civilization_name}
+          role={safeRole}
+          epoch={currentEpoch}
+          step={currentStep}
+          isPaused={epoch?.is_paused ?? false}
+          timerRemaining={0}
+          resources={[
+            { type: "production" as ResourceType, amount: resources.production },
+            { type: "reach" as ResourceType, amount: resources.reach },
+            { type: "legacy" as ResourceType, amount: resources.legacy },
+            { type: "resilience" as ResourceType, amount: resources.resilience },
+            { type: "food" as ResourceType, amount: resources.food },
+          ]}
+          population={team.population}
+          ciScore={0}
+        />
+      </ClientErrorBoundary>
 
       {/* Secondary role badge — shown when this student holds two roles */}
       {secondaryRole && !coverInfo && (
@@ -528,90 +538,118 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
 
       {/* Modals */}
       {team && (
-        <>
+        <ClientErrorBoundary fallback={null}>
+          <>
           <IntelDropModal gameId={team.game_id} teamId={team.id} />
           <GlobalEventModal gameId={team.game_id} epoch={currentEpoch} />
-        </>
+          </>
+        </ClientErrorBoundary>
       )}
 
       {/* Tab Content */}
       {tab === "action" && (
+        <ClientErrorBoundary
+          fallback={
+            <div className="rounded-xl border border-amber-800/40 bg-amber-900/10 p-4 text-sm text-amber-200">
+              Your team dashboard hit a display problem, but your login worked. Refresh once. If it happens again, raise your hand and stay on this screen.
+            </div>
+          }
+        >
         <div className="space-y-4">
           {/* Teammates Panel — always visible */}
-          <TeammatesPanel teammates={teammates} />
+          <ClientErrorBoundary fallback={null}>
+            <TeammatesPanel teammates={teammates} />
+          </ClientErrorBoundary>
 
           {/* Login Recap */}
           {currentStep === "login" && (
-            <LoginRecapCard
-              gameId={team.game_id}
-              teamId={team.id}
-              epoch={currentEpoch}
-            />
+            <ClientErrorBoundary fallback={null}>
+              <LoginRecapCard
+                gameId={team.game_id}
+                teamId={team.id}
+                epoch={currentEpoch}
+              />
+            </ClientErrorBoundary>
           )}
 
           {/* Submission or Routing */}
           {isAction && effectiveRole && (
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="lg:col-span-2">
-                <RoundSubmissionCard
-                  gameId={team.game_id}
-                  teamId={team.id}
-                  epoch={currentEpoch}
-                  roundType={currentRound}
-                  role={effectiveRole}
-                  promptText={
-                    currentQuestion?.promptText ??
-                    "What strategic decision will your civilization make this round?"
+                <ClientErrorBoundary
+                  fallback={
+                    <div className="rounded-xl border border-red-800/40 bg-red-900/10 p-4 text-sm text-red-200">
+                      The question card failed to load. Refresh once, then tell your teacher if it happens again.
+                    </div>
                   }
-                  options={
-                    currentQuestion?.options ?? [
-                      { id: "a", label: "Focus on growth and expansion" },
-                      { id: "b", label: "Invest in infrastructure" },
-                      { id: "c", label: "Strengthen defenses" },
-                    ]
-                  }
-                  historicalContext={
-                    currentQuestion?.historicalContext ??
-                    "Your civilization faces a pivotal moment."
-                  }
-                  allowFreeText={currentQuestion?.allowFreeText ?? true}
-                  grade={(epoch?.class_period === "6th" ? "6th" : "7_8th") as "6th" | "7_8th"}
-                />
+                >
+                  <RoundSubmissionCard
+                    gameId={team.game_id}
+                    teamId={team.id}
+                    epoch={currentEpoch}
+                    roundType={currentRound}
+                    role={effectiveRole}
+                    promptText={
+                      currentQuestion?.promptText ??
+                      "What strategic decision will your civilization make this round?"
+                    }
+                    options={
+                      currentQuestion?.options ?? [
+                        { id: "a", label: "Focus on growth and expansion" },
+                        { id: "b", label: "Invest in infrastructure" },
+                        { id: "c", label: "Strengthen defenses" },
+                      ]
+                    }
+                    historicalContext={
+                      currentQuestion?.historicalContext ??
+                      "Your civilization faces a pivotal moment."
+                    }
+                    allowFreeText={currentQuestion?.allowFreeText ?? true}
+                    grade={(epoch?.class_period === "6th" ? "6th" : "7_8th") as "6th" | "7_8th"}
+                  />
+                </ClientErrorBoundary>
               </div>
               <div>
-                <SubmissionStatus
-                  gameId={team.game_id}
-                  teamId={team.id}
-                  currentRound={currentRound}
-                />
+                <ClientErrorBoundary fallback={null}>
+                  <SubmissionStatus
+                    gameId={team.game_id}
+                    teamId={team.id}
+                    currentRound={currentRound}
+                  />
+                </ClientErrorBoundary>
               </div>
             </div>
           )}
 
           {isRouting && effectiveRole && (
-            <RoutingPanel
-              gameId={team.game_id}
-              teamId={team.id}
-              roundType={currentRound}
-              totalEarned={resources[resourceType] ?? 0}
-              resourceType={resourceType}
-              onComplete={fetchData}
-            />
+            <ClientErrorBoundary fallback={null}>
+              <RoutingPanel
+                gameId={team.game_id}
+                teamId={team.id}
+                roundType={currentRound}
+                totalEarned={resources[resourceType] ?? 0}
+                resourceType={resourceType}
+                onComplete={fetchData}
+              />
+            </ClientErrorBoundary>
           )}
 
           {/* Resources display */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <ResourceBar
-              resources={resources}
-              population={team.population}
-            />
-            <PopulationBar
-              population={team.population}
-              foodStored={resources.food}
-              growthRate={resources.food > team.population ? 1 : resources.food < team.population ? -1 : 0}
-            />
-          </div>
+          <ClientErrorBoundary fallback={null}>
+            <div className="grid gap-4 md:grid-cols-2">
+              <ResourceBar
+                resources={resources}
+                population={team.population}
+              />
+              <PopulationBar
+                population={team.population}
+                foodStored={resources.food}
+                growthRate={resources.food > team.population ? 1 : resources.food < team.population ? -1 : 0}
+              />
+            </div>
+          </ClientErrorBoundary>
         </div>
+        </ClientErrorBoundary>
       )}
 
       {tab === "map" && (
