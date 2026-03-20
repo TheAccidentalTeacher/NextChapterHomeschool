@@ -347,9 +347,9 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const isRouting = isRoutingStep(currentStep);
   const resourceType = (STEP_TO_RESOURCE[currentStep] ?? "production") as ResourceType;
 
-  const handleSubZoneClick = useCallback((sz: SubZoneData) => {
+  const handleSubZoneClick = (sz: SubZoneData) => {
     setSelectedSubZone(sz);
-  }, []);
+  };
 
   const ROLES: RoleName[] = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
   const ROLE_ICONS: Record<RoleName, string> = {
