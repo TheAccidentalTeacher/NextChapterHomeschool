@@ -70,6 +70,10 @@ interface MemberInfo {
     covering_role: string;
     original_role: string;
   } | null;
+  cover_assignments?: Array<{
+    covering_role: string;
+    original_role: string;
+  }>;
 }
 
 interface TeammateInfo {
@@ -149,6 +153,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [role, setRole] = useState<RoleName | null>(null);
   const [secondaryRole, setSecondaryRole] = useState<RoleName | null>(null);
   const [coverInfo, setCoverInfo] = useState<{ covering_role: string; original_role: string } | null>(null);
+  const [coverAssignments, setCoverAssignments] = useState<Array<{ covering_role: RoleName; original_role: string }>>([]);
   const [epoch, setEpoch] = useState<EpochState | null>(null);
   const [resources, setResources] = useState<Record<ResourceType, number>>({
     production: 0,
@@ -164,6 +169,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const [legacyInvested, setLegacyInvested] = useState<Record<string, number>>({});
   // Role-switcher: lets one student submit for any role during testing
   const [overrideRole, setOverrideRole] = useState<RoleName | null>(null);
+  const [selectedSubmissionRole, setSelectedSubmissionRole] = useState<RoleName | null>(null);
   const [teammates, setTeammates] = useState<TeammateInfo[]>([]);
   const [allTeamRegions, setAllTeamRegions] = useState<TeamRegion[]>([]);
   const [subZones, setSubZones] = useState<SubZoneData[]>([]);
@@ -204,6 +210,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
       setRole(m?.assigned_role ?? null);
       setSecondaryRole((m?.secondary_role as RoleName | null | undefined) ?? null);
       setTeammates(meData.teammates ?? []);
+      const covers = (m?.cover_assignments ?? []) as Array<{ covering_role: RoleName; original_role: string }>;
+      setCoverAssignments(covers);
       // Surface cover assignment if this student is substituting for an absent teammate
       if (m?.cover_info?.is_substitute) {
         setCoverInfo({
@@ -298,7 +306,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   // Fetch contextual question whenever team, role, or round changes (Decision 27)
   useEffect(() => {
     if (!team || !role) return;
-    const effectiveRoleForQ = overrideRole ?? role;
+    const effectiveRoleForQ = overrideRole ?? selectedSubmissionRole ?? role;
     const stepNow = epoch?.current_step ?? "login";
     const roundNow = STEP_TO_ROUND[stepNow] ?? epoch?.current_round ?? "BUILD";
     if (!isActionStep(stepNow)) return; // only fetch during action phases
@@ -370,9 +378,19 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const safeRole: RoleName = role && ROLES.includes(role) ? role : "architect";
   // Covering students use the absent student's role so their submission counts for that role.
   // Debug override still takes highest priority.
-  const effectiveRole = overrideRole ?? (coverInfo?.covering_role as RoleName | undefined) ?? safeRole;
-  const routeEligibleRoles = [safeRole, secondaryRole, coverInfo?.covering_role as RoleName | undefined].filter(Boolean);
+  const accessibleRoles = Array.from(new Set([
+    safeRole,
+    secondaryRole,
+    ...coverAssignments.map((c) => c.covering_role),
+  ].filter(Boolean))) as RoleName[];
+  const effectiveRole = overrideRole ?? selectedSubmissionRole ?? safeRole;
+  const routeEligibleRoles = accessibleRoles;
   const canRouteThisStep = !!leadRole && routeEligibleRoles.includes(leadRole);
+
+  useEffect(() => {
+    if (!accessibleRoles.length) return;
+    setSelectedSubmissionRole((prev) => (prev && accessibleRoles.includes(prev) ? prev : accessibleRoles[0]));
+  }, [safeRole, secondaryRole, coverAssignments.length]);
 
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
@@ -515,13 +533,33 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           <span className="text-xl">🔄</span>
           <div>
             <p className="text-sm font-semibold text-amber-300">
-              Covering {coverInfo.covering_role.charAt(0).toUpperCase() + coverInfo.covering_role.slice(1)} role this epoch
+              Covering {coverAssignments.map((c) => c.covering_role).join(", ")} this epoch
             </p>
             <p className="text-xs text-amber-500/80">
-              A teammate is absent — you&apos;re stepping in as {coverInfo.covering_role}. Your submission will count for them.
-              Your original role is {coverInfo.original_role}.
+              A teammate is absent — you&apos;re stepping in for extra role{coverAssignments.length > 1 ? "s" : ""}. Switch roles below to submit each one.
             </p>
           </div>
+        </div>
+      )}
+
+      {isAction && accessibleRoles.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-800/40 bg-violet-900/10 p-2">
+          <span className="px-1 text-xs text-violet-300">Submit as:</span>
+          {accessibleRoles.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setSelectedSubmissionRole(r)}
+              className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
+                effectiveRole === r
+                  ? "bg-violet-700 text-white"
+                  : "bg-stone-800 text-stone-300 hover:bg-stone-700"
+              }`}
+            >
+              {ROLE_EMOJI[r]} {r}
+              {r === safeRole ? " · you" : coverAssignments.some((c) => c.covering_role === r) ? " · cover" : secondaryRole === r ? " · 2nd" : ""}
+            </button>
+          ))}
         </div>
       )}
 

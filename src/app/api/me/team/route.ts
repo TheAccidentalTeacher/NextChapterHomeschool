@@ -98,12 +98,11 @@ export async function GET() {
       game_id: string;
     };
 
-    // Check for substitute assignment this epoch
-    let coverInfo: {
-      is_substitute: true;
+    // Check for substitute assignments this epoch
+    let coverAssignments: Array<{
       covering_role: string;
       original_role: string;
-    } | null = null;
+    }> = [];
 
     // Fetch secondary_role separately (fault-tolerant: column may not exist until migration 008 runs)
     let selfSecondaryRole: string | null = null;
@@ -167,21 +166,20 @@ export async function GET() {
         .single();
 
       if (gameRow) {
-        const { data: subAssignment } = await supabase
+        const { data: subAssignments } = await supabase
           .from("epoch_role_assignments")
           .select("role, original_role")
           .eq("team_id", team.id)
           .eq("epoch", gameRow.current_epoch)
           .eq("clerk_user_id", userId)
           .eq("is_substitute", true)
-          .maybeSingle();
+          .order("role");
 
-        if (subAssignment) {
-          coverInfo = {
-            is_substitute: true,
+        if (subAssignments?.length) {
+          coverAssignments = subAssignments.map((subAssignment) => ({
             covering_role: subAssignment.role,
             original_role: subAssignment.original_role ?? membership.assigned_role,
-          };
+          }));
         }
       }
     } catch {
@@ -205,7 +203,14 @@ export async function GET() {
         assigned_role: membership.assigned_role,
         secondary_role: selfSecondaryRole,
         is_absent: membership.is_absent,
-        cover_info: coverInfo,
+        cover_info: coverAssignments[0]
+          ? {
+              is_substitute: true,
+              covering_role: coverAssignments[0].covering_role,
+              original_role: coverAssignments[0].original_role,
+            }
+          : null,
+        cover_assignments: coverAssignments,
       },
       teammates,
     });
