@@ -4,36 +4,77 @@
 // ============================================
 
 import { NextResponse } from "next/server";
+import { currentUser } from "@clerk/nextjs/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth/roles";
 
 export async function GET() {
   try {
     const { userId } = await requireAuth();
+    const user = await currentUser();
     const supabase = await createClient();
 
-    // Find this user's team membership
-    const { data: membership, error } = await supabase
-      .from("team_members")
-      .select(`
-        id,
-        team_id,
-        display_name,
-        assigned_role,
-        is_absent,
-        teams:team_id (
+    async function findMembership() {
+      const byId = await supabase
+        .from("team_members")
+        .select(`
           id,
-          name,
-          civilization_name,
-          region_id,
-          population,
-          game_id
-        )
-      `)
-      .eq("clerk_user_id", userId)
-      .order("joined_at", { ascending: false })
-      .limit(1)
-      .single();
+          team_id,
+          display_name,
+          assigned_role,
+          is_absent,
+          teams:team_id (
+            id,
+            name,
+            civilization_name,
+            region_id,
+            population,
+            game_id
+          )
+        `)
+        .eq("clerk_user_id", userId)
+        .order("joined_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (byId.data) {
+        return { data: byId.data, error: byId.error };
+      }
+
+      const firstName = user?.firstName?.trim();
+      if (firstName) {
+        const byName = await supabase
+          .from("team_members")
+          .select(`
+            id,
+            team_id,
+            display_name,
+            assigned_role,
+            is_absent,
+            teams:team_id (
+              id,
+              name,
+              civilization_name,
+              region_id,
+              population,
+              game_id
+            )
+          `)
+          .eq("display_name", firstName)
+          .order("joined_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (byName.data) {
+          return { data: byName.data, error: byName.error };
+        }
+      }
+
+      return { data: null, error: byId.error };
+    }
+
+    // Find this user's team membership
+    const { data: membership, error } = await findMembership();
 
     if (error || !membership) {
       return NextResponse.json(

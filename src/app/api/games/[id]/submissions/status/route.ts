@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { STEP_TO_ROUND } from "@/lib/game/epoch-machine";
 
 /**
  * GET /api/games/[id]/submissions/status
@@ -34,19 +35,31 @@ export async function GET(
     return NextResponse.json([]);
   }
 
+  const currentRoundType = STEP_TO_ROUND[game.current_round as keyof typeof STEP_TO_ROUND] ?? game.current_round?.toUpperCase?.() ?? "BUILD";
+
   // Get current epoch submissions
   const { data: submissions } = await supabase
     .from("epoch_submissions")
     .select("team_id, role, round_type")
     .eq("game_id", gameId)
-    .eq("epoch", game.current_epoch);
+    .eq("epoch", game.current_epoch)
+    .eq("round_type", currentRoundType);
 
-  // Get active role assignments from team_members (not the non-existent epoch_role_assignments table)
+  // Get active role assignments from team_members.
+  // Include both primary and secondary roles for small teams.
   const { data: members } = await supabase
     .from("team_members")
-    .select("team_id, assigned_role")
+    .select("team_id, assigned_role, secondary_role")
     .in("team_id", teams.map((t) => t.id))
     .eq("is_absent", false);
+
+  // Get substitute assignments for absent students being covered this epoch.
+  const { data: covers } = await supabase
+    .from("epoch_role_assignments")
+    .select("team_id, role")
+    .in("team_id", teams.map((t) => t.id))
+    .eq("epoch", game.current_epoch)
+    .eq("is_substitute", true);
 
   // All roles
   const ALL_ROLES = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
@@ -54,10 +67,14 @@ export async function GET(
   const statusByTeam = teams.map((team) => {
     // Determine active roles for this team from actual team members
     const teamMembers = members?.filter((m) => m.team_id === team.id);
-    const activeRoles =
-      teamMembers && teamMembers.length > 0
-        ? teamMembers.map((m) => m.assigned_role).filter(Boolean) as string[]
-        : ALL_ROLES;
+    const coveredRoles = (covers ?? []).filter((c) => c.team_id === team.id).map((c) => c.role);
+    const activeRoles = teamMembers && teamMembers.length > 0
+      ? Array.from(new Set([
+          ...teamMembers.map((m) => m.assigned_role).filter(Boolean),
+          ...teamMembers.map((m) => m.secondary_role).filter(Boolean),
+          ...coveredRoles,
+        ])) as string[]
+      : ALL_ROLES;
 
     // Get submitted roles for current round
     const teamSubs = (submissions ?? []).filter(
@@ -70,7 +87,7 @@ export async function GET(
       team_id: team.id,
       team_name: team.name,
       civilization_name: team.civilization_name,
-      round: game.current_round,
+      round: currentRoundType,
       roles_submitted: rolesSubmitted,
       roles_pending: rolesPending,
       all_submitted: rolesPending.length === 0,

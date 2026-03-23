@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getClerkUserId, isTeacher } from "@/lib/auth/roles";
+import { STEP_TO_ROUND, getNextStep, type EpochStep } from "@/lib/game/epoch-machine";
 
 /**
  * POST /api/games/[id]/submissions
@@ -110,6 +111,63 @@ export async function POST(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Auto-advance from action round -> routing when every team has all active roles submitted.
+  const currentStep = (game.current_round ?? "login") as EpochStep;
+  const currentRoundType = STEP_TO_ROUND[currentStep] ?? game.current_round?.toUpperCase?.() ?? round_type;
+
+  if (currentRoundType === round_type) {
+    const { data: teams } = await supabase
+      .from("teams")
+      .select("id")
+      .eq("game_id", gameId);
+
+    if (teams?.length) {
+      const teamIds = teams.map((t) => t.id);
+      const { data: members } = await supabase
+        .from("team_members")
+        .select("team_id, assigned_role, secondary_role")
+        .in("team_id", teamIds)
+        .eq("is_absent", false);
+
+      const { data: covers } = await supabase
+        .from("epoch_role_assignments")
+        .select("team_id, role")
+        .in("team_id", teamIds)
+        .eq("epoch", game.current_epoch)
+        .eq("is_substitute", true);
+
+      const { data: allSubs } = await supabase
+        .from("epoch_submissions")
+        .select("team_id, role")
+        .eq("game_id", gameId)
+        .eq("epoch", game.current_epoch)
+        .eq("round_type", currentRoundType);
+
+      const allTeamsDone = teamIds.every((teamId) => {
+        const teamMembers = (members ?? []).filter((m) => m.team_id === teamId);
+        const coveredRoles = (covers ?? []).filter((c) => c.team_id === teamId).map((c) => c.role);
+        const activeRoles = Array.from(new Set([
+          ...teamMembers.map((m) => m.assigned_role).filter(Boolean),
+          ...teamMembers.map((m) => m.secondary_role).filter(Boolean),
+          ...coveredRoles,
+        ]));
+        const submittedRoles = (allSubs ?? []).filter((s) => s.team_id === teamId).map((s) => s.role);
+        return activeRoles.length > 0 && activeRoles.every((r) => submittedRoles.includes(r));
+      });
+
+      if (allTeamsDone) {
+        const nextStep = getNextStep(currentStep);
+        if (nextStep && nextStep !== currentStep) {
+          await supabase
+            .from("games")
+            .update({ current_round: nextStep, updated_at: new Date().toISOString() })
+            .eq("id", gameId)
+            .eq("current_round", currentStep);
+        }
+      }
+    }
   }
 
   return NextResponse.json(submission, { status: 201 });

@@ -43,6 +43,39 @@ export default function LoginRecapCard({ gameId, teamId, epoch }: LoginRecapCard
     );
   }
 
+  if (epoch <= 1 && (!recap || recap === "The world is new. Your story begins.")) {
+    return (
+      <div className="rounded-xl border border-amber-800/30 bg-amber-900/10 p-6">
+        <div className="mb-3 flex items-center gap-2">
+          <span className="text-2xl">🌍</span>
+          <h3 className="text-sm font-semibold text-amber-400">
+            The world is new. Your story begins.
+          </h3>
+        </div>
+        <div className="space-y-3 text-sm leading-relaxed text-stone-300">
+          <p>
+            Your people have settled a new homeland. Around you, other civilizations are rising.
+            The land is rich with possibility, but every choice matters: what to build, where to expand,
+            who to trust, and what kind of legacy your people will leave behind.
+          </p>
+          <p>
+            In this game, your team will answer historical-style questions, defend your choices,
+            and guide your civilization through four kinds of decisions: build, expand, define, and defend.
+          </p>
+          <ul className="list-disc space-y-1 pl-5 text-stone-400">
+            <li>Read the question carefully.</li>
+            <li>Discuss it with your team.</li>
+            <li>Choose the best answer you can defend.</li>
+            <li>Write a short reason why.</li>
+          </ul>
+          <p className="text-amber-200">
+            Today is a practice run. Your goal is not perfection — your goal is to learn how your civilization works.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-amber-800/30 bg-amber-900/10 p-6">
       <div className="mb-3 flex items-center gap-2">

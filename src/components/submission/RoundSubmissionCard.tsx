@@ -16,7 +16,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import JustificationField from "./JustificationField";
 import { ROLES } from "@/lib/constants";
 import type { RoleName } from "@/types/database";
@@ -60,12 +60,56 @@ export default function RoundSubmissionCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const [checkingExisting, setCheckingExisting] = useState(true);
 
   const roleInfo = ROLES[role];
   const sentenceCount = (justification.match(/[.!?]+/g) || []).length;
   const isJustificationValid = sentenceCount >= 2;
   const hasSelection = selectedOption !== null || (allowFreeText && freeText.trim().length > 0);
   const canSubmit = hasSelection && isJustificationValid && !isSubmitting;
+
+  useEffect(() => {
+    let active = true;
+
+    async function checkExisting() {
+      try {
+        const res = await fetch(
+          `/api/games/${gameId}/submissions?epoch=${epoch}&team_id=${teamId}&round_type=${roundType}&role=${role}`
+        );
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!active || !Array.isArray(data) || data.length === 0) return;
+
+        const existing = data[0] as { content?: string | { option_selected?: string | null; justification_text?: string; free_text_action?: string | null } };
+        let parsed: { option_selected?: string | null; justification_text?: string; free_text_action?: string | null } | null = null;
+        if (typeof existing.content === "string") {
+          try {
+            parsed = JSON.parse(existing.content);
+          } catch {
+            parsed = null;
+          }
+        } else if (existing.content && typeof existing.content === "object") {
+          parsed = existing.content;
+        }
+
+        setSubmitted(true);
+        if (parsed) {
+          setSelectedOption(parsed.option_selected ?? null);
+          setJustification(parsed.justification_text ?? "");
+          setFreeText(parsed.free_text_action ?? "");
+        }
+      } catch {
+        // ignore
+      } finally {
+        if (active) setCheckingExisting(false);
+      }
+    }
+
+    checkExisting();
+    return () => {
+      active = false;
+    };
+  }, [epoch, gameId, role, roundType, teamId]);
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -98,6 +142,14 @@ export default function RoundSubmissionCard({
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (checkingExisting) {
+    return (
+      <div className="rounded-xl border border-stone-700 bg-stone-800/40 p-6 text-center">
+        <p className="text-sm text-stone-400">Checking your submission…</p>
+      </div>
+    );
   }
 
   if (submitted) {

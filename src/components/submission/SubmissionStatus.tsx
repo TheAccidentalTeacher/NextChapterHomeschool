@@ -42,17 +42,13 @@ export default function SubmissionStatus({
       if (!res.ok) return;
       const data = await res.json();
 
-      const teamStatus = data.find(
+      const teamStatus = (data.teams ?? []).find(
         (t: { team_id: string }) => t.team_id === teamId
       );
       if (teamStatus) {
-        const allRoles: RoleName[] = [
-          "architect",
-          "merchant",
-          "diplomat",
-          "lorekeeper",
-          "warlord",
-        ];
+        const allRoles = Array.from(
+          new Set([...(teamStatus.roles_submitted ?? []), ...(teamStatus.roles_pending ?? [])])
+        ) as RoleName[];
         setRoleStatuses(
           allRoles.map((role) => ({
             role,
@@ -92,7 +88,7 @@ export default function SubmissionStatus({
     };
   }, [gameId, teamId, currentRound]);
 
-  const allSubmitted = roleStatuses.every((r) => r.submitted);
+  const allSubmitted = roleStatuses.length > 0 && roleStatuses.every((r) => r.submitted);
   const pending = roleStatuses.filter((r) => !r.submitted);
 
   if (loading) {
