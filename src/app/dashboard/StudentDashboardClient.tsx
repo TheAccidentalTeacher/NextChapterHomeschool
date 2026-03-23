@@ -303,6 +303,21 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     return () => clearInterval(interval);
   }, [fetchData]);
 
+  // Sync selectedSubmissionRole to first accessible role when team/role data loads.
+  // MUST be here (top-level, before any early returns) to obey Rules of Hooks.
+  useEffect(() => {
+    if (!role) return;
+    const ROLES: RoleName[] = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
+    const base: RoleName = ROLES.includes(role) ? role : "architect";
+    const accessible = Array.from(
+      new Set([base, secondaryRole, ...coverAssignments.map((c) => c.covering_role)].filter(Boolean))
+    ) as RoleName[];
+    if (!accessible.length) return;
+    setSelectedSubmissionRole((prev) =>
+      prev && accessible.includes(prev) ? prev : accessible[0]
+    );
+  }, [role, secondaryRole, coverAssignments]);
+
   // Fetch contextual question whenever team, role, or round changes (Decision 27)
   useEffect(() => {
     if (!team || !role) return;
@@ -386,11 +401,6 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const effectiveRole = overrideRole ?? selectedSubmissionRole ?? safeRole;
   const routeEligibleRoles = accessibleRoles;
   const canRouteThisStep = !!leadRole && routeEligibleRoles.includes(leadRole);
-
-  useEffect(() => {
-    if (!accessibleRoles.length) return;
-    setSelectedSubmissionRole((prev) => (prev && accessibleRoles.includes(prev) ? prev : accessibleRoles[0]));
-  }, [safeRole, secondaryRole, coverAssignments.length]);
 
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (

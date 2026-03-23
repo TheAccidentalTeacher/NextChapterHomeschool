@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { SignOutButton } from "@clerk/nextjs";
+import { useClerk } from "@clerk/nextjs";
 import { useEffect } from "react";
 
 export default function AppError({
@@ -11,9 +10,42 @@ export default function AppError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const { signOut } = useClerk();
+
   useEffect(() => {
     console.error("App route error:", error);
   }, [error]);
+
+  function forceResetToSignIn() {
+    try {
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch {
+      // ignore
+    }
+
+    try {
+      document.cookie.split(";").forEach((cookie) => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.slice(0, eqPos).trim() : cookie.trim();
+        if (name) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      });
+    } catch {
+      // ignore
+    }
+
+    window.location.assign("/sign-in");
+  }
+
+  async function hardLogout() {
+    try {
+      await signOut({ redirectUrl: "/sign-in" });
+    } catch {
+      forceResetToSignIn();
+    }
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-stone-950 px-6 py-10 text-stone-100">
@@ -43,27 +75,34 @@ export default function AppError({
         <div className="mt-5 flex flex-wrap gap-3">
           <button
             type="button"
-            onClick={reset}
+            onClick={() => window.location.reload()}
             className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-500"
           >
             Retry page
           </button>
 
-          <Link
+          <a
             href="/sign-in"
             className="rounded-lg border border-stone-700 bg-stone-900 px-4 py-2 text-sm text-stone-200 transition hover:border-stone-500 hover:bg-stone-800"
           >
             Go to sign-in
-          </Link>
+          </a>
 
-          <SignOutButton>
-            <button
-              type="button"
-              className="rounded-lg border border-red-800/50 bg-red-900/20 px-4 py-2 text-sm text-red-300 transition hover:bg-red-900/40"
-            >
-              ↩ Log out
-            </button>
-          </SignOutButton>
+          <button
+            type="button"
+            onClick={hardLogout}
+            className="rounded-lg border border-red-800/50 bg-red-900/20 px-4 py-2 text-sm text-red-300 transition hover:bg-red-900/40"
+          >
+            ↩ Log out
+          </button>
+
+          <button
+            type="button"
+            onClick={forceResetToSignIn}
+            className="rounded-lg border border-amber-800/50 bg-amber-900/20 px-4 py-2 text-sm text-amber-300 transition hover:bg-amber-900/40"
+          >
+            Force reset
+          </button>
         </div>
       </div>
     </main>
