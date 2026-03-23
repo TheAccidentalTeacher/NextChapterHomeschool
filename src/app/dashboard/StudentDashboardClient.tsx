@@ -18,6 +18,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { SignOutButton } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import TopBar from "@/components/dashboard/TopBar";
 import ResourceBar from "@/components/dashboard/ResourceBar";
@@ -471,6 +472,17 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           ciScore={0}
         />
       </ClientErrorBoundary>
+
+      <div className="flex justify-end">
+        <SignOutButton>
+          <button
+            type="button"
+            className="rounded-lg border border-stone-700 bg-stone-900/70 px-3 py-1.5 text-sm text-stone-300 transition hover:border-red-700 hover:bg-red-900/20 hover:text-red-300"
+          >
+            ↩ Log out
+          </button>
+        </SignOutButton>
+      </div>
 
       {/* Secondary role badge — shown when this student holds two roles */}
       {secondaryRole && !coverInfo && (
