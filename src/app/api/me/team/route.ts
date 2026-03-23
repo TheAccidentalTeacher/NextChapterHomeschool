@@ -15,6 +15,13 @@ export async function GET() {
     const supabase = await createClient();
 
     async function findMembership() {
+      const candidateNames = Array.from(new Set([
+        user?.firstName?.trim(),
+        user?.firstName?.trim()?.split(/\s+/)[0],
+        user?.username?.trim(),
+        user?.username?.trim()?.split(/[._\-\s]+/)[0],
+      ].filter(Boolean) as string[]));
+
       const byId = await supabase
         .from("team_members")
         .select(`
@@ -41,8 +48,7 @@ export async function GET() {
         return { data: byId.data, error: byId.error };
       }
 
-      const firstName = user?.firstName?.trim();
-      if (firstName) {
+      for (const candidate of candidateNames) {
         const byName = await supabase
           .from("team_members")
           .select(`
@@ -60,10 +66,10 @@ export async function GET() {
               game_id
             )
           `)
-          .eq("display_name", firstName)
+          .ilike("display_name", candidate)
           .order("joined_at", { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle();
 
         if (byName.data) {
           return { data: byName.data, error: byName.error };

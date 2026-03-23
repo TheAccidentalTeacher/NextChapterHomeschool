@@ -102,6 +102,25 @@ export default function RoutingPanel({
     );
   }
 
+  if (totalEarned <= 0) {
+    return (
+      <div className="rounded-xl border border-stone-800 bg-stone-900/50 p-5">
+        <div className="mb-2 flex items-center gap-2">
+          <span className="text-xl">📭</span>
+          <h3 className="text-sm font-semibold text-stone-200">
+            No {RESOURCES[resourceType]?.label ?? resourceType} to route this round
+          </h3>
+        </div>
+        <p className="text-sm text-stone-400">
+          Your team earned 0 {RESOURCES[resourceType]?.label?.toLowerCase() ?? resourceType} this round, so there is nothing to allocate.
+        </p>
+        <p className="mt-2 text-xs text-stone-500">
+          Wait for your teacher to advance to the next phase.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-stone-800 bg-stone-900/50 p-5">
       <div className="mb-4 flex items-center justify-between">

@@ -37,7 +37,7 @@ import IntelDropModal from "@/components/modals/IntelDropModal";
 import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
 import ClientErrorBoundary from "@/components/ClientErrorBoundary";
-import { isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
+import { getLeadRole, isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
 import type { TeamRegion, SubZoneData, MapMarker } from "@/components/map/GameMap";
@@ -346,6 +346,7 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   const isAction = isActionStep(currentStep);
   const isRouting = isRoutingStep(currentStep);
   const resourceType = (STEP_TO_RESOURCE[currentStep] ?? "production") as ResourceType;
+  const leadRole = getLeadRole(currentStep) as RoleName | null;
 
   const handleSubZoneClick = (sz: SubZoneData) => {
     setSelectedSubZone(sz);
@@ -359,6 +360,8 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
   // Covering students use the absent student's role so their submission counts for that role.
   // Debug override still takes highest priority.
   const effectiveRole = overrideRole ?? (coverInfo?.covering_role as RoleName | undefined) ?? safeRole;
+  const routeEligibleRoles = [safeRole, secondaryRole, coverInfo?.covering_role as RoleName | undefined].filter(Boolean);
+  const canRouteThisStep = !!leadRole && routeEligibleRoles.includes(leadRole);
 
   const rolePanelMap: Record<RoleName, React.ReactNode> = {
     architect: (
@@ -623,14 +626,35 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
 
           {isRouting && effectiveRole && (
             <ClientErrorBoundary fallback={null}>
-              <RoutingPanel
-                gameId={team.game_id}
-                teamId={team.id}
-                roundType={currentRound}
-                totalEarned={resources[resourceType] ?? 0}
-                resourceType={resourceType}
-                onComplete={fetchData}
-              />
+              {canRouteThisStep ? (
+                <div className="space-y-3">
+                  <div className="rounded-xl border border-amber-700/40 bg-amber-900/10 px-4 py-3">
+                    <p className="text-sm font-semibold text-amber-300">
+                      {leadRole?.charAt(0).toUpperCase()}{leadRole?.slice(1)}: route your team&apos;s {resourceType} now.
+                    </p>
+                    <p className="text-xs text-amber-200/80">
+                      Use the controls below to decide how your team will use the resources earned this round.
+                    </p>
+                  </div>
+                  <RoutingPanel
+                    gameId={team.game_id}
+                    teamId={team.id}
+                    roundType={currentRound}
+                    totalEarned={resources[resourceType] ?? 0}
+                    resourceType={resourceType}
+                    onComplete={fetchData}
+                  />
+                </div>
+              ) : (
+                <div className="rounded-xl border border-stone-800 bg-stone-900/50 p-5 text-center">
+                  <p className="text-sm font-semibold text-stone-200">
+                    Waiting for the {leadRole ?? "lead"} to route {resourceType}.
+                  </p>
+                  <p className="mt-1 text-xs text-stone-500">
+                    You&apos;re done for this phase. Stay with your team and get ready for the next step.
+                  </p>
+                </div>
+              )}
             </ClientErrorBoundary>
           )}
 
