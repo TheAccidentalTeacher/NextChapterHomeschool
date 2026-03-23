@@ -65,6 +65,7 @@ export default function SubmissionQueue({
   }
 
   const allDone = teams.length > 0 && teams.every((t) => t.all_submitted);
+  const sortedTeams = [...teams].sort((a, b) => Number(b.all_submitted) - Number(a.all_submitted));
 
   return (
     <div className="space-y-3">
@@ -72,18 +73,32 @@ export default function SubmissionQueue({
         <h3 className="text-sm font-semibold text-stone-300">
           Submissions — {roundType}
         </h3>
-        {allDone && (
-          <span className="rounded bg-green-800/40 px-2 py-0.5 text-xs text-green-400">
-            ✓ All In
+        <div className="flex items-center gap-2">
+          <span className="rounded bg-stone-800 px-2 py-0.5 text-xs text-stone-300">
+            {teams.filter((t) => t.all_submitted).length}/{teams.length} teams ready
           </span>
-        )}
+          {allDone && (
+            <span className="rounded bg-green-800/40 px-2 py-0.5 text-xs text-green-400">
+              ✓ All In
+            </span>
+          )}
+        </div>
       </div>
+
+      {teams.length > 0 && (
+        <div className="h-2 overflow-hidden rounded-full bg-stone-800">
+          <div
+            className="h-full rounded-full bg-green-500 transition-all duration-500"
+            style={{ width: `${(teams.filter((t) => t.all_submitted).length / teams.length) * 100}%` }}
+          />
+        </div>
+      )}
 
       {teams.length === 0 ? (
         <p className="text-xs text-stone-600">No teams found</p>
       ) : (
         <div className="space-y-2">
-          {teams.map((team) => (
+          {sortedTeams.map((team) => (
             <div
               key={team.team_id}
               className={`rounded-lg border p-3 transition ${
@@ -93,17 +108,26 @@ export default function SubmissionQueue({
               }`}
             >
               <div className="mb-2 flex items-center justify-between">
-                <span className="text-sm font-medium text-stone-200">
-                  {team.civilization_name ?? team.team_name}
-                </span>
-                <span
-                  className={`text-xs ${
-                    team.all_submitted ? "text-green-400" : "text-amber-400"
-                  }`}
-                >
-                  {team.roles_submitted.length}/
-                  {team.roles_submitted.length + team.roles_pending.length}
-                </span>
+                <div>
+                  <span className="text-sm font-medium text-stone-200">
+                    {team.civilization_name ?? team.team_name}
+                  </span>
+                  <div className="mt-0.5 text-xs text-stone-500">
+                    {team.all_submitted ? "Ready for routing" : "Still submitting"}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div
+                    className={`text-xs font-semibold ${
+                      team.all_submitted ? "text-green-400" : "text-amber-400"
+                    }`}
+                  >
+                    {team.roles_submitted.length}/{team.roles_submitted.length + team.roles_pending.length}
+                  </div>
+                  <div className={`text-[11px] ${team.all_submitted ? "text-green-400" : "text-stone-500"}`}>
+                    {team.all_submitted ? "✓ TEAM IN" : `${team.roles_pending.length} pending`}
+                  </div>
+                </div>
               </div>
 
               <div className="flex flex-wrap gap-1.5">

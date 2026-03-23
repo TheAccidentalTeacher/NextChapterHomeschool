@@ -78,7 +78,7 @@ export async function GET(
 
     // Get submitted roles for current round
     const teamSubs = (submissions ?? []).filter(
-      (s) => s.team_id === team.id && s.round_type === game.current_round
+      (s) => s.team_id === team.id && s.round_type === currentRoundType
     );
     const rolesSubmitted = teamSubs.map((s) => s.role);
     const rolesPending = activeRoles.filter((r) => !rolesSubmitted.includes(r));
