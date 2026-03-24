@@ -386,6 +386,11 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     setSelectedSubZone(sz);
   };
 
+  // True if the team has founded at least one settlement this game
+  const hasFounded = subZones.some(
+    (z) => z.controlled_by_team_id === team.id && !!z.settlement_name
+  );
+
   const ROLES: RoleName[] = ["architect", "merchant", "diplomat", "lorekeeper", "warlord"];
   const ROLE_ICONS: Record<RoleName, string> = {
     architect: "🏛", merchant: "🪙", diplomat: "🕊", lorekeeper: "📖", warlord: "⚔",
@@ -648,7 +653,60 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           {/* Submission or Routing */}
           {isAction && effectiveRole && (
             <div className="grid gap-4 lg:grid-cols-3">
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-3">
+
+                {/* ── Round task guide for Architect ── */}
+                {accessibleRoles.includes("architect") && (
+                  <div className="rounded-xl border border-amber-700/50 bg-amber-950/30 p-4 space-y-2">
+                    <p className="text-sm font-bold text-amber-300">🏛 Architect — your two tasks this round:</p>
+                    <div className="space-y-1.5 text-sm">
+                      <div className={`flex items-start gap-2 ${hasFounded ? "text-green-400" : "text-stone-200"}`}>
+                        <span className="mt-0.5 text-base">{hasFounded ? "✅" : "1️⃣"}</span>
+                        <span>
+                          {hasFounded
+                            ? <><strong>Capital founded!</strong> Your settlement is on the map.</>
+                            : <><strong>Found your capital city.</strong> Go to the <button className="underline text-amber-300 hover:text-amber-100 cursor-pointer" onClick={() => setTab("map")}>Map tab</button>, click your team's colored territory, then click a territory to open it and press <strong>Found Settlement Here</strong>.</>
+                          }
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2 text-stone-200">
+                        <span className="mt-0.5 text-base">2️⃣</span>
+                        <span><strong>Submit your decision card</strong> below. Answer the question and explain your reasoning.</span>
+                      </div>
+                    </div>
+                    {!hasFounded && (
+                      <button
+                        onClick={() => setTab("map")}
+                        className="mt-1 w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-500 transition"
+                      >
+                        🗺️ Go to Map → Found Your Capital
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* ── Round task guide for non-Architect roles ── */}
+                {!accessibleRoles.includes("architect") && (
+                  <div className="rounded-xl border border-stone-700/50 bg-stone-900/40 p-4 space-y-1">
+                    <p className="text-sm font-bold text-stone-200">
+                      {effectiveRole === "merchant" && "🪙 Merchant"}
+                      {effectiveRole === "diplomat" && "🕊 Diplomat"}
+                      {effectiveRole === "lorekeeper" && "📖 Lorekeeper"}
+                      {effectiveRole === "warlord" && "⚔ Warlord"}
+                      {" — your task this round:"}
+                    </p>
+                    <p className="text-sm text-stone-300">
+                      <strong>Submit your decision card</strong> below. Meanwhile, watch your Architect found your capital city on the Map tab — your civilization is being born!
+                    </p>
+                    <button
+                      onClick={() => setTab("map")}
+                      className="mt-1 rounded-lg border border-stone-600 px-3 py-1.5 text-xs text-stone-300 hover:border-stone-400 hover:text-stone-100 transition"
+                    >
+                      🗺️ Watch on Map
+                    </button>
+                  </div>
+                )}
+
                 <ClientErrorBoundary
                   fallback={
                     <div className="rounded-xl border border-red-800/40 bg-red-900/10 p-4 text-sm text-red-200">
