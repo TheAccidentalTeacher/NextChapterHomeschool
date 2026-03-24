@@ -110,7 +110,11 @@ export default function GameMap({
       <ZoomControl position="bottomright" />
 
       {teamRegions && teamRegions.length > 0 && (
-        <RegionLayer teamRegions={teamRegions} />
+        <RegionLayer
+          teamRegions={teamRegions}
+          subZones={subZones}
+          onSubZoneClick={onSubZoneClick}
+        />
       )}
 
       {focusRegionId != null && (

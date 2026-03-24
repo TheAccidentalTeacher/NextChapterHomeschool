@@ -9,6 +9,8 @@
 
 import { useState, useEffect } from "react";
 import { GeoJSON, Tooltip } from "react-leaflet";
+import type { SubZoneData } from "./GameMap";
+import type { Layer, LeafletMouseEvent } from "leaflet";
 
 export interface TeamRegion {
   teamId: string;
@@ -19,6 +21,8 @@ export interface TeamRegion {
 
 interface RegionLayerProps {
   teamRegions: TeamRegion[];
+  subZones?: SubZoneData[];
+  onSubZoneClick?: (sz: SubZoneData) => void;
 }
 
 interface WorldZoneFeature {
@@ -39,7 +43,7 @@ interface WorldZoneCollection {
   features: WorldZoneFeature[];
 }
 
-export default function RegionLayer({ teamRegions }: RegionLayerProps) {
+export default function RegionLayer({ teamRegions, subZones = [], onSubZoneClick }: RegionLayerProps) {
   const [geojson, setGeojson] = useState<WorldZoneCollection | null>(null);
 
   useEffect(() => {
@@ -55,6 +59,12 @@ export default function RegionLayer({ teamRegions }: RegionLayerProps) {
   const regionMap = new Map<number, { color: string; name: string }>();
   for (const tr of teamRegions) {
     regionMap.set(tr.regionId, { color: tr.color, name: tr.name });
+  }
+
+  // Build lookup: sub_zone_id (e.g. "7-5") → SubZoneData for click handling
+  const subZoneMap = new Map<string, SubZoneData>();
+  for (const sz of subZones) {
+    subZoneMap.set(sz.id, sz);
   }
 
   // Group distinct features by (geometry hash = first coord string) to avoid
@@ -83,6 +93,8 @@ export default function RegionLayer({ teamRegions }: RegionLayerProps) {
           );
         }
 
+        const matchedSubZone = subZones.length > 0 ? subZoneMap.get(subZoneId) : undefined;
+
         return (
           <GeoJSON
             key={`team-${regionNum}-${idx}`}
@@ -94,11 +106,24 @@ export default function RegionLayer({ teamRegions }: RegionLayerProps) {
               weight: 1,
               opacity: 0.7,
             })}
+            eventHandlers={matchedSubZone && onSubZoneClick ? {
+              click: () => onSubZoneClick(matchedSubZone),
+              mouseover: (e: LeafletMouseEvent) => {
+                const layer = e.target as Layer & { setStyle?: (s: Record<string, unknown>) => void };
+                layer.setStyle?.({ fillOpacity: 0.7, weight: 2 });
+              },
+              mouseout: (e: LeafletMouseEvent) => {
+                const layer = e.target as Layer & { setStyle?: (s: Record<string, unknown>) => void };
+                layer.setStyle?.({ fillOpacity: 0.45, weight: 1 });
+              },
+            } : undefined}
           >
             <Tooltip sticky>
               <span className="text-xs font-semibold">{team.name}</span>
               <br />
-              <span className="text-xs text-gray-400">{feature.properties.sub_zone_name}</span>
+              <span className="text-xs text-gray-400">
+                {matchedSubZone ? matchedSubZone.settlement_name ?? matchedSubZone.name : feature.properties.sub_zone_name}
+              </span>
             </Tooltip>
           </GeoJSON>
         );
