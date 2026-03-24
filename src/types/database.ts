@@ -91,6 +91,7 @@ export interface Team {
   name: string;
   civilization_name: string | null;
   region_id: number;
+  draft_order: number | null;
   population: number;
   government_type: GovernmentType;
   is_in_dark_age: boolean;

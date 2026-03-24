@@ -67,6 +67,21 @@ export default function DMControlBar({
     }
   }
 
+  async function doRandomizeDraft() {
+    setLoading("randomize");
+    try {
+      const res = await fetch(`/api/games/${gameId}/randomize-draft`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Failed to randomize order");
+      } else {
+        onRefresh();
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-xl border border-stone-800 bg-stone-900/80 px-4 py-3">
       {/* Epoch + Step badge */}
@@ -126,6 +141,18 @@ export default function DMControlBar({
       )}
 
       <div className="mx-2 h-6 w-px bg-stone-700" />
+
+      {/* Randomize draft order — only relevant during login step */}
+      {currentStep === "login" && (
+        <button
+          onClick={doRandomizeDraft}
+          disabled={!!loading}
+          title="Randomly assign team turn order for the region draft"
+          className="rounded-lg border border-purple-700 px-3 py-1.5 text-sm font-medium text-purple-400 transition hover:border-purple-500 hover:bg-purple-900/30 hover:text-purple-300 disabled:opacity-40"
+        >
+          {loading === "randomize" ? "Shuffling…" : "🎲 Randomize Order"}
+        </button>
+      )}
 
       {/* Reset game — two-click confirmation */}
       {!confirmReset ? (

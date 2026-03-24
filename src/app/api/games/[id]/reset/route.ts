@@ -71,9 +71,20 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
         is_in_dark_age: false,
         confederation_id: null,
         region_id: 0,
+        draft_order: null,
       })
       .in("id", teamIds);
     if (e2) errors.push(`teams: ${e2.message}`);
+
+    // 2b. Assign new random draft order (Fisher-Yates)
+    const shuffled = [...teamIds];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    for (let i = 0; i < shuffled.length; i++) {
+      await supabase.from("teams").update({ draft_order: i + 1 }).eq("id", shuffled[i]);
+    }
   }
 
   // 3. Delete all submissions for this game

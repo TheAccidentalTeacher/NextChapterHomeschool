@@ -16,7 +16,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
 
     const { data: teams, error } = await supabase
       .from("teams")
-      .select("id, name, civilization_name, region_id, population")
+      .select("id, name, civilization_name, region_id, draft_order, population")
       .eq("game_id", id)
       .order("name");
 
