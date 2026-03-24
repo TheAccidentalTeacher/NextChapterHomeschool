@@ -31,6 +31,7 @@ export default function DMControlBar({
   onRefresh,
 }: DMControlBarProps) {
   const [loading, setLoading] = useState<string | null>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   async function doAction(action: string) {
     setLoading(action);
@@ -50,8 +51,24 @@ export default function DMControlBar({
     }
   }
 
+  async function doReset() {
+    setLoading("reset");
+    setConfirmReset(false);
+    try {
+      const res = await fetch(`/api/games/${gameId}/reset`, { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(data.error ?? "Reset failed");
+      } else {
+        onRefresh();
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-stone-800 bg-stone-900/80 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-stone-800 bg-stone-900/80 px-4 py-3">
       {/* Epoch + Step badge */}
       <div className="mr-2 flex items-center gap-2 text-sm">
         <span className="rounded bg-amber-600/20 px-2 py-0.5 text-amber-400">
@@ -109,6 +126,34 @@ export default function DMControlBar({
       )}
 
       <div className="mx-2 h-6 w-px bg-stone-700" />
+
+      {/* Reset game — two-click confirmation */}
+      {!confirmReset ? (
+        <button
+          onClick={() => setConfirmReset(true)}
+          disabled={!!loading}
+          className="rounded-lg border border-red-800 px-3 py-1.5 text-sm font-medium text-red-400 transition hover:border-red-500 hover:bg-red-900/30 hover:text-red-300 disabled:opacity-40"
+        >
+          ↺ Reset Game
+        </button>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-red-400">Wipe all progress?</span>
+          <button
+            onClick={doReset}
+            disabled={loading === "reset"}
+            className="rounded-lg bg-red-700 px-3 py-1.5 text-sm font-bold text-white hover:bg-red-600 disabled:opacity-50"
+          >
+            {loading === "reset" ? "Resetting…" : "YES — Reset"}
+          </button>
+          <button
+            onClick={() => setConfirmReset(false)}
+            className="rounded-lg border border-stone-600 px-3 py-1.5 text-sm text-stone-400 hover:text-stone-200"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
 
       {/* Paused indicator */}
       {isPaused && (
