@@ -38,6 +38,7 @@ import IntelDropModal from "@/components/modals/IntelDropModal";
 import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
 import ClientErrorBoundary from "@/components/ClientErrorBoundary";
+import RegionSelectCard from "@/components/game/RegionSelectCard";
 import { getLeadRole, isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -639,8 +640,23 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
             <TeammatesPanel teammates={teammates} />
           </ClientErrorBoundary>
 
-          {/* Login Recap */}
-          {currentStep === "login" && (
+          {/* Region Selection — shown during login if team hasn't picked a region yet */}
+          {currentStep === "login" && team.region_id === 0 && (
+            <ClientErrorBoundary fallback={null}>
+              <RegionSelectCard
+                gameId={team.game_id}
+                teamId={team.id}
+                teamName={team.name}
+                teamColor={allTeamRegions.find((tr) => tr.teamId === team.id)?.color ?? "#e63946"}
+                role={safeRole}
+                accessibleRoles={accessibleRoles}
+                onRegionChosen={fetchData}
+              />
+            </ClientErrorBoundary>
+          )}
+
+          {/* Login Recap — only after region is chosen */}
+          {currentStep === "login" && team.region_id > 0 && (
             <ClientErrorBoundary fallback={null}>
               <LoginRecapCard
                 gameId={team.game_id}

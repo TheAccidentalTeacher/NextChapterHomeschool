@@ -70,6 +70,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
         war_exhaustion_level: 0,
         is_in_dark_age: false,
         confederation_id: null,
+        region_id: 0,
       })
       .in("id", teamIds);
     if (e2) errors.push(`teams: ${e2.message}`);
