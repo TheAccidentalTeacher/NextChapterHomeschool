@@ -12,6 +12,35 @@ import { GeoJSON, Tooltip } from "react-leaflet";
 import type { SubZoneData } from "./GameMap";
 import type { Layer, LeafletMouseEvent } from "leaflet";
 
+// Fix antimeridian-crossing polygons (e.g. Russia, USA/Alaska).
+// Consecutive vertices that jump >180° in longitude are normalised so
+// longitudes are continuous. Leaflet handles values outside ±180 fine.
+function normalizeRing(ring: number[][]): number[][] {
+  if (ring.length === 0) return ring;
+  const result: number[][] = [[...ring[0]]];
+  for (let i = 1; i < ring.length; i++) {
+    let lng = ring[i][0];
+    const prevLng = result[i - 1][0];
+    while (lng - prevLng > 180) lng -= 360;
+    while (prevLng - lng > 180) lng += 360;
+    result.push([lng, ring[i][1]]);
+  }
+  return result;
+}
+
+function sanitizeGeometry(geometry: GeoJSON.Geometry): GeoJSON.Geometry {
+  if (geometry.type === "Polygon") {
+    return { ...geometry, coordinates: geometry.coordinates.map(normalizeRing) };
+  }
+  if (geometry.type === "MultiPolygon") {
+    return {
+      ...geometry,
+      coordinates: geometry.coordinates.map((poly) => poly.map(normalizeRing)),
+    };
+  }
+  return geometry;
+}
+
 export interface TeamRegion {
   teamId: string;
   regionId: number;
@@ -76,13 +105,14 @@ export default function RegionLayer({ teamRegions, subZones = [], onSubZoneClick
         const subZoneId: string = feature.properties?.sub_zone_id ?? "";
         const regionNum = parseInt(subZoneId.split("-")[0], 10);
         const team = regionMap.get(regionNum);
+        const safeFeature = { ...feature, geometry: sanitizeGeometry(feature.geometry) };
 
         if (!team) {
           // No team owns this region — render subtle neutral style
           return (
             <GeoJSON
               key={`neutral-${idx}`}
-              data={feature}
+              data={safeFeature as unknown as GeoJSON.Feature}
               style={() => ({
                 fillColor: "#374151",
                 fillOpacity: 0.2,
@@ -98,7 +128,7 @@ export default function RegionLayer({ teamRegions, subZones = [], onSubZoneClick
         return (
           <GeoJSON
             key={`team-${regionNum}-${idx}`}
-            data={feature}
+            data={safeFeature as unknown as GeoJSON.Feature}
             style={() => ({
               fillColor: team.color,
               fillOpacity: 0.45,
