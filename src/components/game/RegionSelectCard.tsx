@@ -15,20 +15,59 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import type { RoleName } from "@/types/database";
 
-// Each region has a display name, terrain summary, and geographic hint
-const REGION_INFO: Record<number, { name: string; area: string; terrain: string; emoji: string; tip: string }> = {
-  1:  { name: "Pacific Northwest",       area: "Alaska & Cascadia",           terrain: "coastal / forest",    emoji: "🌲", tip: "Salmon-rich coasts and dense rainforest — resilient and productive" },
-  2:  { name: "Eastern North America",   area: "Great Lakes & Atlantic",      terrain: "plains / river",      emoji: "🌊", tip: "Major river systems and fertile plains — ideal for trade networks" },
-  3:  { name: "Mesoamerica",             area: "Mexico & Central America",    terrain: "jungle / highland",   emoji: "🌿", tip: "The birthplace of maize — jungle civilizations with deep legacy" },
-  4:  { name: "Caribbean & Orinoco",     area: "N. South America",            terrain: "coastal / jungle",    emoji: "⛵", tip: "Island chains and river deltas rich in reach and trade" },
-  5:  { name: "South America",           area: "Andes & Pampas",              terrain: "mountain / plains",   emoji: "⛰️", tip: "High Andes fortresses and vast grasslands for expansion" },
-  6:  { name: "Mediterranean Europe",    area: "Italy, Greece & Iberia",      terrain: "coastal / plains",    emoji: "🏛", tip: "Cradle of Western civilization — trade, culture, and legacy" },
-  7:  { name: "Northern Europe",         area: "Scandinavia & British Isles", terrain: "coastal / tundra",    emoji: "🧊", tip: "Seafaring raiders and traders — high resilience, low food" },
-  8:  { name: "Middle East & N. Africa", area: "Nile, Tigris & Arabia",       terrain: "river / desert",      emoji: "🌙", tip: "First cities rose here — river valleys in a desert landscape" },
-  9:  { name: "Sub-Saharan Africa",      area: "Sahel, Congo & East Africa",  terrain: "jungle / plains",     emoji: "🦁", tip: "Vast continent, rich in food and legacy — hard to conquer" },
-  10: { name: "Central Asia",            area: "Steppe, Siberia & Caucasus",  terrain: "steppe / mountain",   emoji: "🐎", tip: "The great Eurasian heartland — mobile and militaristic" },
-  11: { name: "South & East Asia",       area: "India & China",               terrain: "river / plains",      emoji: "🌾", tip: "Most populous regions — food surplus drives population booms" },
-  12: { name: "East Asia & Pacific",     area: "Japan, Indonesia & Pacific",  terrain: "coastal / jungle",    emoji: "🌊", tip: "Island civilizations with sea reach — spread across the ocean" },
+// Each region has a display name, terrain summary, pros, cons, and geographic hint
+const REGION_INFO: Record<number, {
+  name: string; area: string; terrain: string; emoji: string; tip: string;
+  pros: string[]; cons: string[];
+}> = {
+  1:  { name: "Pacific Northwest",       area: "Alaska & Cascadia",           terrain: "coastal / forest",    emoji: "🌲",
+        tip: "Salmon-rich coasts and dense rainforest — resilient and productive",
+        pros: ["High food from fishing & forests", "Strong natural resilience", "Defensible coastline"],
+        cons: ["Isolated — hard to reach other civs", "Limited flat land for expansion", "Cold winters reduce growth"] },
+  2:  { name: "Eastern North America",   area: "Great Lakes & Atlantic",      terrain: "plains / river",      emoji: "🌊",
+        tip: "Major river systems and fertile plains — ideal for trade networks",
+        pros: ["Excellent river trade routes", "Fertile plains for food growth", "Central location for alliances"],
+        cons: ["Few natural barriers — easy to invade", "Prone to conflict with neighbors", "Moderate resources, nothing exceptional"] },
+  3:  { name: "Mesoamerica",             area: "Mexico & Central America",    terrain: "jungle / highland",   emoji: "🌿",
+        tip: "The birthplace of maize — jungle civilizations with deep legacy",
+        pros: ["Maize agriculture — huge food potential", "Strong legacy & cultural identity", "Highland fortresses are defensible"],
+        cons: ["Dense jungle slows expansion", "Disease reduces resilience", "Difficult terrain limits trade reach"] },
+  4:  { name: "Caribbean & Orinoco",     area: "N. South America",            terrain: "coastal / jungle",    emoji: "⛵",
+        tip: "Island chains and river deltas rich in reach and trade",
+        pros: ["Best sea trade reach in the Americas", "River deltas provide food", "Island chains are hard to conquer"],
+        cons: ["Vulnerable to storms and raids", "Fragmented territory limits land expansion", "Low production resources"] },
+  5:  { name: "South America",           area: "Andes & Pampas",              terrain: "mountain / plains",   emoji: "⛰️",
+        tip: "High Andes fortresses and vast grasslands for expansion",
+        pros: ["Andes mountains are near-impenetrable defense", "Vast pampas for expansion and food", "Isolated from Old World conflicts"],
+        cons: ["Mountains block trade routes", "Far from other civilizations — low diplomatic reach", "Hard to move armies quickly"] },
+  6:  { name: "Mediterranean Europe",    area: "Italy, Greece & Iberia",      terrain: "coastal / plains",    emoji: "🏛",
+        tip: "Cradle of Western civilization — trade, culture, and legacy",
+        pros: ["Best trade reach of any region", "High legacy — great for culture victories", "Cross-roads of three continents"],
+        cons: ["Central location means everyone is your neighbor (and rival)", "Contested — other teams may target you", "Requires active diplomacy to survive"] },
+  7:  { name: "Northern Europe",         area: "Scandinavia & British Isles", terrain: "coastal / tundra",    emoji: "🧊",
+        tip: "Seafaring raiders and traders — high resilience, low food",
+        pros: ["Exceptional sea reach for raids and trade", "High resilience — hard to conquer", "Isolated islands are defensible"],
+        cons: ["Very low food — population growth is slow", "Cold tundra limits production", "Distance makes alliances hard"] },
+  8:  { name: "Middle East & N. Africa", area: "Nile, Tigris & Arabia",       terrain: "river / desert",      emoji: "🌙",
+        tip: "First cities rose here — river valleys in a desert landscape",
+        pros: ["River valleys give strong food + legacy", "Historically first to urbanize — head start on tech", "Controls trade routes between continents"],
+        cons: ["Desert surrounds your rivers — limited expansion", "Surrounded by rivals on all sides", "Droughts can devastate food supply"] },
+  9:  { name: "Sub-Saharan Africa",      area: "Sahel, Congo & East Africa",  terrain: "jungle / plains",     emoji: "🦁",
+        tip: "Vast continent, rich in food and legacy — hard to conquer",
+        pros: ["Enormous territory — room for expansion", "Rich food in jungle and savanna", "Difficult to invade — natural barriers everywhere"],
+        cons: ["Sahara desert cuts off northern trade", "Jungle slows movement", "Low production in early epochs"] },
+  10: { name: "Central Asia",            area: "Steppe, Siberia & Caucasus",  terrain: "steppe / mountain",   emoji: "🐎",
+        tip: "The great Eurasian heartland — mobile and militaristic",
+        pros: ["Best military mobility — steppe cavalry range", "Controls the land bridge between East and West", "Mountain borders are easily defended"],
+        cons: ["Very low food and legacy", "Harsh climate reduces resilience", "Distance from coasts limits trade reach"] },
+  11: { name: "South & East Asia",       area: "India & China",               terrain: "river / plains",      emoji: "🌾",
+        tip: "Most populous regions — food surplus drives population booms",
+        pros: ["Highest food potential of any region", "Population booms fuel production and expansion", "River plains support dense cities"],
+        cons: ["Monsoon floods can wipe food stores", "Hard to defend — large borders everywhere", "Neighbors are powerful and numerous"] },
+  12: { name: "East Asia & Pacific",     area: "Japan, Indonesia & Pacific",  terrain: "coastal / jungle",    emoji: "🌊",
+        tip: "Island civilizations with sea reach — spread across the ocean",
+        pros: ["Islands are nearly impossible to invade", "Wide sea reach — can trade with everyone", "Jungle resources are abundant"],
+        cons: ["Low production on island terrain", "Isolated — hard to form land alliances", "Typhoons can devastate coastal settlements"] },
 };
 
 // Lazy-load the Leaflet map (SSR-unsafe)
@@ -71,6 +110,7 @@ export default function RegionSelectCard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hoveredRegion, setHoveredRegion] = useState<number | null>(null);
+  const [pendingRegion, setPendingRegion] = useState<number | null>(null); // selected but not locked in
   const [nameInput, setNameInput] = useState("");
   const [nameSaving, setNameSaving] = useState(false);
 
@@ -152,7 +192,8 @@ export default function RegionSelectCard({
 
   const totalDone = sortedTeams.filter((t) => t.regionId > 0).length;
   const totalTeams = sortedTeams.length;
-  const infoRegion = hoveredRegion ?? (myRegionId > 0 ? myRegionId : null);
+  // Priority: hovered > pending > already-claimed (done view)
+  const infoRegion = hoveredRegion ?? pendingRegion ?? (myRegionId > 0 ? myRegionId : null);
 
   // ── actions ──────────────────────────────────────────────────────────────────
   async function saveName() {
@@ -328,69 +369,131 @@ export default function RegionSelectCard({
           <div className="rounded-lg border border-green-700/50 bg-green-900/10 px-3 py-2 text-sm text-green-300">
             ✓ <strong>{myTeamData?.civilizationName}</strong>
             {isArchitect
-              ? " — now pick your starting region below."
+              ? " — click a region to preview it, then lock in your choice."
               : " — watch your Architect choose your starting region."}
           </div>
 
-          {/* Map */}
-          <div className="overflow-hidden rounded-xl border border-stone-800" style={{ height: 300 }}>
-            <RegionPickerMap
-              allTeams={allTeams}
-              myTeamId={teamId}
-              myTeamColor={teamColor}
-              claimedRegions={claimedRegions}
-              isArchitect={isArchitect}
-              onRegionHover={setHoveredRegion}
-              onRegionClick={claimRegion}
-              loading={loading}
-            />
+          {/* Map + info panel side by side on larger screens */}
+          <div className="grid gap-3 lg:grid-cols-5">
+
+            {/* Map — takes 3 cols */}
+            <div className="lg:col-span-3 overflow-hidden rounded-xl border border-stone-800" style={{ height: 300 }}>
+              <RegionPickerMap
+                allTeams={allTeams}
+                myTeamId={teamId}
+                myTeamColor={teamColor}
+                claimedRegions={claimedRegions}
+                isArchitect={isArchitect}
+                onRegionHover={setHoveredRegion}
+                onRegionClick={(id) => {
+                  if (isArchitect && !claimedRegions.has(id)) {
+                    setPendingRegion(id);
+                  }
+                }}
+                loading={loading}
+              />
+            </div>
+
+            {/* Info panel — takes 2 cols */}
+            <div className="lg:col-span-2 flex flex-col gap-3">
+              {infoRegion !== null && infoRegion > 0 && REGION_INFO[infoRegion] ? (
+                <div className="flex-1 rounded-xl border border-stone-700 bg-stone-900/70 p-3 text-sm flex flex-col gap-2">
+                  {/* Region header */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl">{REGION_INFO[infoRegion].emoji}</span>
+                    <div>
+                      <div className="font-bold text-stone-100 leading-tight">{REGION_INFO[infoRegion].name}</div>
+                      <div className="text-xs text-stone-400">{REGION_INFO[infoRegion].area}</div>
+                      <div className="text-xs text-stone-500 italic">{REGION_INFO[infoRegion].terrain}</div>
+                    </div>
+                    {claimedRegions.has(infoRegion) && (
+                      <span className="ml-auto rounded bg-red-900/50 px-2 py-0.5 text-xs text-red-300 whitespace-nowrap">
+                        Taken by {claimedRegions.get(infoRegion)}
+                      </span>
+                    )}
+                    {pendingRegion === infoRegion && !claimedRegions.has(infoRegion) && isArchitect && (
+                      <span className="ml-auto rounded bg-amber-800/60 px-2 py-0.5 text-xs text-amber-300 whitespace-nowrap">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Pros */}
+                  <div>
+                    <p className="text-xs font-semibold text-green-400 mb-1">✅ Advantages</p>
+                    <ul className="space-y-0.5">
+                      {REGION_INFO[infoRegion].pros.map((p, i) => (
+                        <li key={i} className="text-xs text-stone-300 flex gap-1.5">
+                          <span className="text-green-500 shrink-0">+</span>{p}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {/* Cons */}
+                  <div>
+                    <p className="text-xs font-semibold text-red-400 mb-1">⚠️ Disadvantages</p>
+                    <ul className="space-y-0.5">
+                      {REGION_INFO[infoRegion].cons.map((c, i) => (
+                        <li key={i} className="text-xs text-stone-300 flex gap-1.5">
+                          <span className="text-red-500 shrink-0">−</span>{c}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <p className="text-xs text-stone-500 italic border-t border-stone-800 pt-2">
+                    💡 {REGION_INFO[infoRegion].tip}
+                  </p>
+                </div>
+              ) : (
+                <div className="flex-1 rounded-xl border border-stone-800 bg-stone-900/40 p-4 flex items-center justify-center text-center">
+                  <p className="text-xs text-stone-500">
+                    {isArchitect
+                      ? "Click a region on the map or grid to see its strengths and weaknesses."
+                      : "Hover over a region to see details."}
+                  </p>
+                </div>
+              )}
+
+              {/* Lock In button */}
+              {isArchitect && pendingRegion !== null && !claimedRegions.has(pendingRegion) && (
+                <button
+                  onClick={() => claimRegion(pendingRegion)}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-amber-600 py-3 text-sm font-bold text-white shadow-lg hover:bg-amber-500 active:scale-95 disabled:opacity-50 transition"
+                >
+                  {loading
+                    ? "Locking in…"
+                    : `🔒 Lock In ${REGION_INFO[pendingRegion]?.name ?? "Region"}`}
+                </button>
+              )}
+              {isArchitect && pendingRegion === null && !infoRegion && (
+                <div className="rounded-xl border border-dashed border-stone-700 py-3 text-center text-xs text-stone-600">
+                  No region selected yet
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Hover / click info panel */}
-          {infoRegion !== null && infoRegion > 0 && REGION_INFO[infoRegion] && (
-            <div className="rounded-lg border border-stone-700 bg-stone-900/60 p-3 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{REGION_INFO[infoRegion].emoji}</span>
-                <div>
-                  <div className="font-bold text-stone-100">{REGION_INFO[infoRegion].name}</div>
-                  <div className="text-xs text-stone-400">
-                    {REGION_INFO[infoRegion].area} · {REGION_INFO[infoRegion].terrain}
-                  </div>
-                </div>
-                {claimedRegions.has(infoRegion) ? (
-                  <span className="ml-auto rounded bg-red-900/40 px-2 py-0.5 text-xs text-red-300">
-                    Taken by {claimedRegions.get(infoRegion)}
-                  </span>
-                ) : isArchitect ? (
-                  <button
-                    onClick={() => claimRegion(infoRegion)}
-                    disabled={loading}
-                    className="ml-auto rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-500 disabled:opacity-50"
-                  >
-                    {loading ? "Claiming…" : "Claim This Region"}
-                  </button>
-                ) : null}
-              </div>
-              <p className="mt-1.5 text-xs text-stone-400">💡 {REGION_INFO[infoRegion].tip}</p>
-            </div>
-          )}
-
-          {/* Region grid */}
+          {/* Region grid — browse all 12 */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
             {Object.entries(REGION_INFO).map(([idStr, info]) => {
               const id = parseInt(idStr, 10);
               const claimed = claimedRegions.get(id);
-              const isMine = myRegionId === id;
+              const isPending = pendingRegion === id;
               return (
                 <button
                   key={id}
                   disabled={!!claimed || loading || !isArchitect}
-                  onClick={() => claimRegion(id)}
+                  onClick={() => {
+                    if (isArchitect && !claimed) setPendingRegion(id);
+                  }}
                   onMouseEnter={() => setHoveredRegion(id)}
                   onMouseLeave={() => setHoveredRegion(null)}
                   className={`rounded-lg border p-2 text-left text-xs transition ${
-                    isMine
-                      ? "border-amber-500 bg-amber-900/40 text-amber-200"
+                    isPending
+                      ? "border-amber-500 bg-amber-900/50 text-amber-200 ring-1 ring-amber-500"
                       : claimed
                       ? "cursor-not-allowed border-stone-700 bg-stone-900/30 text-stone-600"
                       : isArchitect
@@ -401,9 +504,9 @@ export default function RegionSelectCard({
                   <span className="text-base">{info.emoji}</span>
                   <div className="mt-0.5 font-semibold leading-tight">{info.name}</div>
                   <div className="mt-0.5 leading-tight text-stone-500">{info.area}</div>
-                  {isMine && <div className="mt-1 font-bold text-amber-400">✓ Your choice</div>}
-                  {claimed && !isMine && <div className="mt-1 text-red-400/80">↳ {claimed}</div>}
-                  {!claimed && !isMine && isArchitect && (
+                  {isPending && <div className="mt-1 font-bold text-amber-400">← selected</div>}
+                  {claimed && <div className="mt-1 text-red-400/80">↳ {claimed}</div>}
+                  {!claimed && !isPending && isArchitect && (
                     <div className="mt-1 text-green-500/70">Available</div>
                   )}
                 </button>
