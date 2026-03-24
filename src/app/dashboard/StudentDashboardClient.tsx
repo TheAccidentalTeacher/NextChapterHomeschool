@@ -820,7 +820,21 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
         </ClientErrorBoundary>
       )}
 
-      {tab === "map" && (
+      {tab === "map" && currentStep === "login" && team.region_id === 0 && (
+        <ClientErrorBoundary fallback={null}>
+          <RegionSelectCard
+            gameId={team.game_id}
+            teamId={team.id}
+            teamName={team.name}
+            teamColor={allTeamRegions.find((tr) => tr.teamId === team.id)?.color ?? "#e63946"}
+            role={safeRole}
+            accessibleRoles={accessibleRoles}
+            onRegionChosen={fetchData}
+          />
+        </ClientErrorBoundary>
+      )}
+
+      {tab === "map" && !(currentStep === "login" && team.region_id === 0) && (
         <div className="space-y-0">
           <div
             className={`overflow-hidden border border-stone-800 transition-all duration-200 ${
