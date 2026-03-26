@@ -31,7 +31,7 @@ import DMRosterPanel from "@/components/dm/DMRosterPanel";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
 import { debug } from "@/lib/debug";
-import type { SubZoneData, TeamColor } from "@/components/map/GameMap";
+import type { SubZoneData, TeamColor, TeamRegion } from "@/components/map/GameMap";
 
 const GameMap = dynamic(() => import("@/components/map/GameMap"), { ssr: false });
 
@@ -160,13 +160,30 @@ export default function DMGamePage({
         <div className="lg:col-span-3">
           <div className="overflow-hidden rounded-xl border border-stone-800">
             <div className="h-[500px]">
-              <GameMap
-                subZones={subZones}
-                teamColors={teamColors}
-                fogState={[]}
-                markers={[]}
-                showFog={false}
-              />
+              {(() => {
+                const isDraft = game.current_step === "login";
+                // During draft: show region-level polygons colored by team; no sub-zone rectangles
+                const teamRegions: TeamRegion[] = isDraft
+                  ? teams
+                      .filter((t) => t.region_id > 0)
+                      .map((t) => ({
+                        teamId: t.id,
+                        regionId: t.region_id,
+                        color: teamColors.find((tc) => tc.teamId === t.id)?.color ?? "#888",
+                        name: t.civilization_name ?? t.name,
+                      }))
+                  : [];
+                return (
+                  <GameMap
+                    subZones={isDraft ? [] : subZones}
+                    teamColors={teamColors}
+                    teamRegions={teamRegions}
+                    fogState={[]}
+                    markers={[]}
+                    showFog={false}
+                  />
+                );
+              })()}
             </div>
           </div>
         </div>
