@@ -30,6 +30,7 @@ interface RosterMember {
   is_online: boolean;
   secs_ago: number | null;
   last_seen_at: string | null;
+  covering_roles: string[]; // roles being covered for absent teammates this epoch
 }
 
 interface RosterTeam {
@@ -68,6 +69,7 @@ export default function DMRosterPanel({ gameId }: DMRosterPanelProps) {
   const [teams, setTeams] = useState<RosterTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null); // member id being updated
+  const [reassigning, setReassigning] = useState(false);
 
   const fetchRoster = useCallback(async () => {
     try {
@@ -128,6 +130,16 @@ export default function DMRosterPanel({ gameId }: DMRosterPanelProps) {
     }
   }
 
+  async function rerunAutoCovers() {
+    setReassigning(true);
+    try {
+      await fetch(`/api/games/${gameId}/auto-covers`, { method: "POST" });
+      await fetchRoster();
+    } finally {
+      setReassigning(false);
+    }
+  }
+
   // ── Summary counts ──────────────────────────────────────────────────────
   const allMembers = teams.flatMap((t) => t.members);
   const onlineCount = allMembers.filter((m) => m.is_online && !m.is_absent).length;
@@ -158,7 +170,14 @@ export default function DMRosterPanel({ gameId }: DMRosterPanelProps) {
           <span className="inline-block h-2 w-2 rounded-full bg-orange-500" />
           <span className="text-orange-300">{absentCount} marked absent</span>
         </span>
-        <span className="ml-auto text-stone-600 italic">auto-refreshes every 10 s</span>
+        <button
+          onClick={rerunAutoCovers}
+          disabled={reassigning || absentCount === 0}
+          className="ml-auto rounded-lg bg-amber-700 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-40 transition"
+          title="Re-distribute all absent roles to present teammates"
+        >
+          {reassigning ? "Reassigning…" : "♻ Re-run Auto-Assign"}
+        </button>
       </div>
 
       {/* Team cards */}
@@ -208,6 +227,16 @@ export default function DMRosterPanel({ gameId }: DMRosterPanelProps) {
                         <span className="ml-1.5 text-xs text-purple-400">+{member.secondary_role}</span>
                       )}
                     </span>
+
+                    {/* Covering roles badge */}
+                    {!member.is_absent && member.covering_roles.length > 0 && (
+                      <span
+                        className="rounded bg-amber-900/60 px-1.5 py-0.5 text-xs text-amber-300 whitespace-nowrap"
+                        title={`Covering absent teammate roles: ${member.covering_roles.join(", ")}`}
+                      >
+                        +{member.covering_roles.join("+")}
+                      </span>
+                    )}
 
                     {/* Status badge */}
                     <span className={`text-xs px-1.5 py-0.5 rounded ${
