@@ -1,6 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { isTeacher } from "@/lib/auth/roles";
 import { STEP_TO_ROUND } from "@/lib/game/epoch-machine";
+
+/**
+ * DELETE /api/games/[id]/submissions/status
+ * DM only: wipe all submissions for the current epoch+round.
+ * Used to clear stale data from a previous session or test run.
+ */
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id: gameId } = await params;
+  const teacher = await isTeacher();
+  if (!teacher) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const supabase = await createClient();
+
+  const { data: game } = await supabase
+    .from("games")
+    .select("current_epoch, current_round")
+    .eq("id", gameId)
+    .single();
+
+  if (!game) {
+    return NextResponse.json({ error: "Game not found" }, { status: 404 });
+  }
+
+  const currentRoundType = STEP_TO_ROUND[game.current_round as keyof typeof STEP_TO_ROUND] ?? game.current_round?.toUpperCase?.() ?? "BUILD";
+
+  const { error, count } = await supabase
+    .from("epoch_submissions")
+    .delete({ count: "exact" })
+    .eq("game_id", gameId)
+    .eq("epoch", game.current_epoch)
+    .eq("round_type", currentRoundType);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ deleted: count ?? 0 });
+}
 
 /**
  * GET /api/games/[id]/submissions/status

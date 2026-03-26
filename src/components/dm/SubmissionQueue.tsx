@@ -48,6 +48,21 @@ export default function SubmissionQueue({
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
   const [details, setDetails] = useState<Record<string, SubmissionDetail[]>>({}); // teamId → details
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
+  const [clearing, setClearing] = useState(false);
+
+  async function clearSubmissions() {
+    if (!confirm("Clear ALL submissions for the current round? This cannot be undone.")) return;
+    setClearing(true);
+    try {
+      await fetch(`/api/games/${gameId}/submissions/status`, { method: "DELETE" });
+      setTeams([]);
+      setDetails({});
+      setExpandedTeam(null);
+      await fetchStatus();
+    } finally {
+      setClearing(false);
+    }
+  }
 
   async function fetchStatus() {
     try {
@@ -134,6 +149,15 @@ export default function SubmissionQueue({
               ✓ All In
             </span>
           )}
+          <button
+            type="button"
+            onClick={clearSubmissions}
+            disabled={clearing}
+            title="Clear stale submissions from a previous session"
+            className="rounded bg-red-900/40 px-2 py-0.5 text-xs text-red-400 hover:bg-red-800/60 transition disabled:opacity-50"
+          >
+            {clearing ? "Clearing…" : "🗑 Clear"}
+          </button>
         </div>
       </div>
 
