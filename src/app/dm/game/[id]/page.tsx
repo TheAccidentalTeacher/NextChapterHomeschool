@@ -28,6 +28,8 @@ import ConflictFlagBanner from "@/components/dm/ConflictFlagBanner";
 import PushToProjector from "@/components/dm/PushToProjector";
 import AutoplayPanel from "./AutoplayPanel";
 import DMRosterPanel from "@/components/dm/DMRosterPanel";
+import DMDebugPanel from "@/components/dm/DMDebugPanel";
+import { dmLog } from "@/lib/dm-log";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -66,7 +68,7 @@ export default function DMGamePage({
     teamName: string;
     role: RoleName;
   } | null>(null);
-  const [sidePanel, setSidePanel] = useState<"submissions" | "tools" | "autoplay" | "roster">("submissions");
+  const [sidePanel, setSidePanel] = useState<"submissions" | "tools" | "autoplay" | "roster" | "log">("submissions");
 
   // Resolve params
   useEffect(() => {
@@ -89,13 +91,17 @@ export default function DMGamePage({
       if (gameRes.ok) {
         const gd = await gameRes.json();
         const epochData = epochRes.ok ? await epochRes.json() : {};
-        setGame({
+        const newState = {
           current_epoch: gd.game?.current_epoch ?? epochData.current_epoch ?? 1,
           epoch_phase: gd.game?.epoch_phase ?? epochData.epoch_phase ?? "active",
           current_round: gd.game?.current_round ?? epochData.current_round ?? "BUILD",
           current_step: (epochData.current_step ?? epochData.current_round ?? "login") as EpochStep,
           is_paused: epochData.is_paused ?? (epochData.epoch_phase === "resolving"),
-        });
+        };
+        dmLog("info", "DM Page", `Game state: epoch=${newState.current_epoch} step=${newState.current_step} round=${newState.current_round} paused=${newState.is_paused}`);
+        setGame(newState);
+      } else {
+        dmLog("error", "DM Page", `Game fetch → HTTP ${gameRes.status}`);
       }
       if (teamsRes.ok) {
         const td = await teamsRes.json();
@@ -104,13 +110,15 @@ export default function DMGamePage({
         // Build teamColors from team list
         const PALETTE = ["#ef4444","#3b82f6","#22c55e","#f59e0b","#8b5cf6","#06b6d4","#f97316","#ec4899"];
         setTeamColors(loadedTeams.map((t, i) => ({ teamId: t.id, color: PALETTE[i % PALETTE.length], name: t.civilization_name ?? t.name })));
+      } else {
+        dmLog("warn", "DM Page", `Teams fetch → HTTP ${teamsRes.status}`);
       }
       if (szRes.ok) {
         const szd = await szRes.json();
         setSubZones(szd.subZones ?? []);
       }
-    } catch {
-      // ignore
+    } catch (e) {
+      dmLog("error", "DM Page", `fetchState threw`, String(e));
     } finally {
       setLoading(false);
     }
@@ -232,6 +240,16 @@ export default function DMGamePage({
             >
               🎭 Sim
             </button>
+            <button
+              onClick={() => setSidePanel("log")}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs transition ${
+                sidePanel === "log"
+                  ? "bg-sky-800 text-white"
+                  : "text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              🐛 Log
+            </button>
           </div>
 
           {sidePanel === "roster" ? (
@@ -252,6 +270,10 @@ export default function DMGamePage({
                 });
               }}
             />
+          ) : sidePanel === "log" ? (
+            <div className="overflow-y-auto max-h-[650px] pr-1">
+              <DMDebugPanel />
+            </div>
           ) : sidePanel === "autoplay" ? (
             <AutoplayPanel
               gameId={gameId}

@@ -8,8 +8,9 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ROLES } from "@/lib/constants";
+import { dmLog } from "@/lib/dm-log";
 import type { RoleName } from "@/types/database";
 
 interface SubmissionDetail {
@@ -49,16 +50,30 @@ export default function SubmissionQueue({
   const [details, setDetails] = useState<Record<string, SubmissionDetail[]>>({}); // teamId → details
   const [detailsLoading, setDetailsLoading] = useState<string | null>(null);
   const [clearing, setClearing] = useState(false);
+  const prevTeamsRef = useRef<TeamSubmissionStatus[]>([]);
 
   async function clearSubmissions() {
     if (!confirm("Clear ALL submissions for the current round? This cannot be undone.")) return;
+    dmLog("warn", "DM Action", `Clearing all submissions`, { gameId, epoch, roundType });
     setClearing(true);
     try {
-      await fetch(`/api/games/${gameId}/submissions/status`, { method: "DELETE" });
+      const res = await fetch(`/api/games/${gameId}/submissions/status`, { method: "DELETE" });
+      let body: Record<string, unknown> = {};
+      try { body = await res.json(); } catch { /* non-json */ }
+      if (!res.ok) {
+        dmLog("error", "Clear", `DELETE /submissions/status → ${res.status}`, body);
+        alert(`Failed to clear submissions: HTTP ${res.status}\n${body.error ?? JSON.stringify(body)}`);
+        return;
+      }
+      dmLog("ok", "DM Action", `Cleared ${body.deleted ?? "?"} submission rows`, body);
+      prevTeamsRef.current = [];
       setTeams([]);
       setDetails({});
       setExpandedTeam(null);
       await fetchStatus();
+    } catch (e) {
+      dmLog("error", "Clear", `Network error on DELETE`, String(e));
+      alert(`Clear failed (network error): ${e}`);
     } finally {
       setClearing(false);
     }
@@ -66,53 +81,91 @@ export default function SubmissionQueue({
 
   async function fetchStatus() {
     try {
-      const res = await fetch(
-        `/api/games/${gameId}/submissions/status?epoch=${epoch}&round=${roundType}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        setTeams(data.teams ?? []);
+      const url = `/api/games/${gameId}/submissions/status?epoch=${epoch}&round=${roundType}`;
+      const res = await fetch(url);
+      if (!res.ok) {
+        dmLog("warn", "SubmissionQueue", `Status poll → HTTP ${res.status}`, { url });
+        return;
       }
-    } catch {
-      // ignore
+      const data = await res.json();
+      const newTeams: TeamSubmissionStatus[] = data.teams ?? [];
+
+      // Diff vs previous poll — surface new student submissions
+      for (const team of newTeams) {
+        const prev = prevTeamsRef.current.find((t) => t.team_id === team.team_id);
+        if (prev) {
+          const newSubs = team.roles_submitted.filter(
+            (r) => !prev.roles_submitted.includes(r)
+          );
+          for (const role of newSubs) {
+            dmLog(
+              "ok",
+              "Student",
+              `${team.civilization_name ?? team.team_name} submitted ${role}`,
+              { teamId: team.team_id, role }
+            );
+          }
+          if (team.all_submitted && !prev.all_submitted) {
+            dmLog(
+              "ok",
+              "Student",
+              `✅ ALL ROLES IN — ${team.civilization_name ?? team.team_name}`
+            );
+          }
+        }
+      }
+
+      prevTeamsRef.current = newTeams;
+      setTeams(newTeams);
+    } catch (e) {
+      dmLog("error", "SubmissionQueue", `Status poll threw`, String(e));
     } finally {
       setLoading(false);
     }
   }
 
   async function fetchDetails(teamId: string) {
+    const teamName = teams.find((t) => t.team_id === teamId)?.civilization_name
+      ?? teams.find((t) => t.team_id === teamId)?.team_name
+      ?? teamId;
     if (details[teamId]) {
-      // toggle off if already loaded
-      setExpandedTeam(prev => prev === teamId ? null : teamId);
+      const next = expandedTeam === teamId ? null : teamId;
+      setExpandedTeam(next);
+      dmLog("info", "DM Action", `${next ? "Expanded" : "Collapsed"} details: ${teamName}`);
       return;
     }
+    dmLog("info", "DM Action", `Fetching submission details: ${teamName}`);
     setDetailsLoading(teamId);
     setExpandedTeam(teamId);
     try {
-      const res = await fetch(
-        `/api/games/${gameId}/submissions?epoch=${epoch}&round_type=${roundType}&team_id=${teamId}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const subs: SubmissionDetail[] = (data.submissions ?? []).map((s: {
-          role: RoleName;
-          content: string;
-          submitted_at: string | null;
-          score: number | null;
-        }) => {
-          let parsed: { option_selected?: string; justification_text?: string; free_text_action?: string } = {};
-          try { parsed = JSON.parse(s.content ?? "{}"); } catch { /* ignore */ }
-          return {
-            role: s.role,
-            option_selected: parsed.option_selected ?? null,
-            justification_text: parsed.justification_text ?? null,
-            free_text_action: parsed.free_text_action ?? null,
-            submitted_at: s.submitted_at ?? null,
-            score: s.score ?? null,
-          };
-        });
-        setDetails(prev => ({ ...prev, [teamId]: subs }));
+      const url = `/api/games/${gameId}/submissions?epoch=${epoch}&round_type=${roundType}&team_id=${teamId}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) {
+        dmLog("warn", "SubmissionQueue", `Details fetch → HTTP ${res.status}`, data);
+        return;
       }
+      dmLog("ok", "SubmissionQueue", `Details loaded for ${teamName} — ${(data.submissions ?? []).length} submissions`, data);
+      const subs: SubmissionDetail[] = (data.submissions ?? []).map((s: {
+        role: RoleName;
+        content: string;
+        submitted_at: string | null;
+        score: number | null;
+      }) => {
+        let parsed: { option_selected?: string; justification_text?: string; free_text_action?: string } = {};
+        try { parsed = JSON.parse(s.content ?? "{}"); } catch { /* ignore */ }
+        return {
+          role: s.role,
+          option_selected: parsed.option_selected ?? null,
+          justification_text: parsed.justification_text ?? null,
+          free_text_action: parsed.free_text_action ?? null,
+          submitted_at: s.submitted_at ?? null,
+          score: s.score ?? null,
+        };
+      });
+      setDetails((prev) => ({ ...prev, [teamId]: subs }));
+    } catch (e) {
+      dmLog("error", "SubmissionQueue", `Details fetch threw`, String(e));
     } finally {
       setDetailsLoading(null);
     }

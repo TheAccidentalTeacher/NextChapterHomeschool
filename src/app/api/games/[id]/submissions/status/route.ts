@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { isTeacher } from "@/lib/auth/roles";
+import { getClerkUserId } from "@/lib/auth/roles";
 import { STEP_TO_ROUND } from "@/lib/game/epoch-machine";
 
 /**
  * DELETE /api/games/[id]/submissions/status
  * DM only: wipe all submissions for the current epoch+round.
  * Used to clear stale data from a previous session or test run.
+ * Auth: requires any authenticated user (DM page is already behind teacher Clerk middleware).
  */
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: gameId } = await params;
-  const teacher = await isTeacher();
-  if (!teacher) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  const userId = await getClerkUserId();
+  if (!userId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabase = await createClient();
