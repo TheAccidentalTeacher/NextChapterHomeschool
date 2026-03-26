@@ -27,6 +27,7 @@ import GlobalEventForm from "@/components/dm/GlobalEventForm";
 import ConflictFlagBanner from "@/components/dm/ConflictFlagBanner";
 import PushToProjector from "@/components/dm/PushToProjector";
 import AutoplayPanel from "./AutoplayPanel";
+import DMRosterPanel from "@/components/dm/DMRosterPanel";
 import { STEP_LABELS, STEP_TO_ROUND, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -65,7 +66,7 @@ export default function DMGamePage({
     teamName: string;
     role: RoleName;
   } | null>(null);
-  const [sidePanel, setSidePanel] = useState<"submissions" | "tools" | "autoplay">("submissions");
+  const [sidePanel, setSidePanel] = useState<"submissions" | "tools" | "autoplay" | "roster">("submissions");
 
   // Resolve params
   useEffect(() => {
@@ -176,7 +177,7 @@ export default function DMGamePage({
           <div className="flex gap-1 rounded-lg bg-stone-900/50 p-1">
             <button
               onClick={() => setSidePanel("submissions")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm transition ${
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs transition ${
                 sidePanel === "submissions"
                   ? "bg-stone-700 text-white"
                   : "text-stone-400 hover:text-stone-200"
@@ -185,8 +186,18 @@ export default function DMGamePage({
               Submissions
             </button>
             <button
+              onClick={() => setSidePanel("roster")}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs transition ${
+                sidePanel === "roster"
+                  ? "bg-green-800 text-white"
+                  : "text-stone-400 hover:text-stone-200"
+              }`}
+            >
+              👥 Roster
+            </button>
+            <button
               onClick={() => setSidePanel("tools")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm transition ${
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs transition ${
                 sidePanel === "tools"
                   ? "bg-stone-700 text-white"
                   : "text-stone-400 hover:text-stone-200"
@@ -196,7 +207,7 @@ export default function DMGamePage({
             </button>
             <button
               onClick={() => setSidePanel("autoplay")}
-              className={`flex-1 rounded-md px-3 py-1.5 text-sm transition ${
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs transition ${
                 sidePanel === "autoplay"
                   ? "bg-violet-700 text-white"
                   : "text-stone-400 hover:text-stone-200"
@@ -206,7 +217,11 @@ export default function DMGamePage({
             </button>
           </div>
 
-          {sidePanel === "submissions" ? (
+          {sidePanel === "roster" ? (
+            <div className="overflow-y-auto max-h-[600px] pr-1">
+              <DMRosterPanel gameId={gameId} />
+            </div>
+          ) : sidePanel === "submissions" ? (
             <SubmissionQueue
               gameId={gameId}
               epoch={game.current_epoch}

@@ -17,7 +17,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { SignOutButton } from "@clerk/nextjs";
 import dynamic from "next/dynamic";
 import TopBar from "@/components/dashboard/TopBar";
@@ -303,6 +303,23 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
     const interval = setInterval(fetchData, 8000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  // Presence heartbeat — ping every 30 s so the DM can see who is online.
+  // Uses a ref so the interval always has the latest team without re-registering.
+  const teamRef = useRef<typeof team>(null);
+  useEffect(() => { teamRef.current = team; }, [team]);
+  useEffect(() => {
+    async function ping() {
+      const t = teamRef.current;
+      if (!t) return;
+      try {
+        await fetch(`/api/games/${t.game_id}/presence`, { method: "POST" });
+      } catch { /* non-critical */ }
+    }
+    ping(); // immediate first ping
+    const heartbeat = setInterval(ping, 30_000);
+    return () => clearInterval(heartbeat);
+  }, []); // run once on mount — ref keeps team current
 
   // Sync selectedSubmissionRole to first accessible role when team/role data loads.
   // MUST be here (top-level, before any early returns) to obey Rules of Hooks.
