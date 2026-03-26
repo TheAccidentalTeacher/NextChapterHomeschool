@@ -65,7 +65,10 @@ export default function SubmissionQueue({
         alert(`Failed to clear submissions: HTTP ${res.status}\n${body.error ?? JSON.stringify(body)}`);
         return;
       }
-      dmLog("ok", "DM Action", `Cleared ${body.deleted ?? "?"} submission rows`, body);
+      dmLog("ok", "DM Action",
+        `Cleared ${body.deleted ?? "?"} rows (found ${body.existingBeforeDelete ?? "?"} in DB before delete)`,
+        body
+      );
       prevTeamsRef.current = [];
       setTeams([]);
       setDetails({});

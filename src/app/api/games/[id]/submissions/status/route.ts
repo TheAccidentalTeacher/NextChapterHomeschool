@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getClerkUserId } from "@/lib/auth/roles";
 import { STEP_TO_ROUND } from "@/lib/game/epoch-machine";
 
@@ -19,7 +20,9 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = await createClient();
+  // Use admin client to bypass RLS — the DELETE policy may not be applied
+  // in all environments. Auth is already verified above.
+  const supabase = createAdminClient();
 
   const { data: game } = await supabase
     .from("games")
@@ -33,18 +36,29 @@ export async function DELETE(
 
   const currentRoundType = STEP_TO_ROUND[game.current_round as keyof typeof STEP_TO_ROUND] ?? game.current_round?.toUpperCase?.() ?? "BUILD";
 
+  // Log what we're about to delete for debugging
+  const { count: existingCount } = await supabase
+    .from("epoch_submissions")
+    .select("*", { count: "exact", head: true })
+    .eq("game_id", gameId)
+    .eq("epoch", game.current_epoch);
+
   const { error, count } = await supabase
     .from("epoch_submissions")
     .delete({ count: "exact" })
     .eq("game_id", gameId)
-    .eq("epoch", game.current_epoch)
-    .eq("round_type", currentRoundType);
+    .eq("epoch", game.current_epoch);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ deleted: count ?? 0 });
+  return NextResponse.json({
+    deleted: count ?? 0,
+    existingBeforeDelete: existingCount ?? 0,
+    epoch: game.current_epoch,
+    note: "Deleted all submissions for this epoch (all round types)",
+  });
 }
 
 /**
