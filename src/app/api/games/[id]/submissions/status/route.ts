@@ -20,9 +20,14 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Use admin client to bypass RLS — the DELETE policy may not be applied
-  // in all environments. Auth is already verified above.
-  const supabase = createAdminClient();
+  // Prefer admin client (bypasses RLS) but fall back to cookie client if
+  // SUPABASE_SERVICE_ROLE_KEY is not set on this deployment.
+  let supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>;
+  try {
+    supabase = createAdminClient();
+  } catch {
+    supabase = await createClient();
+  }
 
   const { data: game } = await supabase
     .from("games")
@@ -34,9 +39,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Game not found" }, { status: 404 });
   }
 
-  const currentRoundType = STEP_TO_ROUND[game.current_round as keyof typeof STEP_TO_ROUND] ?? game.current_round?.toUpperCase?.() ?? "BUILD";
-
-  // Log what we're about to delete for debugging
+  // Count existing before delete (for debugging)
   const { count: existingCount } = await supabase
     .from("epoch_submissions")
     .select("*", { count: "exact", head: true })
@@ -50,7 +53,10 @@ export async function DELETE(
     .eq("epoch", game.current_epoch);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message, hint: "RLS may be blocking the delete. Run migration 009 in Supabase or add SUPABASE_SERVICE_ROLE_KEY to Vercel env vars." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
