@@ -6,9 +6,8 @@ import { STEP_TO_ROUND } from "@/lib/game/epoch-machine";
 
 /**
  * DELETE /api/games/[id]/submissions/status
- * DM only: wipe all submissions for the current epoch+round.
- * Used to clear stale data from a previous session or test run.
- * Auth: requires any authenticated user (DM page is already behind teacher Clerk middleware).
+ * DM only: wipe all submissions for the current epoch via a
+ * security-definer RPC so RLS cannot interfere.
  */
 export async function DELETE(
   _req: NextRequest,
@@ -20,8 +19,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Prefer admin client (bypasses RLS) but fall back to cookie client if
-  // SUPABASE_SERVICE_ROLE_KEY is not set on this deployment.
+  // Pick the best available client
   let supabase: ReturnType<typeof createAdminClient> | Awaited<ReturnType<typeof createClient>>;
   try {
     supabase = createAdminClient();
@@ -29,6 +27,7 @@ export async function DELETE(
     supabase = await createClient();
   }
 
+  // Get current epoch
   const { data: game } = await supabase
     .from("games")
     .select("current_epoch, current_round")
@@ -39,31 +38,47 @@ export async function DELETE(
     return NextResponse.json({ error: "Game not found" }, { status: 404 });
   }
 
-  // Count existing before delete (for debugging)
+  // Count before delete (debug)
   const { count: existingCount } = await supabase
     .from("epoch_submissions")
     .select("*", { count: "exact", head: true })
     .eq("game_id", gameId)
     .eq("epoch", game.current_epoch);
 
-  const { error, count } = await supabase
-    .from("epoch_submissions")
-    .delete({ count: "exact" })
-    .eq("game_id", gameId)
-    .eq("epoch", game.current_epoch);
+  // Use security-definer RPC — guaranteed to bypass RLS
+  const { data: deletedCount, error: rpcError } = await supabase.rpc(
+    "clear_epoch_submissions",
+    { p_game_id: gameId, p_epoch: game.current_epoch }
+  );
 
-  if (error) {
-    return NextResponse.json(
-      { error: error.message, hint: "RLS may be blocking the delete. Run migration 009 in Supabase or add SUPABASE_SERVICE_ROLE_KEY to Vercel env vars." },
-      { status: 500 }
-    );
+  if (rpcError) {
+    // RPC not yet created — fall back to direct delete
+    const { error: delError, count } = await supabase
+      .from("epoch_submissions")
+      .delete({ count: "exact" })
+      .eq("game_id", gameId)
+      .eq("epoch", game.current_epoch);
+
+    if (delError) {
+      return NextResponse.json(
+        { error: delError.message, hint: "Run migration 010 in Supabase SQL editor to create the clear_epoch_submissions function." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      deleted: count ?? 0,
+      existingBeforeDelete: existingCount ?? 0,
+      epoch: game.current_epoch,
+      method: "direct_delete_fallback",
+    });
   }
 
   return NextResponse.json({
-    deleted: count ?? 0,
+    deleted: deletedCount ?? 0,
     existingBeforeDelete: existingCount ?? 0,
     epoch: game.current_epoch,
-    note: "Deleted all submissions for this epoch (all round types)",
+    method: "rpc_security_definer",
   });
 }
 
