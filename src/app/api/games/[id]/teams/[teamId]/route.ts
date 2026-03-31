@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   // Also check if teacher
   const { data: game } = await supabase
     .from("games")
-    .select("id, teacher_id, current_round")
+    .select("id, teacher_id, current_round, current_epoch")
     .eq("id", gameId)
     .single();
 
@@ -98,8 +98,26 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
   }
 
   const isTeacherUser = game.teacher_id === userId;
-  const isArchitect =
+  let isArchitect =
     member?.assigned_role === "architect" || member?.secondary_role === "architect";
+
+  // Check epoch_role_assignments for covering roles (absent student substitutes)
+  if (!isArchitect && member) {
+    const { data: coverAssignment } = await supabase
+      .from("epoch_role_assignments")
+      .select("id")
+      .eq("team_id", teamId)
+      .eq("user_id", userId)
+      .eq("covering_role", "architect")
+      .eq("is_substitute", true)
+      .eq("epoch", game.current_epoch ?? 1)
+      .limit(1)
+      .maybeSingle();
+
+    if (coverAssignment) {
+      isArchitect = true;
+    }
+  }
 
   if (!isTeacherUser && !isArchitect) {
     return NextResponse.json(
