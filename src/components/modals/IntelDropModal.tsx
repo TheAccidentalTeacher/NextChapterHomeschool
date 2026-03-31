@@ -33,7 +33,7 @@ export default function IntelDropModal({ gameId, teamId }: IntelDropModalProps) 
         );
         if (res.ok) {
           const data = await res.json();
-          const msgs: PrivateMessage[] = data.messages ?? [];
+          const msgs: PrivateMessage[] = Array.isArray(data) ? data : (data.messages ?? []);
           setMessages(msgs);
           const newMsg = msgs.find((m) => !dismissed.has(m.id));
           if (newMsg) setUnread(newMsg);
