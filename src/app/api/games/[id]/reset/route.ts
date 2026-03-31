@@ -17,7 +17,7 @@
 // ============================================
 
 import { NextRequest, NextResponse } from "next/server";
-import { createDirectClient } from "@/lib/supabase/admin";
+import { createDirectClient, createAdminClient } from "@/lib/supabase/admin";
 import { requireTeacher } from "@/lib/auth/roles";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -30,7 +30,12 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
   }
 
   const { id: gameId } = await params;
-  const supabase = createDirectClient();
+  let supabase: ReturnType<typeof createDirectClient>;
+  try {
+    supabase = createAdminClient();
+  } catch {
+    supabase = createDirectClient();
+  }
 
   // Verify the game exists
   const { data: game, error: gameErr } = await supabase
@@ -60,7 +65,7 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     .eq("id", gameId);
   if (e1) errors.push(`games: ${e1.message}`);
 
-  // 2. Reset teams
+  // 2. Reset teams (keep region_id — teams keep their original regions)
   if (teamIds.length > 0) {
     const { error: e2 } = await supabase
       .from("teams")
@@ -70,7 +75,6 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
         war_exhaustion_level: 0,
         is_in_dark_age: false,
         confederation_id: null,
-        region_id: 0,
         draft_order: null,
       })
       .in("id", teamIds);
@@ -117,13 +121,21 @@ export async function POST(_req: NextRequest, { params }: RouteParams) {
     .eq("game_id", gameId);
   if (e6) errors.push(`team_assets: ${e6.message}`);
 
-  // 7. Reset team_resources to 0
+  // 7. Reset team_resources (food starts at 10, everything else at 0)
   if (teamIds.length > 0) {
-    const { error: e7 } = await supabase
+    const { error: e7a } = await supabase
       .from("team_resources")
       .update({ amount: 0 })
-      .in("team_id", teamIds);
-    if (e7) errors.push(`team_resources: ${e7.message}`);
+      .in("team_id", teamIds)
+      .neq("resource_type", "food");
+    if (e7a) errors.push(`team_resources(non-food): ${e7a.message}`);
+
+    const { error: e7b } = await supabase
+      .from("team_resources")
+      .update({ amount: 10 })
+      .in("team_id", teamIds)
+      .eq("resource_type", "food");
+    if (e7b) errors.push(`team_resources(food): ${e7b.message}`);
   }
 
   // 8. Delete tech research
