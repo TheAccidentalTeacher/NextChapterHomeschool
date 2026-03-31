@@ -41,7 +41,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       await Promise.all([
         supabase
           .from("teams")
-          .select("id, region_id, population, is_in_dark_age, war_exhaustion_level, metadata")
+          .select("id, region_id, population, is_in_dark_age, war_exhaustion_level")
           .eq("id", teamId)
           .single(),
         supabase
@@ -64,7 +64,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       population: number;
       is_in_dark_age: boolean;
       war_exhaustion_level: number;
-      metadata: Record<string, unknown> | null;
     } | null;
 
     if (!team) {

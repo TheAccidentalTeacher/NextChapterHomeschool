@@ -489,17 +489,16 @@ export default function CityPanel({
 
           {/* Found settlement CTA — shown only for own region, unoccupied */}
           {isInOwnRegion && !subZone.settlement_name && (
-            <div>
-              <button
-                disabled
-                className="w-full rounded-md bg-amber-900/30 px-3 py-2 text-xs text-amber-400/60 ring-1 ring-amber-700/30"
-                title="City founding coming soon — Phase 17"
-              >
-                🏛 Found Settlement Here
-                <span className="ml-2 rounded bg-stone-800 px-1 text-xs text-stone-500">
-                  Coming Soon
-                </span>
-              </button>
+            <div className="rounded-md bg-amber-900/20 px-3 py-2 ring-1 ring-amber-700/30">
+              {role === "architect" ? (
+                <p className="text-xs text-amber-300">
+                  🏛 <strong>Ready to found!</strong> Select a building from the grid below to name your settlement here.
+                </p>
+              ) : (
+                <p className="text-xs text-stone-400">
+                  🏛 Waiting for your <strong className="text-stone-200">Architect</strong> to found the first settlement in this zone.
+                </p>
+              )}
             </div>
           )}
         </div>
