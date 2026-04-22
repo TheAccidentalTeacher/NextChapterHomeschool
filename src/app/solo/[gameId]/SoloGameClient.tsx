@@ -277,11 +277,41 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   }, [gameId]);
 
   useEffect(() => {
-    loadState().then(() => {
+    loadState().then(async () => {
       // On first load (epoch 1, city not yet founded), go to founding step
       if (!hasFoundedCity) {
         setUiStep("founding");
-      } else {
+        return;
+      }
+      // Hydration: check which rounds of the current epoch the player has
+      // already submitted. Skip past those so the UI does not get stuck on
+      // a round the DB has already recorded. Fixes the "Already submitted"
+      // loop when a page refresh happens mid-epoch.
+      try {
+        const statusRes = await fetch(`/api/solo/${gameId}/progress`);
+        if (statusRes.ok) {
+          const status = await statusRes.json();
+          // Expected shape: { submitted_rounds: ['BUILD','EXPAND', ...] } for current epoch
+          const submittedRounds: string[] = Array.isArray(status?.submitted_rounds)
+            ? status.submitted_rounds.map((r: string) => String(r).toUpperCase())
+            : [];
+          const ROUND_ORDER = ["BUILD", "EXPAND", "DEFINE", "DEFEND"];
+          // Find the first round the player has NOT submitted.
+          const nextIdx = ROUND_ORDER.findIndex((r) => !submittedRounds.includes(r));
+          if (nextIdx === -1) {
+            // All four rounds submitted — epoch should resolve via cpu-advance
+            setUiStep("epoch_summary");
+          } else if (nextIdx > 0) {
+            // Skip past already-submitted rounds
+            setRoundIndex(nextIdx);
+            setUiStep("question");
+          } else {
+            setUiStep("epoch_start");
+          }
+        } else {
+          setUiStep("epoch_start");
+        }
+      } catch {
         setUiStep("epoch_start");
       }
     });
