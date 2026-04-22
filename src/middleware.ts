@@ -34,18 +34,13 @@ export default clerkMiddleware(async (auth, request) => {
   const url = request.nextUrl;
   const path = url.pathname;
 
-  // Server-side debug logging (shows in terminal / Vercel logs)
-  console.log(`[MW] ${request.method} ${path}`);
-
   // Allow public routes and projector through
   if (isPublicRoute(request) || isProjectorRoute(request)) {
-    console.log(`[MW] → public route, pass through`);
     return;
   }
 
   // Everything else requires authentication
   const session = await auth.protect();
-  console.log(`[MW] → authenticated: ${session.userId}`);
 
   // Role-based redirect after sign-in (only on /dashboard root)
   if (path === "/dashboard") {
@@ -53,17 +48,13 @@ export default clerkMiddleware(async (auth, request) => {
     const client = await clerkClient();
     const user = await client.users.getUser(session.userId);
     const role = (user.publicMetadata as { role?: string })?.role;
-    console.log(`[MW] → /dashboard hit, role="${role}", user="${user.username}"`);
 
     if (role === "teacher") {
-      console.log(`[MW] → redirecting teacher to /dm`);
       return NextResponse.redirect(new URL("/dm", request.url));
     }
     if (role === "projector") {
-      console.log(`[MW] → redirecting projector to /projector`);
       return NextResponse.redirect(new URL("/projector", request.url));
     }
-    console.log(`[MW] → student stays on /dashboard`);
     // students stay on /dashboard
   }
 });
