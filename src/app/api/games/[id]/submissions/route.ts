@@ -61,12 +61,35 @@ export async function POST(
   // Get current game state
   const { data: game } = await supabase
     .from("games")
-    .select("current_epoch, current_round")
+    .select("current_epoch, current_round, game_mode")
     .eq("id", gameId)
     .single();
 
   if (!game) {
     return NextResponse.json({ error: "Game not found" }, { status: 404 });
+  }
+
+  // Realms v2 diplomacy epoch gates (§4.5 ship plan).
+  // Alliances unlock E4; wars + vassalage + peace unlock E6. Team v1 mode
+  // has diplomacy open from Epoch 1 — gates only apply when game_mode='realms'.
+  if (game.game_mode === "realms" && round_type === "DEFINE" && option_selected) {
+    const REALMS_EPOCH_GATES: Record<string, number> = {
+      propose_alliance: 4,
+      accept_alliance: 4,
+      reject_alliance: 4,
+      break_alliance: 4,
+      issue_ultimatum: 4,
+      declare_war: 6,
+      sue_for_peace: 6,
+      propose_vassalage: 6,
+    };
+    const requiredEpoch = REALMS_EPOCH_GATES[option_selected as string];
+    if (requiredEpoch && game.current_epoch < requiredEpoch) {
+      return NextResponse.json(
+        { error: `${option_selected} unlocks at Epoch ${requiredEpoch}` },
+        { status: 403 }
+      );
+    }
   }
 
   // Build content JSON

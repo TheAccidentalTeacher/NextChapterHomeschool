@@ -1037,12 +1037,14 @@ supabase/seed/
   ✅ EXISTS: src/app/api/games/[id]/reset/route.ts — teacher-only full game reset (includes draft reshuffle)
   ✅ EXISTS: src/app/api/games/[id]/roster/route.ts — DM live roster with presence + cover assignments
 
-  Realms still to build (Pass 1 / Pass 3):
+  Realms still to build (Pass 3):
   ⏳ src/app/api/games/[id]/founding/order/route.ts (GET) — student queries whose turn it is
   ⏳ src/app/api/games/[id]/founding/claim/route.ts (POST) — student submits founding text + locks turn
   ⏳ src/app/api/games/[id]/founding/skip/route.ts (POST) — DM skips a student whose turn timed out
-  ⏳ src/app/api/games/[id]/auto-covers/route.ts (POST) — referenced by DMRosterPanel but not shipped
-  ⏳ src/app/api/games/[id]/covers/route.ts (DELETE) — referenced by DMRosterPanel but not shipped
+
+  v1.5 correction: auto-covers and covers routes DO exist (earlier audit misread):
+  ✅ EXISTS: src/app/api/games/[id]/auto-covers/route.ts (POST) — auto-assigns absent roles to present teammates
+  ✅ EXISTS: src/app/api/games/[id]/covers/route.ts (GET / POST / DELETE) — cover assignment management
 
 src/app/api/games/[id]/alliances/      (NEW v1.1 — Pass 3)
   propose/route.ts
