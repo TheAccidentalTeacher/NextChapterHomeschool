@@ -144,11 +144,11 @@ const RESOURCE_META: Record<string, { emoji: string; label: string }> = {
 };
 
 const SCORE_META: Record<number, { label: string; color: string; emoji: string }> = {
-  1: { label: "Needs Work",   color: "text-red-400",    emoji: "📌" },
-  2: { label: "Acceptable",   color: "text-orange-400", emoji: "📋" },
-  3: { label: "Solid",        color: "text-yellow-400", emoji: "📗" },
-  4: { label: "Strong",       color: "text-green-400",  emoji: "⭐" },
-  5: { label: "Exceptional",  color: "text-emerald-400",emoji: "🏆" },
+  1: { label: "Starting Point", color: "text-amber-400",  emoji: "📌" },
+  2: { label: "Building",       color: "text-orange-300", emoji: "📋" },
+  3: { label: "Strong",         color: "text-yellow-300", emoji: "📗" },
+  4: { label: "Very Strong",    color: "text-green-300",  emoji: "⭐" },
+  5: { label: "Masterful",      color: "text-emerald-300",emoji: "🏆" },
 };
 
 // ── Adjust routing helper (keeps total = 100) ─────────────────
@@ -764,10 +764,10 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
                 />
                 <div className="flex justify-between text-xs text-gray-600">
                   <span>
-                    {justification.length < 100 && "⚠️ Short — score 1–2"}
-                    {justification.length >= 100 && justification.length < 200 && "📋 Developing — score 2–3"}
-                    {justification.length >= 200 && justification.length < 350 && "📗 Solid — score 3–4"}
-                    {justification.length >= 350 && "⭐ Strong — score 4–5"}
+                    {justification.length < 100 && "📌 Starting — keep going for more credit"}
+                    {justification.length >= 100 && justification.length < 200 && "📋 Building — one example away from 3"}
+                    {justification.length >= 200 && justification.length < 350 && "📗 Strong — add detail for a 4"}
+                    {justification.length >= 350 && "⭐ Very Strong — full credit range"}
                   </span>
                   <span>{justification.length} chars</span>
                 </div>

@@ -43,30 +43,30 @@ function scoreJustification(text: string): ScoreResult {
   if (len < 40 || sentences < 1) {
     return {
       score: 1, multiplier: 0.5,
-      feedback: "Too brief — a real DM wants at least 2 sentences. Try connecting your choice to a specific civilization or historical example.",
+      feedback: "Strong start. To earn a bigger bonus, try adding: a civilization you have learned about (Egypt? Sumer? Rome?), or a reason your choice matters for the future of your people.",
     };
   }
   if (len < 100 || sentences < 2) {
     return {
       score: 2, multiplier: 0.75,
-      feedback: "A start! You've shown basic reasoning. Adding a historical example (\"The Romans showed us that...\") would push this to a 3.",
+      feedback: "Good reasoning — you are on the right track. Adding one specific historical example (for instance, how the Romans built roads to connect their empire) would lift this to a 3.",
     };
   }
   if (len < 200) {
     return {
       score: 3, multiplier: 1.0,
-      feedback: "Solid reasoning. You've connected your choice to the game's logic. One specific historical parallel would elevate this further.",
+      feedback: "Nice work. Your reasoning connects to the game's logic. One concrete historical parallel would make this even stronger.",
     };
   }
   if (len < 350) {
     return {
       score: 4, multiplier: 1.5,
-      feedback: "Strong analysis! Your historical reasoning shows you understand civilizational trade-offs. Nearly full credit.",
+      feedback: "Excellent analysis. Your historical thinking shows you understand the trade-offs civilizations face. Almost the top score.",
     };
   }
   return {
     score: 5, multiplier: 2.0,
-    feedback: "Excellent! Sophisticated historical thinking with strong causal reasoning. Full DM credit — your civilization earns maximum yield.",
+    feedback: "Masterful work. Sophisticated historical thinking with strong cause-and-effect reasoning. Your civilization earns maximum yield.",
   };
 }
 
