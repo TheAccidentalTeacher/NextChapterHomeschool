@@ -2,7 +2,7 @@
 **Soft-live deploy:** **Wednesday April 22, 2026** — system deployed, DM and students may touch a rehearsal/preview state. Goal for Wed: *smooth*, not full production.
 **Hard-live (first real Epoch 1):** **Thursday April 23, 2026** — both classes run Epoch 1 with score persistence. 6th Grade Period 4 (12:25–1:25). 7/8 Grade Period 7 (2:20–3:05).
 **Hard deadline:** portfolios in hand by **Friday May 22, 2026** (final school week; contract ends May 24). Revised calendar (§10) targets portfolios by Thu May 7 — ~2 weeks of cushion.
-**Drafted:** April 21, 2026. **Revised v1.1:** evening (panel review, consequences matrix, build-order passes). **Revised v1.2:** night (Q1–Q17 locked, calendar compressed to Thu Apr 23 hard-live). **Revised v1.3:** later night — NPC civilizations added as first-class system. **Revised v1.4:** after the thirty-finding external audit — **NPCs deferred to v1.4-post-hard-live**, F1–F4 ship-blockers resolved, Wednesday calendar rewritten against actual teaching-day windows, Epoch 1 split documented, rollback play scheduled.
+**Drafted:** April 21, 2026. **Revised v1.1:** evening (panel review). **Revised v1.2:** night (Q1–Q17 locked, calendar compressed). **Revised v1.3:** later night — NPC civilizations added. **Revised v1.4:** after thirty-finding external audit — NPCs deferred, F1–F4 ship-blockers resolved. **Revised v1.5:** reconciliation after pulling Scott's parallel work stream — Realms migrations renumbered 011–015 (009/010 taken by remote), existing files marked in §13, Pass 4 + Pass 8 scope reduced.
 **Author:** Council of the Unserious, on behalf of Scott Somers.
 
 > **⚠️ Revision context.** v1.0 assumed one week of human-paced solo development. v1.1 corrected to Opus 4.7 build rate after Scott's correction. v1.2 locked seventeen operational decisions and compressed hard-live to Thu Apr 23. v1.3 added NPC civilizations. v1.4 — **an external thirty-finding audit identified four ship-blockers (F1–F4)**: (a) Wed Apr 22 is a teaching day, not a build day; (b) `student-safe-completion.ts` does not exist in this repo (confirmed by file inspection); (c) Epoch 1 cannot fit in a 45-min period as designed; (d) Guardrail 1 contradicts the vassalage-on-zero-sub-zones trigger. **Council decision: cut NPCs back to v1.4-post-hard-live. Ship v1.2 scope Thursday Apr 23 as the panel originally reviewed.** NPC design work preserved in Appendix D for a future build cycle. Only Decisions B and C remain open.
@@ -118,7 +118,7 @@ The v1.0 plan described alliance and war mechanics as if they were implemented. 
 | Victory (war interaction) | ✅ | ✅ | ✅ | — | ✅ | No domination type | Add domination victory |
 | Epoch gating | ❌ | ❌ | ❌ | ❌ | ❌ | Documented only | Enforce in validation |
 
-**Implication.** The phrase "Alliances unlock Epoch 4, Wars unlock Epoch 6" in v1.0 was aspirational, not implemented. v1.1 treats this as new-build scope and reflects it in Section 9 (Migration 013), Section 9.5 (Pass 1 and Pass 3), and Section 4.5 (Consequences Matrix).
+**Implication.** The phrase "Alliances unlock Epoch 4, Wars unlock Epoch 6" in v1.0 was aspirational, not implemented. v1.1 treats this as new-build scope and reflects it in Section 9 (Migration 015), Section 9.5 (Pass 1 and Pass 3), and Section 4.5 (Consequences Matrix).
 
 ### 2.5.2 Panel composition
 
@@ -169,7 +169,7 @@ Preserved for future reviewers. Where v1.1 has addressed a finding, the resoluti
 
 **Dr. Morozov (geographer):** "adjacency graph unspecified" (→ §6 expanded, §11 Decision F), "Western Europe magnet" (→ §6 region attractiveness balancing note), "resource distribution by region" (→ §11 Decision G), "Madagascar problem" (→ §6 isolated-start compensation mechanic), "war geography / leap-conquest" (→ §4.5 "Battle Resolved" adjacency rule).
 
-**Col. Vega (strategist):** "Clausewitzian object" (→ §4.5 war declaration requires justification), B2 (alliance combat support → §4.5 "Alliance combat support" row), B3 (peace treaty → §4.5 "Sue for Peace" row), B4 (exhaustion stacking ceiling → §4.5 confirmation-gate at 75), B5 (vassalage visible and playable → §4.6 Guardrail 2), B7 (reputation cost → §4.5 "Break Alliance" and aggression_score), "proxy pressure / ultimatum" (→ §4.5 "Issue Ultimatum" row), B8 (domination victory → §4.5 and §9 Migration 013).
+**Col. Vega (strategist):** "Clausewitzian object" (→ §4.5 war declaration requires justification), B2 (alliance combat support → §4.5 "Alliance combat support" row), B3 (peace treaty → §4.5 "Sue for Peace" row), B4 (exhaustion stacking ceiling → §4.5 confirmation-gate at 75), B5 (vassalage visible and playable → §4.6 Guardrail 2), B7 (reputation cost → §4.5 "Break Alliance" and aggression_score), "proxy pressure / ultimatum" (→ §4.5 "Issue Ultimatum" row), B8 (domination victory → §4.5 and §9 Migration 015).
 
 ---
 
@@ -292,10 +292,10 @@ The DEFINE round accepts the following seven submission types. All are validated
 | **Alliance Combat Support** (Q6 + F9 fix, v1.4) | Ally may send a **declared subset** of soldiers to defender's side. Submission payload includes `soldiers_committed: integer` with validation **min(1, max(ally's current soldier count))** — zero-commit is NOT permitted (F9 exploit closed). If ally has zero soldiers, ally cannot contribute combat support this epoch; alliance remains active but "unable to assist" flag fires on projector for transparency. Committed soldiers contribute to the battle roll and are at risk of loss per battle-resolver.ts. Ally's d20 roll and barracks/walls bonuses apply. | Battle-resolver receives third participant with soldier count = committed subset (always ≥1). `epoch_submissions` captures `soldiers_committed`. Server-side validation rejects zero-commit with 400. | Projector overlay shows three flags with ally's committed count visible. If ally had zero soldiers available, overlay shows "[ally] was unable to assist" with defender rolling alone. No silent symbolic-support dodge. |
 | **Vassalage** (Q7 locked — negotiable tribute; Q10 locked — liege sees tribute only) | Tribute is negotiable on proposal. Liege proposes `tribute_percent` in range **10–30%** (default 20%). Vassal may accept, counter-propose, or reject. On active vassalage: declared % of vassal's yields route to liege each epoch. Vassal continues submitting all rounds including DEFINE, but cannot declare war independently. Vassal keeps civ-name, flag, sub-zone, lore, and portfolio ownership. Can revolt after 3 epochs at cost of −30 resilience. **Privacy:** liege's dashboard shows only the tribute-in flow from each vassal (resource amount, epoch). Liege does NOT see the vassal's submissions, round decisions, or internal state. Vassal's dashboard is not visible to liege (see §4.6.1). | `vassal_relationships` active row (`tribute_percent` stored 10–30), resource-yield hook, submission-validation allows all types except outbound-war. Liege dashboard queries only `resource_events` where destination = liege AND source_type = 'tribute'. | Vassal flag retains own color + small liege-banner overlay. Vassal dashboard shows tribute outflow. Liege dashboard shows tribute inflow only — no vassal-submission visibility. Civ-name stays in projector headers and epilogue unchanged. |
 | **Sue for Peace** | Both sides +5 resilience on acceptance. `epoch_conflict_flags.outcome='peace'`. War exhaustion decays per normal schedule. | Update existing flag row. | DM narrates. Both civs flagged as "at peace" on dashboard. |
-| **Aggression Score** (addresses B7) | `teams.aggression_score` increments on unjustified war declaration (DM scoring <3 on casus belli), unjustified alliance break, or ultimatum expiry-as-issuer. Decays −5 per epoch. At ≥20, other civs see "unreliable ally" warning when this civ proposes alliance. | `teams.aggression_score` column (Migration 013). | DiplomacyPanel shows warning badge. DM-facing flag. Reputation is retrievable. |
+| **Aggression Score** (addresses B7) | `teams.aggression_score` increments on unjustified war declaration (DM scoring <3 on casus belli), unjustified alliance break, or ultimatum expiry-as-issuer. Decays −5 per epoch. At ≥20, other civs see "unreliable ally" warning when this civ proposes alliance. | `teams.aggression_score` column (Migration 015). | DiplomacyPanel shows warning badge. DM-facing flag. Reputation is retrievable. |
 | **Cultural Victory** (any path, resolved E10) | Wins on Legacy threshold, regardless of war state. | Existing victory-engine.ts path. | Dashboard shows "Cultural" progress strip from E1 (addresses C7 / Guardrail 3). |
 | **Economic Victory** (E10) | Wins on Bank + Production composite, regardless of war state. | Existing. | Same visibility. |
-| **Domination Victory** (E10; unlocks at E6) | **NEW.** Composite = (sub-zones controlled × 2) + (active vassals × 3) + (wars won − wars lost). Top score at E10 wins if no cultural/economic winner exceeds threshold. Weights locked Q3. | New victory type in victory-engine.ts (Migration 013). | Visible from E6 when wars unlock. Dashboard third progress strip. |
+| **Domination Victory** (E10; unlocks at E6) | **NEW.** Composite = (sub-zones controlled × 2) + (active vassals × 3) + (wars won − wars lost). Top score at E10 wins if no cultural/economic winner exceeds threshold. Weights locked Q3. | New victory type in victory-engine.ts (Migration 015). | Visible from E6 when wars unlock. Dashboard third progress strip. |
 
 ### 4.5.1 Battle & diplomacy auto-resolution policy (Q1 locked)
 
@@ -534,7 +534,7 @@ Fair, auditable, and ceremonial assignment of starting sub-zones. Prevents first
 | `POST` | `/api/games/[id]/founding/claim` | Student |
 | `POST` | `/api/games/[id]/founding/skip` | Teacher |
 
-### Schema (Migration 011)
+### Schema (Migration 013)
 ```sql
 ALTER TABLE team_members
   ADD COLUMN founding_pick_order integer,
@@ -629,7 +629,7 @@ npx tsx scripts/create-rehearsal-game.ts --cleanup [gameId]
 ```
 
 **New additions:**
-- `games.is_rehearsal` column (Migration 012) gates special UI
+- `games.is_rehearsal` column (Migration 014) gates special UI
 - DM **Fast-Forward Epoch** button (visible only on rehearsal games) auto-scores pending submissions at deterministic 3/5 and advances. Runs 10 epochs in two minutes.
 - Student dashboard **Fill & Submit** button (visible only on rehearsal games) auto-fills a reasonable decision.
 - Cleanup deletes both Supabase rows and Clerk test accounts.
@@ -672,7 +672,9 @@ Every Sunday through May 17.
 
 All migrations go into `supabase/migrations/` and are applied via `scripts/run-migration.ts` or the Supabase SQL editor.
 
-### Migration 009 — `add_compression_config.sql`
+> **⚠️ Renumbered in v1.5 (Apr 21 night).** The v1.4 plan numbered Realms migrations 009–013. While the plan was being revised, Scott's parallel work pushed `009_submissions_delete_policy.sql` and `010_clear_submissions_function.sql` to remote. Realms migrations renumbered to **011–015** to avoid collision. Existing 009/010 are classroom-safety fixes for the current `epoch_submissions` table (DELETE policy + clear-submissions RPC function); they are prerequisites but require no Realms-specific change.
+
+### Migration 011 — `add_compression_config.sql`
 ```sql
 ALTER TABLE games
   ADD COLUMN total_epochs integer NOT NULL DEFAULT 10,
@@ -680,7 +682,7 @@ ALTER TABLE games
   ADD COLUMN finale_triggered boolean NOT NULL DEFAULT false;
 ```
 
-### Migration 010 — `add_game_mode.sql`
+### Migration 012 — `add_game_mode.sql`
 ```sql
 ALTER TABLE games
   ADD COLUMN game_mode text NOT NULL DEFAULT 'team'
@@ -690,17 +692,17 @@ ALTER TABLE teams
   ADD COLUMN is_solo boolean NOT NULL DEFAULT false;
 ```
 
-### Migration 011 — `add_founding_draft.sql`
+### Migration 013 — `add_founding_draft.sql`
 See Section 7.
 
-### Migration 012 — `add_rehearsal_flag.sql`
+### Migration 014 — `add_rehearsal_flag.sql`
 ```sql
 ALTER TABLE games
   ADD COLUMN is_rehearsal boolean NOT NULL DEFAULT false,
   ADD COLUMN test_fixture_name text;
 ```
 
-### Migration 013 — `add_alliances_and_reputation.sql` (NEW in v1.1)
+### Migration 015 — `add_alliances_and_reputation.sql` (NEW in v1.1)
 Adds alliance schema, reputation/aggression columns, isolated-start flag, adjacency configuration, and the domination victory type.
 
 ```sql
@@ -776,7 +778,7 @@ ALTER TABLE games
 ```
 
 ### Deploy order
-009 → 010 → 011 → 012 → 013. Each applied in sequence. 013 has no cross-dependencies on 009–012 but shares the same window. Apply all five in a single Tuesday evening session per the §10 calendar.
+011 → 012 → 013 → 014 → 015. Each applied in sequence. 013 has no cross-dependencies on 009–012 but shares the same window. Apply all five in a single Tuesday evening session per the §10 calendar.
 
 ---
 
@@ -787,7 +789,7 @@ ALTER TABLE games
 **Operational rule:** Passes 1 → 8 are ordered so each layer stands on the previous. Do not reorder without updating the dependency graph at the end of this section.
 
 ### Pass 1 — Schema & Gates (≈25 min)
-**Ships:** Migrations 009 + 010 + 011 + 012 + 013. Epoch-gating enforced in submission validation layer (`src/app/api/games/[id]/submissions/route.ts`).
+**Ships:** Migrations 011 + 012 + 013 + 014 + 015. Epoch-gating enforced in submission validation layer (`src/app/api/games/[id]/submissions/route.ts`).
 **Gate:** `npm run build` clean. `SELECT * FROM alliances` returns empty set (confirms table exists). Submission POST with `type='declare_war'` and `epoch < 6` returns 403 with "Wars unlock at Epoch 6" message.
 
 ### Pass 2 — Battle-to-DB Hook & Domination Victory (≈35 min)
@@ -806,8 +808,10 @@ ALTER TABLE games
 
 **Gate:** `assertDiplomacyGatesEnforced`, `assertAllianceTreatyTextCaptured`, `assertAllianceClusterCapObserved` pass. NPC AI work deferred to v1.4-post-hard-live per §4.7.
 
-### Pass 4 — Realms UI Components (≈150 min, v1.4 revised for F7)
-**Ships:** RulerDashboard, DiplomacyPanel (with grayed-locked state per Mira's C2 finding), FoundingClaim (with scaffolded input per C6), DraftCeremony (with Arm-Ceremony audio fix per C3), ContactMap (with pulse+dotted-edge state per C5). Conquered-civ name persistence rendered per §4.6 Guardrail 1. Adjacency seed data hand-authored and loaded (≈60-min sub-task, previously underbudgeted per F7); `games.adjacency_strict = true` MUST be set before Thu Apr 23 hard-live (F18 gate).
+### Pass 4 — Realms UI Components (≈110 min, v1.5 reduced — RegionPickerMap/RegionSelectCard already ship)
+**Ships:** RulerDashboard, DiplomacyPanel (with grayed-locked state per Mira's C2 finding), DraftCeremony (with Arm-Ceremony audio fix per C3), ContactMap (with pulse+dotted-edge state per C5). Conquered-civ name persistence rendered per §4.6 Guardrail 1. Adjacency seed data hand-authored and loaded (≈60-min sub-task); `games.adjacency_strict = true` MUST be set before Thu Apr 23 hard-live (F18 gate).
+
+**v1.5 scope reduction:** `FoundingClaim.tsx` is no longer needed — `RegionSelectCard.tsx` + `RegionPickerMap.tsx` already ship in `src/components/game/` and cover the draft flow comprehensively (civ naming + region claim in a unified two-step UI). Pass 4 budget drops from ≈150 min to ≈110 min. Remaining UI work is RulerDashboard + DiplomacyPanel + DraftCeremony + ContactMap + adjacency seed.
 
 **Gate:** `assertNonViolentVictoryProgressVisible` passes. Rehearsal game with 5 fake students walks full E1 → E6 flow without console errors. All four §4.6 Guardrails assert-passing. `games.adjacency_strict = true` verified in DB before hard-live (F18).
 
@@ -823,7 +827,11 @@ ALTER TABLE games
 **Ships:** Realms mode in simulate.ts. Invariant assertions (the full list from §8 including all v1.1 additions). Golden snapshot fixtures for realms-15 and realms-20 at post-founding / post-E5 / post-endgame.
 **Gate:** Sunday-night protocol runs green end-to-end in <45 min on a clean dev database.
 
-### Pass 8 — Classroom Ops Package (≈45 min)
+### Pass 8 — Classroom Ops Package (≈30 min, v1.5 reduced — DM panels already ship)
+
+**v1.5 scope reduction:** `DMDebugPanel.tsx`, `DMRosterPanel.tsx`, and `dm-log.ts` already ship. Pass 8 docs/ops work drops from ≈45 min to ≈30 min. The two routes referenced by DMRosterPanel (`/api/games/[id]/auto-covers`, `/api/games/[id]/covers`) are still needed and move to Pass 1 scope.
+
+### Pass 8 — Classroom Ops Package (original spec retained below)
 **Ships:** Updated DM runbook with v1.1 mechanics. Substitute playbook (`classroom-docs/SUB-PLAYBOOK.md` — what Mrs. Andersson does if Scott is out). IEP accommodation notes (text-to-speech, simplified mode, peer support patterns). Parent-facing one-pager (`classroom-docs/PARENT-ONE-PAGER.md` — ready by Apr 24). Crisis communication script for emotional incidents (`classroom-docs/CRISIS-SCRIPT.md` — DM undo button wording, narrative cover templates). DM undo button on DMControlBar: reverses last battle or last diplomatic action in the current epoch, creates `game_events` audit row.
 **Gate:** All eight docs exist and are linked from the top-level README.
 
@@ -839,7 +847,8 @@ Pass 8 independent — documentation-only, slots after Pass 4 or later for runbo
 ```
 
 ### Total
-**v1.4 (current): ≈5h 40m.** v1.2 scope + F7 Pass 4 budget correction (+30 min) + F14 rollback play (+15 min, Pass 8) + F24 rehearsal-portfolio dry-run (+15 min, Pass 7) + F6/F11 schema refinements in Migration 013 (+5 min, Pass 1). All 37 panel items addressed. All 4 ship-blockers (F1–F4) resolved. All Tier-2 design gaps (F5–F15 minus NPC-specific F12) addressed in this doc. NPC work deferred to v1.4-post-hard-live per §4.7 and Appendix D.
+**v1.4 (prior): ≈5h 40m.**
+**v1.5 (current): ≈5h 5m.** v1.4 − 40 min Pass 4 reduction (FoundingClaim superseded by existing RegionSelectCard + RegionPickerMap) − 15 min Pass 8 reduction (DMDebugPanel + DMRosterPanel + dm-log.ts already ship) + 20 min Pass 1 addition (auto-covers and covers routes referenced by DMRosterPanel but not yet built; also migration renumber 009→011). All 37 panel items still addressed. All 4 ship-blockers (F1–F4) still resolved. NPC work still deferred per §4.7 and Appendix D.
 
 ---
 
@@ -851,7 +860,7 @@ Pass 8 independent — documentation-only, slots after Pass 4 or later for runbo
 
 | Day / Window | Work | Gate |
 |---|---|---|
-| **Tue Apr 21 evening** (tonight, ≈3h) | **Build session 1: Passes 1 + 2 + 3 (v1.2 scope, no NPCs).** Migrations 009–013 (with v1.4 F6 casus_belli_grants child table + F11 vassal duration constraint), epoch gates enforced, battle-to-DB auto-mutation + audit-log rows (Q1), DEFINE submission options + seven API routes, F9 min-soldier-commit validation, F4 Guardrail-1 last-sub-zone preservation in battle-resolver. | Schema + gates + battle + submissions all green in simulate.ts. `assertGuardrail1NeverErases` + `assertAllianceMinSoldierCommit` green. |
+| **Tue Apr 21 evening** (tonight, ≈3h) | **Build session 1: Passes 1 + 2 + 3 (v1.2 scope, no NPCs).** Migrations 011–015 (with v1.4 F6 casus_belli_grants child table + F11 vassal duration constraint), epoch gates enforced, battle-to-DB auto-mutation + audit-log rows (Q1), DEFINE submission options + seven API routes, F9 min-soldier-commit validation, F4 Guardrail-1 last-sub-zone preservation in battle-resolver. | Schema + gates + battle + submissions all green in simulate.ts. `assertGuardrail1NeverErases` + `assertAllianceMinSoldierCommit` green. |
 | **Wed Apr 22 6:00–7:30 AM** (pre-school, ≈1.5h) | **Build session 2a: Pass 4 start.** RulerDashboard, DiplomacyPanel (grayed-locked state), FoundingClaim (scaffolded input), DraftCeremony (Arm-Ceremony audio fix), ContactMap. | Components render without errors in dev server. |
 | **Wed Apr 22 prep period (60 min, per Decision U)** | **Adjacency seed data authoring.** Scott hand-authors the sub_zone_adjacencies JSON seed (~100 items across 72 sub-zones). Load with `scripts/load-adjacency.ts`. Set `games.adjacency_strict = true`. | `assertAdjacencyStrictBeforeHardLive` pathway satisfied. 80+ adjacency edges loaded. |
 | **Wed Apr 22 3:30–5:30 PM** (post-school, ≈2h) | **Build session 2b: Passes 5 + 6 + 8.** Vassal UI with tribute-only liege view (Q10), Iteration 1 cleanup (per F20 `ls -la` inventory of classroom-civ before delete), PARENT-ONE-PAGER.md drafted + **admin CC required** (F13) — email to parents Wed 7:00 PM only after admin sign-off. Mr. Somers-zilla crisis copy. DM undo button. **Rollback play (F14) authored:** one-page desk doc covering "Period 4 Epoch 1 breaks — options A/B/C, decision tree, who to call." | Vassal privacy asserts green. Admin sign-off on parent email. Rollback play printed on Scott's desk. Deploy to Vercel. |
@@ -1009,21 +1018,31 @@ classroom-docs/
   IEP-ACCOMMODATIONS.md                (NEW v1.1 — text-to-speech, simplified mode, peer support, Pass 8)
 
 supabase/migrations/
-  009_add_compression_config.sql
-  010_add_game_mode.sql
-  011_add_founding_draft.sql
-  012_add_rehearsal_flag.sql
-  013_add_alliances_and_reputation.sql (NEW v1.1 — alliance schema + reputation + adjacency + isolated_start)
+  011_add_compression_config.sql
+  012_add_game_mode.sql
+  013_add_founding_draft.sql
+  014_add_rehearsal_flag.sql
+  015_add_alliances_and_reputation.sql (NEW v1.1 — alliance schema + reputation + adjacency + isolated_start)
 
 supabase/seed/
   region_yields.sql                    (NEW v1.1 — region-specific yield bonuses, Pass 4)
   sub_zone_adjacencies.sql             (NEW v1.1 — adjacency edge list, Pass 4)
 
-src/app/api/games/[id]/founding/
-  randomize/route.ts
-  order/route.ts
-  claim/route.ts
-  skip/route.ts
+(Draft/founding flow — v1.5 reconciliation:)
+  ✅ EXISTS: src/app/api/games/[id]/randomize-draft/route.ts
+    → Fisher-Yates shuffle of `teams.draft_order`. Supersedes the plan's `/founding/randomize`
+      endpoint. Uses `teams.draft_order` (integer) rather than the originally-planned
+      `team_members.founding_pick_order`. Simpler schema, already working.
+  ✅ EXISTS: src/app/api/games/[id]/presence/route.ts — student heartbeat (updates team_members.last_seen_at)
+  ✅ EXISTS: src/app/api/games/[id]/reset/route.ts — teacher-only full game reset (includes draft reshuffle)
+  ✅ EXISTS: src/app/api/games/[id]/roster/route.ts — DM live roster with presence + cover assignments
+
+  Realms still to build (Pass 1 / Pass 3):
+  ⏳ src/app/api/games/[id]/founding/order/route.ts (GET) — student queries whose turn it is
+  ⏳ src/app/api/games/[id]/founding/claim/route.ts (POST) — student submits founding text + locks turn
+  ⏳ src/app/api/games/[id]/founding/skip/route.ts (POST) — DM skips a student whose turn timed out
+  ⏳ src/app/api/games/[id]/auto-covers/route.ts (POST) — referenced by DMRosterPanel but not shipped
+  ⏳ src/app/api/games/[id]/covers/route.ts (DELETE) — referenced by DMRosterPanel but not shipped
 
 src/app/api/games/[id]/alliances/      (NEW v1.1 — Pass 3)
   propose/route.ts
@@ -1048,12 +1067,23 @@ src/app/api/games/[id]/vassalage/      (NEW v1.1 — Pass 3 + 5)
 (NPC-related files — `src/app/api/games/[id]/npc/*`, `src/lib/game/npc-ai.ts`, `src/lib/game/npc-spawn.ts`, `src/lib/ai/npc-haiku.ts`, `src/lib/ai/npc-fallback-copy.ts`, `src/lib/ai/student-safe-completion.ts` — all deferred to v1.4-post-hard-live per §4.7. The wrapper file does not currently exist in this repo per F2.)
 
 src/components/dashboard/
-  RulerDashboard.tsx                   (Pass 4 — with 3 victory progress strips per Guardrail 3)
+  RulerDashboard.tsx                   (⏳ Pass 4 — student main dashboard with 3 victory progress strips per Guardrail 3 — STILL NEEDS BUILDING)
+
+src/components/game/                   (v1.5 reconciliation — existing draft UI)
+  ✅ RegionPickerMap.tsx                (Leaflet map with 12 regions; supersedes planned map layer of FoundingClaim)
+  ✅ RegionSelectCard.tsx               (two-step draft flow: civ name → region claim; supersedes FoundingClaim.tsx entirely)
+
+src/components/dm/                     (v1.5 reconciliation — existing DM tooling)
+  ✅ DMDebugPanel.tsx                   (event log with filters; covers part of Pass 8 DM debug surface)
+  ✅ DMRosterPanel.tsx                  (live attendance + role coverage; covers part of Pass 8 DM tooling)
+
+src/lib/
+  ✅ dm-log.ts                          (singleton event logger; used by DMDebugPanel)
 
 src/components/realms/
-  FoundingClaim.tsx                    (Pass 4 — with scaffolded input per C6)
-  DiplomacyPanel.tsx                   (Pass 4 — with grayed-locked preview per C2)
-  VassalBanner.tsx                     (NEW v1.1 — Pass 5 — liege-banner overlay + tribute indicator)
+  DiplomacyPanel.tsx                   (⏳ Pass 4 — grayed-locked preview per C2 — STILL NEEDS BUILDING)
+  VassalBanner.tsx                     (⏳ Pass 5 — liege-banner overlay + tribute indicator — STILL NEEDS BUILDING)
+  (FoundingClaim.tsx — REMOVED v1.5; superseded by RegionSelectCard.tsx above)
 
 src/components/projector/
   DraftCeremony.tsx                    (Pass 4 — with Arm Ceremony audio fix per C3)
@@ -1125,9 +1155,10 @@ D:\classciv\civ-game\                   (entire directory)
 - **Review cadence:** update at the end of each calendar week through May 22
 - **Version history:**
   - **1.0** — April 21, 2026 (initial draft, morning). Thirteen sections. Assumed human-dev build pace.
-  - **1.1** — April 21, 2026 (evening). Panel review by seven external personas + ground-truth code audit of `src/lib/game/`. Added: Section 2.5 (panel findings, 37 items, code-vs-plan gap table), Section 4.4 (DEFINE round submission options spec), Section 4.5 (Alliance & War Consequences Matrix — the operational contract), Section 4.6 (Polgara's Four Non-Negotiables), Section 6.1 (geography additions — adjacency, region yields, Madagascar compensation), Section 9.5 (eight-pass build order at Opus 4.7 rate), Migration 013 (alliances + reputation + adjacency + isolated_start), new assertions in Section 8, revised calendar with Wed Apr 22 soft-live, new open decisions F–N, expanded file list. Build-rate corrected from ~1 week to ~5–7 hours of focused session. No scope cut.
+  - **1.1** — April 21, 2026 (evening). Panel review by seven external personas + ground-truth code audit of `src/lib/game/`. Added: Section 2.5 (panel findings, 37 items, code-vs-plan gap table), Section 4.4 (DEFINE round submission options spec), Section 4.5 (Alliance & War Consequences Matrix — the operational contract), Section 4.6 (Polgara's Four Non-Negotiables), Section 6.1 (geography additions — adjacency, region yields, Madagascar compensation), Section 9.5 (eight-pass build order at Opus 4.7 rate), Migration 015 (alliances + reputation + adjacency + isolated_start), new assertions in Section 8, revised calendar with Wed Apr 22 soft-live, new open decisions F–N, expanded file list. Build-rate corrected from ~1 week to ~5–7 hours of focused session. No scope cut.
   - **1.2** — April 21, 2026 (night). Q&A session with Scott, 17 operational questions locked (see §11.1). Key shifts: (a) Hard-live pulled from Mon Apr 27 → **Thu Apr 23** per Q11 — four school days earlier; §10 calendar fully rewritten, portfolio date moves from May 13 → May 8. (b) Battle resolution is **fully auto with full audit log** per Q1; DM Undo scope explicitly narrowed to technical repair only per Q17 (§4.5.1, §11.2). (c) Alliance combat support uses **subset-declared soldiers** per Q6. (d) Vassal tribute is **negotiable 10–30%** per Q7. (e) Betrayal events fire **publicly on projector with full drama copy** per Q9 (§4.5.2). (f) Liege sees **only tribute flow** from vassals — never vassal's internal state — per Q10 (§4.6.1 added). (g) Alliance cluster cap **cut to 2** per Q8 (Decision I). (h) Kaiju renamed **"Mr. Somers-zilla"** per Q-K (§5). (i) Decision E locked: prior team games on hold, Realms is a new game. Decisions A, D, F, G, H, I, J, K, L, M, N all resolved. Decisions B and C remain open per their original dates. No scope cut.
   - **1.3** — April 21, 2026 (later night). NPC civilizations added as a first-class system. *This revision was reverted in v1.4 after external audit.*
+  - **1.5** — April 21, 2026 (late night). **Reconciliation pass after pulling Scott's parallel work stream** from remote. Realms migrations renumbered from 009–013 to **011–015** (remote had already pushed `009_submissions_delete_policy.sql` and `010_clear_submissions_function.sql`). §13 file list updated: `randomize-draft/route.ts`, `presence/route.ts`, `reset/route.ts`, `roster/route.ts`, `DMDebugPanel.tsx`, `DMRosterPanel.tsx`, `dm-log.ts`, `RegionPickerMap.tsx`, `RegionSelectCard.tsx` all marked as EXISTING. `FoundingClaim.tsx` removed — superseded by `RegionSelectCard.tsx` + `RegionPickerMap.tsx`. Pass 4 budget reduced from ≈150 min to ≈110 min. Pass 8 reduced from ≈45 min to ≈30 min. Pass 1 gains `/api/games/[id]/auto-covers` and `/api/games/[id]/covers` routes (referenced by existing DMRosterPanel but not yet shipped). Canonical repo designation moved from `D:\classciv\classciv-src\` (jumpdrive, now deprecated) to `c:\Users\Valued Customer\OneDrive\Desktop\classciv\classciv-src\` per Scott's move. Total build budget: v1.4's 5h 40m → v1.5's 5h 5m. No scope cut.
   - **1.4** — April 21, 2026 (after external audit). **Thirty-finding external audit identified four ship-blockers (F1–F4).** Council response: cut NPCs back to post-hard-live, ship v1.2 scope Thu Apr 23 as panel-reviewed. Key changes: (a) F1 — Wed Apr 22 calendar rewritten against actual teaching-day windows (before-school / prep-period / after-school). (b) F2 nuclear — `src/lib/ai/student-safe-completion.ts` confirmed non-existent in this repo by file inspection; NPC work deferred to v1.4-post-hard-live, wrapper to be built at that time. (c) F3 — Epoch 1 on Thu Apr 23 explicitly scoped as Founding-only; full 4-round epoch structure begins Fri Apr 24. (d) F4 — Guardrail 1 vs vassalage contradiction resolved: engine never transfers a team's last sub-zone; vassalage triggers on would-be-last-loss instead of zero-sub-zones. (e) F6 — `casus_belli_target` replaced with `casus_belli_grants` child table supporting multiple outstanding grants. (f) F9 — zero-commit alliance exploit closed; minimum 1 soldier commit enforced. (g) F11 — vassal duration semantics made explicit with `end_epoch >= start_epoch + 3` constraint. (h) F13 — parent email requires admin CC. (i) F14 — rollback play documented, on Scott's desk Wed evening. (j) F18 — `games.adjacency_strict = true` enforced as hard-live gate. (k) F20 — classroom-civ directory inventoried before delete. (l) F24 — portfolio PDF pipeline dry-run Wed Apr 22, not deferred to May 7. NPC design work preserved in new Appendix D for future build. Build budget reverted from 8h 0m (v1.3) to ≈5h 40m. **Decisions B, L, S, T, U all locked by Scott:** B = Option 1 (winners-and-losers) with positive-narrative-for-losers via Haiku epilogue per-civ (new §4.6.2); L = Reformation accepted as written; S = no roster firstname collisions in either period; T = Period 7 parallel-cohort draft; U = 60-min Wed prep period. **Only Decision C remains open** (finale wording template, needed Fri May 1).
 - **Next review:** April 27, 2026 (start of second playable week) — verify Passes 1–8 all green, rehearsal-portfolio PDF pipeline validated, Sunday-night protocol passing two consecutive weeks.
 
@@ -1176,10 +1207,10 @@ Raw transcript of the seven-persona stress test, preserved for audit. If future 
 4. No religious/cultural reform event. Resolution → §5 Reformation submission (§11 Decision L).
 
 ### Dr. Elena Morozov, geographer
-1. Adjacency graph unspecified. Resolution → §6.1 + Migration 013 sub_zone_adjacencies + §11 Decision F.
+1. Adjacency graph unspecified. Resolution → §6.1 + Migration 015 sub_zone_adjacencies + §11 Decision F.
 2. Western Europe magnet. Resolution → §6.1 region attractiveness balancing.
 3. Resource distribution by region. Resolution → §6.1 region-yield bonuses (§11 Decision G).
-4. Madagascar problem (isolated starts). Resolution → §6.1 + Migration 013 isolated_start flag + compensation mechanics.
+4. Madagascar problem (isolated starts). Resolution → §6.1 + Migration 015 isolated_start flag + compensation mechanics.
 5. War geography / leap conquest. Resolution → §4.5 adjacency rule for Declare War.
 
 ### Col. Tomas Vega (ret.), military strategist
@@ -1190,7 +1221,7 @@ Raw transcript of the seven-persona stress test, preserved for audit. If future 
 5. Vassalage visible and playable. Resolution → §4.6 Guardrail 2 + Pass 5.
 6. Aggressor reputation cost. Resolution → §4.5 aggression_score + Break Alliance reputation decrement.
 7. Proxy pressure / ultimatums. Resolution → §4.4 Issue Ultimatum submission type + §4.5 row.
-8. Domination victory missing. Resolution → §4.5 Domination Victory row + Migration 013 + Pass 2.
+8. Domination victory missing. Resolution → §4.5 Domination Victory row + Migration 015 + Pass 2.
 
 **Review quorum:** all seven personas independently flagged at least one finding. No two personas produced contradictory recommendations. Thirty-seven distinct items; none duplicated across the personas' lists (consolidated count is real). All addressed in v1.1.
 
