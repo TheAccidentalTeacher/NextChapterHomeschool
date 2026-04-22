@@ -20,9 +20,16 @@ export interface BattleResult {
   loserId: string;
   winnerScore: number;
   loserScore: number;
+  scoreDifferential: number;       // |winner - loser| — consumed by sub-zone transfer + vassalage offer logic
   resilienceLoss: number;          // loser loses this
   soldiersLost: number;            // loser loses 1-2 soldiers
-  subZoneTransferred: boolean;
+  subZoneTransferred: boolean;     // true if differential >= 10 — caller still enforces F4 (never take last sub-zone)
+  offerVassalage: boolean;         // true if differential >= 20 — caller presents vassalage option to loser
+  allySupport: {                   // Realms v1.5 alliance combat support (Q6, F9)
+    allyTeamId: string | null;
+    soldiersCommitted: number;
+    contributed: boolean;          // false if ally had 0 soldiers available
+  } | null;
   breakdown: {
     label: string;
     attackerValue: number;
@@ -61,39 +68,67 @@ function calculateScore(p: BattleParticipant): { score: number; breakdown: { lab
 
 /**
  * Resolve a battle between attacker and defender.
+ * Optional ally participant (Realms v1.5 Q6 alliance combat support):
+ *   - Ally contributes declared `soldiers` (subset of their garrison) to the defender's score.
+ *   - If ally has 0 soldiers, they are marked as "unable to assist" and contribute nothing.
+ *   - Ally's d20 roll, barracks, walls, and justification multiplier all apply — BUT only if
+ *     soldiers > 0. Otherwise the ally is skipped entirely.
+ *   - The ally is always assumed to support the defender (classic "alliance defense").
  */
 export function resolveBattle(
   attacker: BattleParticipant,
-  defender: BattleParticipant
+  defender: BattleParticipant,
+  ally?: BattleParticipant
 ): BattleResult {
   const attackResult = calculateScore(attacker);
   const defendResult = calculateScore(defender);
 
-  const attackerWins = attackResult.score > defendResult.score;
+  // Alliance combat support — ally contributes to defender's side (Realms §4.5)
+  let allyResult: { score: number; breakdown: { label: string; value: number }[] } | null = null;
+  let allyContributed = false;
+  if (ally && ally.soldiers > 0) {
+    allyResult = calculateScore(ally);
+    allyContributed = true;
+  }
+
+  const defenderTotal = defendResult.score + (allyResult?.score ?? 0);
+  const attackerWins = attackResult.score > defenderTotal;
   const winnerId = attackerWins ? attacker.teamId : defender.teamId;
   const loserId = attackerWins ? defender.teamId : attacker.teamId;
 
-  // Loser consequences
-  const scoreDiff = Math.abs(attackResult.score - defendResult.score);
+  // Loser consequences (use combined defender+ally score for differential)
+  const scoreDiff = Math.abs(attackResult.score - defenderTotal);
   const soldiersLost = scoreDiff > 15 ? 2 : 1;
   const resilienceLoss = 10 + Math.min(20, scoreDiff);
-  const subZoneTransferred = scoreDiff >= 10; // decisive victory transfers territory
+  const subZoneTransferred = scoreDiff >= 10;
+  const offerVassalage = scoreDiff >= 20;
 
-  // Build combined breakdown
+  // Build combined breakdown (ally column merged into defender for display simplicity)
   const breakdown = attackResult.breakdown.map((b, i) => ({
     label: b.label,
     attackerValue: b.value,
-    defenderValue: defendResult.breakdown[i]?.value ?? 0,
+    defenderValue:
+      (defendResult.breakdown[i]?.value ?? 0) +
+      (allyResult?.breakdown[i]?.value ?? 0),
   }));
 
   return {
     winnerId,
     loserId,
-    winnerScore: attackerWins ? attackResult.score : defendResult.score,
-    loserScore: attackerWins ? defendResult.score : attackResult.score,
+    winnerScore: attackerWins ? attackResult.score : defenderTotal,
+    loserScore: attackerWins ? defenderTotal : attackResult.score,
+    scoreDifferential: scoreDiff,
     resilienceLoss,
     soldiersLost,
     subZoneTransferred,
+    offerVassalage,
+    allySupport: ally
+      ? {
+          allyTeamId: ally.teamId,
+          soldiersCommitted: ally.soldiers,
+          contributed: allyContributed,
+        }
+      : null,
     breakdown,
   };
 }

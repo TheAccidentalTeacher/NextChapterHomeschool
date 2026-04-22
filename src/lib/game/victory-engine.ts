@@ -11,7 +11,8 @@ export type VictoryType =
   | "scientific"
   | "endgame_lunar_race"
   | "endgame_mars_colonization"
-  | "endgame_warp_speed";
+  | "endgame_warp_speed"
+  | "domination"; // Realms v1.5 — §4.5 consequences matrix
 
 export interface VictoryCondition {
   type: VictoryType;
@@ -63,6 +64,12 @@ export const VICTORY_CONDITIONS: Record<VictoryType, VictoryCondition> = {
     description: "Deep space message — every civ submits first-contact response",
     emoji: "🛸",
   },
+  domination: {
+    type: "domination",
+    label: "Domination Victory",
+    description: "(sub-zones × 2) + (active vassals × 3) + (wars won − wars lost) — unlocks E6",
+    emoji: "⚔️",
+  },
 };
 
 // ---- Team Data Interfaces ----
@@ -91,6 +98,11 @@ export interface TeamData {
   highestTechTier: number;
   completedTechs: string[];
   wondersCompleted: string[];
+  // Realms v1.5 — Domination victory inputs (§4.5)
+  subZonesControlled?: number;  // count of sub_zones.controlled_by_team_id = this team
+  activeVassalsCount?: number;  // count of vassal_relationships where overlord = this team AND is_active
+  warsWon?: number;              // count of epoch_conflict_flags resolved where this team is the winner
+  warsLost?: number;             // count of epoch_conflict_flags resolved where this team is the loser
 }
 
 export interface VictoryResult {
@@ -271,6 +283,37 @@ function calculateWarpSpeed(teams: TeamData[]): VictoryResult {
   };
 }
 
+/**
+ * Calculate standings for Domination Victory (Realms v1.5 §4.5).
+ * Composite: (sub_zones × 2) + (active_vassals × 3) + (wars_won − wars_lost).
+ * Top score at E10 wins if no cultural/economic winner exceeds threshold.
+ * Unlocked at Epoch 6 when wars open.
+ */
+function calculateDomination(teams: TeamData[]): VictoryResult {
+  const scored = teams.map((t) => {
+    const subZones = t.subZonesControlled ?? 0;
+    const vassals = t.activeVassalsCount ?? 0;
+    const warsWon = t.warsWon ?? 0;
+    const warsLost = t.warsLost ?? 0;
+    const score = subZones * 2 + vassals * 3 + (warsWon - warsLost);
+    return {
+      teamId: t.id,
+      teamName: t.name,
+      score,
+      achieved: false,
+    };
+  });
+
+  scored.sort((a, b) => b.score - a.score);
+  scored.forEach((s, i) => (s.achieved = i === 0));
+
+  return {
+    type: "domination",
+    standings: scored.map((s, i) => ({ ...s, rank: i + 1 })),
+    achievedBy: scored[0]?.teamId ?? null,
+  };
+}
+
 // ---- Main Victory Engine ----
 
 const CALCULATORS: Record<VictoryType, (teams: TeamData[]) => VictoryResult> = {
@@ -281,6 +324,7 @@ const CALCULATORS: Record<VictoryType, (teams: TeamData[]) => VictoryResult> = {
   endgame_lunar_race: calculateLunarRace,
   endgame_mars_colonization: calculateMarsColonization,
   endgame_warp_speed: calculateWarpSpeed,
+  domination: calculateDomination,
 };
 
 /**
