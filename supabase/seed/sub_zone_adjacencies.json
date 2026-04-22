@@ -1,0 +1,8 @@
+{
+  "_comment": "Realms v1.5 Pass 4 adjacency seed. Authored by Scott during Wednesday Apr 22 prep period (Decision F hand-author). Edge types: 'land' | 'coastal' | 'naval_required' | 'impassable'. Format: each row lists zone_number pairs (not UUIDs) — the loader script joins against sub_zones.zone_number at load time. Adjacencies are symmetric — list each pair ONCE (a < b by convention).",
+  "_seed_version": "v1.5-template",
+  "edges": [
+    { "a": 1, "b": 2, "edge_type": "land" },
+    { "a": 2, "b": 3, "edge_type": "land" }
+  ]
+}
