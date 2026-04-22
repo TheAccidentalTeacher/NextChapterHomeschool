@@ -29,7 +29,8 @@ async function confirm(): Promise<boolean> {
   return answer.trim() === "CONFIRM NUKE";
 }
 
-async function deleteGame(sb: ReturnType<typeof createClient>, gameId: string, gameName: string) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function deleteGame(sb: any, gameId: string, gameName: string) {
   console.log(`\n🗑️  ${gameName} (${gameId})`);
 
   const { data: teams } = await sb.from("teams").select("id").eq("game_id", gameId);
