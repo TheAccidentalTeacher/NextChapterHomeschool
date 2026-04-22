@@ -39,6 +39,7 @@ import GlobalEventModal from "@/components/modals/GlobalEventModal";
 import CivNamePrompt from "@/components/student/CivNamePrompt";
 import ClientErrorBoundary from "@/components/ClientErrorBoundary";
 import RegionSelectCard from "@/components/game/RegionSelectCard";
+import RulerDashboard from "@/components/dashboard/RulerDashboard";
 import { getLeadRole, isActionStep, isRoutingStep, STEP_TO_ROUND, STEP_TO_RESOURCE, type EpochStep } from "@/lib/game/epoch-machine";
 import type { RoleName, ResourceType } from "@/types/database";
 import { debug } from "@/lib/debug";
@@ -151,6 +152,8 @@ function TeammatesPanel({ teammates }: { teammates: TeammateInfo[] }) {
 export default function StudentDashboardClient({ userId, displayName }: Props) {
   debug.render("StudentDashboardClient mounted", { userId, displayName });
   const [team, setTeam] = useState<TeamInfo | null>(null);
+  const [gameMode, setGameMode] = useState<"team" | "realms">("team"); // Realms v1.5 — branch when set to 'realms'
+  const [totalEpochs, setTotalEpochs] = useState<number>(15);
   const [role, setRole] = useState<RoleName | null>(null);
   const [secondaryRole, setSecondaryRole] = useState<RoleName | null>(null);
   const [coverInfo, setCoverInfo] = useState<{ covering_role: string; original_role: string } | null>(null);
@@ -237,6 +240,23 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           math_gate_difficulty: ed.math_gate_difficulty ?? "multiply",
           class_period: ed.class_period ?? "6th",
         });
+      }
+
+      // Realms v1.5 — fetch game_mode + total_epochs for RulerDashboard branch.
+      // Reads directly from the games row; epoch/state endpoint does not expose these.
+      try {
+        const gameRes = await fetch(`/api/games/${t.game_id}`);
+        if (gameRes.ok) {
+          const gd = await gameRes.json();
+          if (gd?.game_mode === "team" || gd?.game_mode === "realms") {
+            setGameMode(gd.game_mode);
+          }
+          if (typeof gd?.total_epochs === "number") {
+            setTotalEpochs(gd.total_epochs);
+          }
+        }
+      } catch {
+        // Non-fatal — default to 'team' mode + 15 epochs.
       }
 
       // Get resources
@@ -388,6 +408,63 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           You haven&apos;t been assigned to a team yet. Ask your teacher to add you.
         </p>
         <CivNamePrompt />
+      </div>
+    );
+  }
+
+  // Realms v1.5 branch — render the Ruler Dashboard for Realms-mode games.
+  // Supersedes the five role-specific panels; each student rules one
+  // civilization end-to-end (see §4 Realms product design).
+  if (gameMode === "realms" && team && epoch) {
+    const culturalProgress = Math.min(100, (resources.legacy ?? 0));
+    const economicProgress = Math.min(
+      100,
+      ((resources.production ?? 0) + (resources.reach ?? 0) + (resources.resilience ?? 0)) / 2
+    );
+    const dominationProgress = 0; // TODO: wire (subzones*2 + vassals*3 + wars_won - wars_lost) fetch
+
+    return (
+      <div>
+        <div className="flex justify-end p-2">
+          <SignOutButton>
+            <button
+              type="button"
+              className="rounded-lg border border-stone-700 bg-stone-900/70 px-3 py-1.5 text-sm text-stone-300 transition hover:border-red-700 hover:bg-red-900/20 hover:text-red-300"
+            >
+              ↩ Log out
+            </button>
+          </SignOutButton>
+        </div>
+        <RulerDashboard
+          civName={team.civilization_name ?? team.name}
+          civFlagColor={TEAM_COLOR_PALETTE[team.region_id % TEAM_COLOR_PALETTE.length]}
+          subZoneName={null}
+          currentEpoch={epoch.current_epoch}
+          totalEpochs={totalEpochs}
+          currentRound={epoch.current_round}
+          roundPrompt={""}
+          resources={{
+            production: resources.production ?? 0,
+            reach: resources.reach ?? 0,
+            legacy: resources.legacy ?? 0,
+            resilience: resources.resilience ?? 0,
+            food: resources.food ?? 0,
+          }}
+          population={team.population}
+          warExhaustionLevel={team.war_exhaustion_level}
+          culturalProgress={culturalProgress}
+          economicProgress={economicProgress}
+          dominationProgress={dominationProgress}
+          gameId={team.game_id}
+          teamId={team.id}
+          otherTeams={allTeamRegions.map((tr) => ({
+            id: tr.team_id,
+            name: tr.team_name,
+            civilization_name: tr.civilization_name ?? null,
+          }))}
+          activeAlliances={[]}
+          vassalageState={null}
+        />
       </div>
     );
   }
