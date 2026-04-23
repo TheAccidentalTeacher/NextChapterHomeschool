@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import JustificationField from "./JustificationField";
 import { ROLES } from "@/lib/constants";
 import type { RoleName } from "@/types/database";
+import RoundMapSelector, { type RoundMapMode } from "@/components/game/RoundMapSelector";
 
 interface QuestionOption {
   id: string;
@@ -39,6 +40,14 @@ interface RoundSubmissionCardProps {
   allowFreeText: boolean;
   grade: "6th" | "7_8th";
   onSubmitted?: () => void;
+  // Phase 4 — map-skill data (optional). When provided, RoundMapSelector
+  // renders between options and justification. Kids click the map each round.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subZones?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  teamColors?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  teamRegions?: any[];
 }
 
 export default function RoundSubmissionCard({
@@ -53,6 +62,9 @@ export default function RoundSubmissionCard({
   allowFreeText,
   grade,
   onSubmitted,
+  subZones,
+  teamColors,
+  teamRegions,
 }: RoundSubmissionCardProps) {
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [freeText, setFreeText] = useState("");
@@ -61,6 +73,21 @@ export default function RoundSubmissionCard({
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [checkingExisting, setCheckingExisting] = useState(true);
+  // Phase 4 — map-skill selection per round (Team mode)
+  const [mapSelection, setMapSelection] = useState<{
+    subZoneId: string;
+    regionId: number;
+    targetTeamId?: string;
+    terrainType?: string;
+    hint?: string;
+  } | null>(null);
+  const hasMapData = Boolean(subZones && subZones.length > 0 && teamColors);
+  const roundModeUpper = roundType.toUpperCase();
+  const isActionRound =
+    roundModeUpper === "BUILD" ||
+    roundModeUpper === "EXPAND" ||
+    roundModeUpper === "DEFINE" ||
+    roundModeUpper === "DEFEND";
 
   const roleInfo = ROLES[role];
   const sentenceCount = (justification.match(/[.!?]+/g) || []).length;
@@ -126,7 +153,8 @@ export default function RoundSubmissionCard({
           round_type: roundType,
           option_selected: selectedOption,
           justification_text: justification,
-          free_text_action: freeText || undefined,
+          free_text_action: freeText || JSON.stringify({ map_selection: mapSelection ?? null }),
+          map_selection: mapSelection ?? null,
         }),
       });
 
@@ -247,6 +275,27 @@ export default function RoundSubmissionCard({
           </div>
         )}
       </div>
+
+      {/* Map-skill selector (Phase 4 — Team mode kids click the map each round) */}
+      {hasMapData && isActionRound ? (
+        <RoundMapSelector
+          mode={roundModeUpper as RoundMapMode}
+          myTeamId={teamId}
+          subZones={subZones!}
+          teamColors={teamColors!}
+          teamRegions={teamRegions}
+          selectedSubZoneId={mapSelection?.subZoneId ?? null}
+          onSelect={(sel) => {
+            setMapSelection({
+              subZoneId: sel.subZoneId,
+              regionId: sel.regionId,
+              targetTeamId: sel.targetTeamId,
+              terrainType: sel.terrainType,
+              hint: sel.hint,
+            });
+          }}
+        />
+      ) : null}
 
       {/* Justification */}
       <JustificationField

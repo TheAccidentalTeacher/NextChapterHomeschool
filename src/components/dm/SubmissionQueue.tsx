@@ -18,6 +18,13 @@ interface SubmissionDetail {
   option_selected: string | null;
   justification_text: string | null;
   free_text_action: string | null;
+  map_selection: {
+    subZoneId?: string;
+    regionId?: number;
+    targetTeamId?: string;
+    terrainType?: string;
+    hint?: string;
+  } | null;
   submitted_at: string | null;
   score: number | null;
 }
@@ -155,13 +162,25 @@ export default function SubmissionQueue({
         submitted_at: string | null;
         score: number | null;
       }) => {
-        let parsed: { option_selected?: string; justification_text?: string; free_text_action?: string } = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let parsed: any = {};
         try { parsed = JSON.parse(s.content ?? "{}"); } catch { /* ignore */ }
+        // Map selection may live at parsed.map_selection OR inside free_text_action
+        // (depending on which submission path was used — solo vs team). Both supported.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let mapSel: any = parsed.map_selection ?? null;
+        if (!mapSel && typeof parsed.free_text_action === "string") {
+          try {
+            const fta = JSON.parse(parsed.free_text_action);
+            if (fta?.map_selection) mapSel = fta.map_selection;
+          } catch { /* ignore */ }
+        }
         return {
           role: s.role,
           option_selected: parsed.option_selected ?? null,
           justification_text: parsed.justification_text ?? null,
           free_text_action: parsed.free_text_action ?? null,
+          map_selection: mapSel ?? null,
           submitted_at: s.submitted_at ?? null,
           score: s.score ?? null,
         };
@@ -338,7 +357,17 @@ export default function SubmissionQueue({
                             <span className="text-stone-500">Action: </span>{sub.option_selected}
                           </p>
                         )}
-                        {sub.free_text_action && (
+                        {sub.map_selection && (
+                          <p className="text-xs text-emerald-300">
+                            <span className="text-stone-500">Map choice: </span>
+                            {sub.map_selection.terrainType ? `${sub.map_selection.terrainType} ` : ""}
+                            (region {sub.map_selection.regionId ?? "?"}
+                            {sub.map_selection.targetTeamId ? `, target team ${sub.map_selection.targetTeamId.slice(0, 8)}…` : ""}
+                            )
+                            {sub.map_selection.hint ? ` — ${sub.map_selection.hint}` : ""}
+                          </p>
+                        )}
+                        {sub.free_text_action && !sub.map_selection && (
                           <p className="text-xs text-sky-300">
                             <span className="text-stone-500">Proposed: </span>{sub.free_text_action}
                           </p>

@@ -850,6 +850,9 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
                     }
                     allowFreeText={currentQuestion?.allowFreeText ?? true}
                     grade={(epoch?.class_period === "6th" ? "6th" : "7_8th") as "6th" | "7_8th"}
+                    subZones={subZones}
+                    teamColors={allTeamRegions.map((tr) => ({ teamId: tr.teamId, color: tr.color, name: tr.name }))}
+                    teamRegions={allTeamRegions}
                   />
                 </ClientErrorBoundary>
               </div>

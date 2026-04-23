@@ -27,7 +27,7 @@ export async function POST(
   }
 
   const body = await req.json();
-  const { team_id, role, round_type, option_selected, justification_text, free_text_action } = body;
+  const { team_id, role, round_type, option_selected, justification_text, free_text_action, map_selection } = body;
 
   if (!team_id || !role || !round_type || !justification_text) {
     return NextResponse.json(
@@ -92,11 +92,12 @@ export async function POST(
     }
   }
 
-  // Build content JSON
+  // Build content JSON (map_selection lands here so DM queue + portfolio can surface it)
   const content = JSON.stringify({
     option_selected,
     justification_text,
     free_text_action: free_text_action || null,
+    map_selection: map_selection ?? null,
   });
 
   // Check for duplicate submission
