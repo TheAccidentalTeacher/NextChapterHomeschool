@@ -21,8 +21,10 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import DiplomacyPanel from "@/components/realms/DiplomacyPanel";
+import RoundMapSelector, { type RoundMapMode, type MapSelection } from "@/components/game/RoundMapSelector";
+import type { SubZoneData, TeamColor, TeamRegion } from "@/components/map/GameMap";
 
 interface RulerDashboardProps {
   civName: string;
@@ -51,6 +53,11 @@ interface RulerDashboardProps {
   otherTeams: Array<{ id: string; name: string; civilization_name: string | null }>;
   activeAlliances: Array<{ id: string; partner_team_id: string; partner_civ_name: string }>;
   vassalageState: { isVassal: boolean; liegeCivName?: string } | null;
+  // Map-skill data (optional — when supplied, RoundMapSelector renders in the round prompt)
+  subZones?: SubZoneData[];
+  teamColors?: TeamColor[];
+  teamRegions?: TeamRegion[];
+  onMapSelect?: (selection: MapSelection) => void;
 }
 
 function VictoryStrip({
@@ -145,7 +152,18 @@ export default function RulerDashboard(props: RulerDashboardProps) {
     otherTeams,
     activeAlliances,
     vassalageState,
+    subZones,
+    teamColors,
+    teamRegions,
+    onMapSelect,
   } = props;
+
+  const [mapSelectedId, setMapSelectedId] = useState<string | null>(null);
+  const mapMode: RoundMapMode | null = (() => {
+    const r = currentRound?.toUpperCase?.();
+    if (r === "BUILD" || r === "EXPAND" || r === "DEFINE" || r === "DEFEND") return r;
+    return null;
+  })();
 
   const dominationLocked = currentEpoch < 6;
   const warExhaustionTier = useMemo(() => {
@@ -263,6 +281,24 @@ export default function RulerDashboard(props: RulerDashboardProps) {
         </div>
         <div style={{ fontSize: "1.05rem", color: "#1a1a1a", marginTop: 4 }}>{roundPrompt || "—"}</div>
       </div>
+
+      {/* Map-skill selector — shown when map data is available and the round
+          is an action round. Per Scott's Phase 2 ask: children use the map
+          every round, not only Founding. */}
+      {mapMode && subZones && subZones.length > 0 && teamColors ? (
+        <RoundMapSelector
+          mode={mapMode}
+          myTeamId={teamId}
+          teamColors={teamColors}
+          teamRegions={teamRegions}
+          subZones={subZones}
+          selectedSubZoneId={mapSelectedId}
+          onSelect={(sel) => {
+            setMapSelectedId(sel.subZoneId);
+            onMapSelect?.(sel);
+          }}
+        />
+      ) : null}
 
       {/* Diplomacy panel */}
       <DiplomacyPanel

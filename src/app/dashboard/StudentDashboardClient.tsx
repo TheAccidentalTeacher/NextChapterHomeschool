@@ -458,12 +458,15 @@ export default function StudentDashboardClient({ userId, displayName }: Props) {
           gameId={team.game_id}
           teamId={team.id}
           otherTeams={allTeamRegions.map((tr) => ({
-            id: tr.team_id,
-            name: tr.team_name,
-            civilization_name: tr.civilization_name ?? null,
+            id: tr.teamId,
+            name: tr.name,
+            civilization_name: tr.name,
           }))}
           activeAlliances={[]}
           vassalageState={null}
+          subZones={subZones}
+          teamColors={allTeamRegions.map((tr) => ({ teamId: tr.teamId, color: tr.color, name: tr.name }))}
+          teamRegions={allTeamRegions}
         />
       </div>
     );
