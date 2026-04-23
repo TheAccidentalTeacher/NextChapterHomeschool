@@ -97,6 +97,14 @@ export async function GET(
     totalResources: Object.values(resourcesByTeam[t.id] ?? {}).reduce((a, b) => a + b, 0),
   }));
 
+  // Sub-zones for the per-round map-skill interaction (Phase 2 — RoundMapSelector)
+  const { data: subZones } = await supabase
+    .from("sub_zones")
+    .select(
+      "id, zone_number, region_id, terrain_type, geojson, yield_modifier, controlled_by_team_id, soil_fertility, wildlife_stock, settlement_name, founding_claim, founding_bonus_active"
+    )
+    .eq("game_id", gameId);
+
   // Pick questions for this epoch
   const questions = loadQuestionBank();
   const epochQuestions: Record<string, ReturnType<typeof pickQuestion>> = {};
@@ -111,5 +119,20 @@ export async function GET(
     currentRound: game.current_round,
     teams: teamsWithResources,
     questions: epochQuestions,
+    subZones: (subZones ?? []).map((sz) => ({
+      id: sz.id,
+      name: `Zone ${sz.zone_number}`,
+      zone_number: sz.zone_number,
+      region_id: sz.region_id,
+      terrain_type: sz.terrain_type,
+      geojson: sz.geojson,
+      yield_modifier: sz.yield_modifier,
+      controlled_by_team_id: sz.controlled_by_team_id,
+      soil_fertility: sz.soil_fertility,
+      wildlife_stock: sz.wildlife_stock,
+      settlement_name: sz.settlement_name,
+      founding_claim: sz.founding_claim,
+      founding_bonus_active: sz.founding_bonus_active,
+    })),
   });
 }

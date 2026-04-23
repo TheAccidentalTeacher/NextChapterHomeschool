@@ -61,6 +61,22 @@ interface Question {
   scaffolding6th: string;
 }
 
+interface SubZoneRow {
+  id: string;
+  name?: string;
+  zone_number?: number;
+  region_id: number;
+  terrain_type: string;
+  geojson: unknown;
+  yield_modifier?: number;
+  controlled_by_team_id?: string | null;
+  soil_fertility?: number;
+  wildlife_stock?: number;
+  settlement_name?: string | null;
+  founding_claim?: string | null;
+  founding_bonus_active?: boolean;
+}
+
 interface GameData {
   playerTeamId: string;
   playerCivName: string;
@@ -70,10 +86,12 @@ interface GameData {
     id: string;
     name: string;
     civName: string;
+    regionId?: number | null;
     resources: Record<string, number>;
     population: number;
     totalResources: number;
   }>;
+  subZones?: SubZoneRow[];
 }
 
 interface RoundResult {
@@ -249,6 +267,15 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   const [pendingResult, setPendingResult] = useState<RoundResult | null>(null);
   const [routing, setRouting] = useState<Routing>({ store: 60, food: 25, defense: 15 });
 
+  // Per-round map-skill selection (Phase 2 — RoundMapSelector)
+  const [mapSelection, setMapSelection] = useState<{
+    subZoneId: string;
+    regionId: number;
+    targetTeamId?: string;
+    terrainType?: string;
+    hint?: string;
+  } | null>(null);
+
   // All round results this epoch (for summary)
   const [roundResults, setRoundResults] = useState<RoundResult[]>([]);
   const [epochSummary, setEpochSummary] = useState<EpochSummary | null>(null);
@@ -267,6 +294,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         currentEpoch: data.currentEpoch,
         questions: data.questions,
         teams: data.teams,
+        subZones: data.subZones ?? [],
       });
       setPlayerResources(player.resources ?? {});
       setPlayerPopulation(player.population ?? 10);
