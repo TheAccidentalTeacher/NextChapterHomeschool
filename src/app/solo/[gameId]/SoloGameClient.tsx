@@ -826,10 +826,9 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
                   teamRegions={gameData.teams
                     .filter((t) => t.regionId != null)
                     .map((t, i) => ({
-                      team_id: t.id,
-                      team_name: t.name,
-                      civilization_name: t.civName ?? null,
-                      region_id: t.regionId!,
+                      teamId: t.id,
+                      regionId: t.regionId!,
+                      name: t.civName || t.name,
                       color: ["#e63946","#2a9d8f","#e9c46a","#f4a261","#457b9d","#a8dadc"][i % 6],
                     }))}
                   subZones={gameData.subZones.map((sz) => ({
