@@ -76,7 +76,7 @@ export async function POST(
 ) {
   const { gameId } = await params;
   const body = await req.json();
-  const { teamId, step, optionSelected, justificationText, questionId } = body;
+  const { teamId, step, optionSelected, justificationText, questionId, mapSelection } = body;
 
   if (!teamId || !step || !justificationText) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -120,11 +120,12 @@ export async function POST(
   const { score, multiplier, feedback } = scoreJustification(justificationText);
   const earned = Math.max(2, Math.round(score * 5 * multiplier));
 
-  // Save submission record
+  // Save submission record (map_selection lands in content JSON so DM + portfolio can see it)
   const content = JSON.stringify({
     option_selected: optionSelected || null,
     justification_text: justificationText,
     question_id: questionId || null,
+    map_selection: mapSelection ?? null,
     solo_mode: true,
   });
 

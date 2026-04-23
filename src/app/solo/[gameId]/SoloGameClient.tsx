@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import subZonesJson from "@/../public/data/sub-zones.json";
+import RoundMapSelector, { type RoundMapMode } from "@/components/game/RoundMapSelector";
 
 // Dynamic imports — Leaflet requires browser APIs (no SSR)
 const MapWrapper = dynamic(() => import("@/components/map/MapWrapper"), {
@@ -390,6 +391,10 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
   // ── Handle question submit ───────────────────────────────────
   async function handleSubmit() {
     if (!gameData || !justification.trim()) return;
+    if (!mapSelection) {
+      alert("Click the map to choose a location before you submit.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`/api/solo/${gameId}/submit`, {
@@ -401,6 +406,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
           optionSelected: selectedOption,
           justificationText: justification,
           questionId: currentQuestion?.id ?? null,
+          mapSelection,
         }),
       });
       const data = await res.json();
@@ -415,6 +421,7 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
         routing: { store: 60, food: 25, defense: 15 },
       });
       setUiStep("question_scored");
+      setMapSelection(null); // reset for next round
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : "Error submitting");
     } finally {
@@ -805,6 +812,54 @@ export default function SoloGameClient({ gameId }: { gameId: string }) {
                   </p>
                 </details>
               </div>
+
+              {/* Map-skill selector (Phase 2 — kids use the map each round) */}
+              {gameData?.subZones && gameData.subZones.length > 0 ? (
+                <RoundMapSelector
+                  mode={currentActionStep.toUpperCase() as RoundMapMode}
+                  myTeamId={gameData.playerTeamId}
+                  teamColors={gameData.teams.map((t, i) => ({
+                    teamId: t.id,
+                    color: ["#e63946","#2a9d8f","#e9c46a","#f4a261","#457b9d","#a8dadc"][i % 6],
+                    name: t.civName || t.name,
+                  }))}
+                  teamRegions={gameData.teams
+                    .filter((t) => t.regionId != null)
+                    .map((t, i) => ({
+                      team_id: t.id,
+                      team_name: t.name,
+                      civilization_name: t.civName ?? null,
+                      region_id: t.regionId!,
+                      color: ["#e63946","#2a9d8f","#e9c46a","#f4a261","#457b9d","#a8dadc"][i % 6],
+                    }))}
+                  subZones={gameData.subZones.map((sz) => ({
+                    id: sz.id,
+                    name: sz.name ?? `Zone ${sz.zone_number ?? ""}`,
+                    region_id: sz.region_id,
+                    terrain_type: sz.terrain_type,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    geojson: sz.geojson as any,
+                    yield_modifier: sz.yield_modifier ?? 1.0,
+                    zone_number: sz.zone_number,
+                    controlled_by_team_id: sz.controlled_by_team_id ?? null,
+                    soil_fertility: sz.soil_fertility,
+                    wildlife_stock: sz.wildlife_stock,
+                    settlement_name: sz.settlement_name ?? null,
+                    founding_claim: sz.founding_claim ?? null,
+                    founding_bonus_active: sz.founding_bonus_active,
+                  }))}
+                  selectedSubZoneId={mapSelection?.subZoneId ?? null}
+                  onSelect={(sel) => {
+                    setMapSelection({
+                      subZoneId: sel.subZoneId,
+                      regionId: sel.regionId,
+                      targetTeamId: sel.targetTeamId,
+                      terrainType: sel.terrainType,
+                      hint: sel.hint,
+                    });
+                  }}
+                />
+              ) : null}
 
               {/* Justification */}
               <div className="space-y-2">
